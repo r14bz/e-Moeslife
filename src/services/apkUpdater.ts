@@ -319,17 +319,20 @@ export async function notifyApkUpdateAvailable(release: ApkReleaseInfo): Promise
       // Channel may already exist on Android
     }
 
+    const summary = buildNotificationSummary(release);
+    const largeLines = release.changelog
+      .flatMap((group) => group.items.slice(0, 2).map((item) => `• [${group.label}] ${item}`))
+      .slice(0, 5);
+
     await LocalNotifications.schedule({
       notifications: [
         {
           id: APK_UPDATE_NOTIFICATION_ID,
           title: `Pembaruan e-Moeslife v${release.versionName}`,
-          body: buildNotificationSummary(release),
+          body: summary,
+          largeBody: largeLines.length > 0 ? largeLines.join("\n") : summary,
+          summaryText: `Versi v${release.versionName}`,
           channelId: UPDATE_CHANNEL_ID,
-          schedule: {
-            at: new Date(Date.now() + 600),
-            allowWhileIdle: true,
-          },
           extra: {
             type: "apk-update",
             versionCode: release.versionCode,
