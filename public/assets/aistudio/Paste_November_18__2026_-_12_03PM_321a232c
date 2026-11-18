@@ -1,0 +1,371 @@
+oeslife
+Gemini 4 Hydrogen
+Ran for 0s
+Checkpoint
+Perbaharui halaman download e-Moeslife nya, sementara gunakan PWA untuk file nya
+Gemini 4 Hydrogen
+Ran for 2m 57s
+
+Action history
+Here are key actions taken for the app:
+
+Edited 7 files
+src/types/emoeslife.ts
+src/hooks/usePWAInstall.ts
+src/components/DownloadView.tsx
+src/components/HomeView.tsx
+src/components/AppShell.tsx
+src/App.tsx
+public/download.html
+Built
+Halaman unduh e-Moeslife telah diperbarui sepenuhnya untuk menggunakan PWA (Progressive Web App) menggantikan tautan file APK lama.
+Ringkasan Pembaruan
+Halaman Unduh & Pemasangan PWA di Dalam Aplikasi:
+Kartu Unduh e-Moeslife di Beranda dan tombol Unduh Aplikasi (PWA) di bilah samping kini langsung membuka halaman unduh terintegrasi di dalam aplikasi (mendukung tautan langsung /?view=download dan /download).
+Menyediakan tombol Pasang Aplikasi e-Moeslife (PWA) yang terhubung ke event instalasi browser (beforeinstallprompt) dengan status pemasangan dan state yang tetap tersimpan antar perpindahan halaman.
+Menambahkan tombol Simpan 15 Kitab Offline beserta ringkasan status paket PWA (format distribusi, kesiapan Service Worker, status koneksi, dan jumlah naskah kitab tersimpan).
+Menyediakan panduan pemasangan interaktif per perangkat (Android Chrome/Edge, iPhone/iPad Safari, dan Desktop), serta daftar fitur terbaru (Jadwal Shalat, Tahlil & Dzikir, Al-Qur'an 30 Juz & Tafsir, 15 Kitab Kuning termasuk Sullamut Taufiq & Safinah An-Najah Edisi Baru, Murattal, Lipat Terjemah, dan Pembaruan Otomatis PWA).
+Pembaruan Halaman Publik (/download.html):
+Menghapus seluruh tautan dan instruksi APK Android lama.
+Memperbarui tampilan, daftar fitur, manifest & ikon PWA, pendaftaran Service Worker, tombol instalasi PWA langsung, serta tab panduan Android/iOS/Desktop agar tautan /download.html tetap siap dibagikan secara langsung.
+Verifikasi:
+Proses build (compile_applet) dan pengecekan tipe (lint_applet / tsc --noEmit) selesai tanpa error.
+Checkpoint
+Punya ide bagaimana baik nya kartu kartu mulai perjalanan mu dan rak kitab kuning di tampilkan agar lebih menarik ?
+Termasuk ubah icon nya mungkin, atau warna nya
+Gemini 4 Hydrogen
+Ran for 29s
+Saat ini, kartu-kartu di bagian Mulai perjalananmu dan Rak Kitab Kuning terlihat seragam karena semua kartu memakai ikon gambar yang sama persis (/assets/collection-icon.webp), warna latar yang sama, serta belum menampilkan konteks singkat di dalam kartu.
+Berikut beberapa ide desain agar kedua bagian tersebut terasa lebih hidup, mudah dibedakan sekilas, namun tetap tenang dan selaras dengan nuansa krem perkamen, hijau zamrud, dan emas khas e-Moeslife:
+1. Kartu "Mulai perjalananmu" (8 Koleksi Utama)
+Ganti ikon tunggal dengan ikon vektor tematik per bacaan:
+Rangkaian Tahlil: ornamen bintang delapan Islami (Rub el Hizb ۞) atau gulungan naskah doa.
+Surah Yasin & Surah Ar-Rahman: ikon mushaf/ayat terbuka dengan aksen kaligrafi mini atau penanda ayat (۝).
+Dzikir Ba’da Shalat: ikon tasbih / bulan-bintang yang tenang.
+Doa & Dzikir: ikon tangan berdoa / hati yang lembut.
+Al-Qur’an & Murattal: ikon Al-Qur’an dengan aksen audio/gelombang suara.
+Tafsir Al-Qur’an: ikon kitab dengan penanda/kaca pembesar bacaan.
+Kitab Kuning: ikon rak kitab atau jilid buku bertumpuk.
+Beri pembeda warna aksen per kelompok (tetap lembut & elegan):
+Kelompok Wirid & Tahlil (Tahlil, Dzikir, Doa): aksen wadah ikon Hijau Zamrud lembut (#e6efe9 di terang / #172c24 di gelap).
+Kelompok Al-Qur’an (Yasin, Ar-Rahman, Al-Qur’an, Tafsir): aksen Emas Antik hangat (#f4ebd4 di terang / #2a2415 di gelap).
+Kelompok Perpustakaan (Kitab Kuning): kartu sedikit lebih menonjol dengan aksen Zamrud–Emas sebagai pintu masuk ke 15+ kitab.
+Tambahkan 1 baris subjudul singkat:
+Contoh: "Tawasul, tahlil & doa", "30 juz + audio qari", "15+ kitab kuning". Ini membantu mata langsung mengenali isi tanpa harus membaca judul besar satu per satu.
+Variasi Tata Letak (Opsional — Gaya Bento):
+Jadikan 2 koleksi paling sering dibuka (Rangkaian Tahlil dan Al-Qur’an & Murattal) berukuran sedikit lebih lebar di baris paling atas dengan informasi ringkas, sementara 6 koleksi lainnya tersusun rapi di bawahnya.
+2. Kartu "Rak Kitab Kuning" (Beranda & Perpustakaan Kitab)
+Ubah ikon menjadi "Miniatur Sampul / Punggung Kitab":
+Daripada memakai ikon bulat/persegi biasa, setiap kartu kitab di sisi kiri bisa menampilkan ilustrasi jilid kitab vertikal lengkap dengan garis punggung buku, bingkai tipis emas klasik, dan nama/kaligrafi singkat kitab. Hasilnya benar-benar terasa seperti melihat rak kitab sungguhan.
+Kode warna sampul berdasarkan disiplin ilmu (kategori):
+Kartu utamanya tetap berwarna krem/gelap agar nyaman dibaca, sementara warna sampul kitab mini membedakan bidang ilmunya:
+Fiqih (Sullamut Taufiq, Safinah, Fathul Qarib) → Hijau Zamrud Klasik
+Hadis (Arba’in, Bulughul Maram, Shahih Muslim, Muwatta) → Biru Safir / Navy Klasik
+Tasawuf & Adab (Al-Hikam, Bidayatul Hidayah, Futuhul Ghaib, Ta’lim) → Cokelat Kulit / Kayu Jati
+Tafsir & Aqidah (Tafsir Jalalain, Aqidatul Awam) → Emas Zaitun Hangat
+Keluarga / Fikih & Adab (Qurrotul Uyun, Fathul Izar) → Marun Redup Klasik
+Tampilkan info kategori & jumlah bab dengan tipografi bersih:
+Di bawah judul kitab, tampilkan teks tipis tanpa kotak/pil yang ramai, misalnya:
+Fiqih · 48 bab (untuk Sullamut Taufiq)
+Fiqih · Edisi Baru (untuk Safinah An-Najah)
+Efek Interaksi Halus:
+Saat kursor diarahkan atau disentuh, kartu sedikit terangkat halus dan sampul kitabnya memberi aksen kilau garis emas, sehingga terasa responsif namun tidak berlebihan.
+Kalau cocok, Anda ingin langsung diterapkan dengan gaya yang mana?
+Paket Klasik Pesantren: Ikon vektor tematik + sampul jilid kitab mini berwarna per kategori (Fiqih, Hadis, Tasawuf, Tafsir, Aqidah) + subjudul kategori/bab, tetap dalam grid 2–4 kolom yang rapi.
+Paket Bento Modern: Sama seperti di atas, ditambah 2 kartu sorotan utama di Mulai perjalananmu dibuat lebih menonjol di baris atas.
+Kustom: Jika Anda punya preferensi warna tertentu (misal ingin lebih cerah, lebih minimalis, atau mempertahankan nuansa hijau-emas saja), silakan beri tahu untuk langsung saya kerjakan.
+Coba paket klasik pesantren dulu
+Tapi warna krem nya coba ganti dengan warna putih
+Gemini 4 Hydrogen
+Ran for 4m 20s
+
+Action history
+Here are key actions taken for the app:
+
+Edited 11 files
+src/components/PesantrenCardMotifs.tsx
+src/components/HomeView.tsx
+src/components/KitabHubView.tsx
+src/index.css
+src/components/FooterDisclaimer.tsx
+src/components/AppShell.tsx
+vite.config.ts
+public/manifest.webmanifest
+src/components/DownloadView.tsx
+public/download.html
+src/components/BacaanHubView.tsx
+Built
+Gaya Paket Klasik Pesantren telah diterapkan sekaligus mengganti seluruh latar dan permukaan krem mode terang menjadi putih bersih.
+Ringkasan Perubahan
+Kartu "Mulai perjalananmu" & Bacaan Klasik:
+Setiap koleksi kini memiliki ikon tematik khusus (ornamen Rub el-Hizb untuk Tahlil, mushaf terbuka untuk Surah Yasin, butir tasbih untuk Dzikir Ba’da Shalat, tangan berdoa untuk Doa & Dzikir, ikon Al-Qur’an & Murattal, Tafsir, serta rak kitab untuk Kitab Kuning).
+Wadah ikon dibedakan lembut sesuai kelompok bacaan (hijau zamrud untuk wirid/tahlil, emas hangat untuk Al-Qur’an/Yasin/Ar-Rahman, teal untuk doa/tafsir, dan aksen zamrud-emas solid untuk Kitab Kuning).
+Ditambahkan subjudul singkat 1 baris pada setiap kartu serta animasi angkat halus saat disentuh/diarahkan.
+Kartu "Rak Kitab Kuning" (Beranda & Perpustakaan Kitab):
+Ikon generik diganti menjadi miniatur sampul jilid kitab klasik lengkap dengan punggung jilid, garis bingkai emas tipis, aksen tepi halaman putih, serta label kaligrafi Arab sesuai bidang ilmunya.
+Warna sampul kitab dibedakan menurut kategori: Fiqih (hijau zamrud, فقه), Hadis (biru safir, حديث), Tasawuf (cokelat kayu/kulit, تصوف), Tafsir (hijau zaitun, تفسير), Aqidah (teal klasik, عقيدة), Adab (perunggu hangat, أدب), dan Keluarga (marun redup, أسرة), disertai keterangan kategori dan status edisi di bawah judul.
+Penggantian Warna Krem ke Putih:
+Latar utama, bilah samping, kartu-kartu, panel pembaca kitab/Al-Qur’an, halaman unduh PWA, serta warna latar manifest PWA telah diubah dari krem menjadi putih bersih (#ffffff) dengan garis batas tipis netral dan aksen hijau-emas tetap terjaga (mode gelap tetap dipertahankan).
+Verifikasi:
+Build (compile_applet) dan pengecekan TypeScript (lint_applet / tsc --noEmit) berjalan sukses tanpa error.
+Checkpoint
+Coba yang versi paket bento modern
+Background tetap putih, jangan krem
+Gemini 4 Hydrogen
+Ran for 1m 43s
+
+Action history
+Here are key actions taken for the app:
+
+Edited 2 files
+src/components/PesantrenCardMotifs.tsx
+src/components/HomeView.tsx
+Built
+Tampilan beranda telah diperbarui ke Paket Bento Modern dengan latar belakang tetap putih bersih (tanpa warna krem) dan mode gelap tetap terjaga:
+Mulai perjalananmu (Grid Bento 12 kolom):
+2 Kartu Sorotan Utama: Rangkaian Tahlil (kartu hijau zamrud gelap dengan ornamen Rub el-Hizb) dan Al-Qur’an & Murattal (kartu putih bersih dengan ikon mushaf emas) tampil lebih lega di baris atas.
+6 Kartu Koleksi Ringkas: Surah Yasin, Surah Ar-Rahman, Dzikir Ba'da Shalat, Doa & Dzikir, Tafsir Al-Qur’an, dan Kitab Kuning tersusun simetris 3×2 di layar lebar dan 2 kolom di ponsel.
+Rak Kitab Kuning (Grid Bento 12 kolom):
+2 Kartu Sorotan Kitab: Sullamut Taufiq dan Safinah An-Najah — Edisi Baru tampil dengan sampul miniatur berukuran besar beserta ringkasan isi kitab di atas kartu putih.
+4 Kartu Kitab Ringkas: Aqidatul Awam, Arba’in Nawawi, Bidayatul Hidayah, dan Bulughul Maram tersusun rapi dalam 4 kolom sejajar (2×2 di ponsel) dengan kode warna dan kaligrafi bidang ilmu masing-masing.
+Kompilasi aplikasi dan pengecekan TypeScript juga telah berhasil tanpa galat.
+Checkpoint
+Bagaimana kalau 2 kartu sorotan utama di perkecil ukuran kartu nya ?
+Atau di buat menjadi 2x2 juga, tapi tetap menjadi highlight utama
+Yg utama qur'an digital, lalu tahlil
+Dan untuk perpustakaan kitab kuning :
+Tidak perlu ada sorotan kartu, saya ingin semua kitab di tampilkan seperti 4 kartu kitab ringkas
+Mungkin bisa menampilkan 8 sampai 10 kitab, lalu tambahkan kartu "tampilkan semua kitab" di bawahnya
+Lalu di tampilan pencarian kitab nya perkecil kartu kategori kitab nya
+untuk safinah hilangkan tulisan "versi baru" nya
+Gemini 4 Hydrogen
+Ran for 2m 20s
+
+Action history
+Here are key actions taken for the app:
+
+Edited 6 files
+src/utils/kitabEngine.ts
+src/components/DownloadView.tsx
+public/download.html
+src/components/PesantrenCardMotifs.tsx
+src/components/HomeView.tsx
+src/components/KitabHubView.tsx
+Built
+Pembaruan tata letak dan penamaan sudah selesai diterapkan:
+Kartu Sorotan Utama (Mulai perjalananmu):
+Ukuran 2 kartu utama dibuat lebih ringkas dan sejajar 2 kolom di ponsel (serta 2 kolom lebar di desktop) agar menyatu dengan ritme grid di bawahnya, tetap menonjol sebagai sorotan utama.
+Urutannya kini mendahulukan Al-Qur’an Digital (kartu hijau zamrud utama) lalu Rangkaian Tahlil (kartu putih berbingkai aksen zamrud), diikuti 6 koleksi bacaan lainnya.
+Rak Kitab Kuning di Beranda:
+Kartu sorotan besar dihilangkan dan diganti dengan 8 kartu kitab ringkas seragam bersampul mini klasik (2×4 di ponsel, 4×2 di desktop).
+Ditambahkan kartu “Tampilkan semua kitab” tepat di bawahnya untuk langsung membuka seluruh koleksi perpustakaan.
+Tampilan Pencarian & Perpustakaan Kitab:
+Tombol filter kategori kitab diperkecil menjadi lebih ringkas dan rapi, serta kartu kitab di halaman perpustakaan mengikuti tata letak kartu ringkas 2–4 kolom.
+Penamaan Safinah:
+Tulisan “Edisi Baru” pada judul maupun subjudul Safinah An-Najah telah dihapus di daftar kitab, kartu, dan halaman unduh.
+Kompilasi aplikasi dan pengecekan TypeScript telah berhasil tanpa galat.
+Checkpoint
+Sub judul pada kartu sorotan mulai perjalanan mu di hilangkan saja agar judul nya terlihat
+Gemini 4 Hydrogen
+Ran for 41s
+
+Action history
+Here are key actions taken for the app:
+
+Edited 1 file
+src/components/HomeView.tsx
+Built
+Subjudul pada 2 kartu sorotan utama (Al-Qur’an Digital dan Rangkaian Tahlil) di bagian Mulai perjalananmu telah dihapus, dan judulnya kini dapat tampil hingga 2 baris penuh agar terbaca jelas tanpa terpotong di layar ponsel maupun desktop.
+Kompilasi aplikasi dan pengecekan TypeScript telah berhasil tanpa galat.
+Checkpoint
+Tolong perbaiki kartu jadwal shalat harian
+Terlalu gelap background nya
+Dan juga ilustrasi bulan / matahari nya tidak natural
+Mungkin bisa kamu ubah agar lebih baik
+Gemini 4 Hydrogen
+Ran for 1m 42s
+
+Action history
+Here are key actions taken for the app:
+
+Edited 1 file
+src/components/PrayerBanner.tsx
+Built
+Kartu Jadwal Shalat Harian telah diperbarui agar lebih terang, sejuk, dan alami:
+Latar Langit Lebih Terang & Sejuk:
+Lapisan bayangan hitam pekat di bagian bawah kartu telah dihilangkan dan diganti dengan gradien atmosfer langit yang lebih cerah sesuai waktu shalat:
+Pagi, Siang & Sore (sunrise, day, afternoon): Langit biru cerah hingga semburat senja keemasan dengan teks hijau zamrud yang jelas dan kotak jadwal putih kaca lembut.
+Subuh, Maghrib & Malam (dawn, sunset, night): Langit biru senja/malam yang lebih lembut (tidak lagi hitam pekat) agar siluet masjid tetap terlihat rapi dan nyaman dibaca.
+Ilustrasi Matahari & Bulan Sabit yang Lebih Natural:
+Matahari: Menggunakan ilustrasi cakram matahari dengan gradasi sinar lembut, pendaran halo atmosferik, serta siluet awan tipis di langit siang.
+Bulan Sabit (Hilal): Menggunakan ilustrasi SVG bulan sabit melengkung yang halus dengan efek sinar tipis (earthshine) serta taburan bintang kecil statis di langit malam dan fajar.
+Lintasan Langit Siang & Malam: Posisi matahari maupun bulan kini bergerak mengikuti busur langit masing-masing (terbit–maghrib untuk matahari, dan maghrib–terbit untuk bulan), sehingga bulan tidak lagi tersangkut di sudut bawah saat malam hari.
+Kompilasi aplikasi dan pengecekan TypeScript telah berhasil tanpa galat.
+Checkpoint
+Nav bar di bawah bisa di perkecil ukuran kartunya ?
+Selector nya juga lebih bagus kalau berwarna
+Gemini 4 Hydrogen
+Ran for 41s
+
+Action history
+Here are key actions taken for the app:
+
+Edited 1 file
+src/components/AppShell.tsx
+Built
+Navigasi bawah (bottom nav bar) untuk tampilan ponsel kini sudah diperkecil dan dilengkapi selektor berwarna:
+Kartu Navigasi Lebih Ringkas: Diubah menjadi kartu mengambang terpusat berukuran kompak dengan tinggi tombol yang lebih ramping, sudut membulat lembut, dan ikon serta label yang proporsional.
+Selektor Aktif Berwarna: Menu yang sedang aktif kini disorot penuh dengan kapsul warna hijau zamrud (teks & ikon putih) di mode terang, serta warna emas hangat di mode gelap agar langsung terlihat jelas.
+Kompilasi aplikasi dan pengecekan TypeScript telah berhasil tanpa galat.
+Checkpoint
+Maksud nya mode fokus itu apa ya ?
+Gemini 4 Hydrogen
+Ran for 6s
+Mode Fokus di e-Moeslife adalah mode tampilan membaca bebas gangguan saat membuka Ruang Baca Klasik (Tahlil, Yasin, Dzikir) maupun Pembaca Kitab Kuning.
+Saat Mode Fokus diaktifkan (ikon layar penuh / tombol Mode Fokus), aplikasi otomatis melakukan hal berikut:
+Menyembunyikan panel navigasi samping (sidebar) di layar desktop dan menyembunyikan bilah navigasi bawah di ponsel.
+Menyembunyikan daftar isi / daftar bab di sisi kiri, sehingga area teks bacaan melebar penuh ke tengah layar agar mata lebih nyaman saat membaca atau muthala'ah.
+Menjaga tombol navigasi halaman (Sebelumnya / Berikutnya) serta pengaturan tampilan teks tetap mudah diakses agar tetap bisa berpindah bab atau keluar dengan menekan Keluar Fokus.
+Di tampilan mobile fitur mode fokus ini tidak ada beda nya antara aktif dan non aktif
+Gemini 4 Hydrogen
+Ran for 1m 42s
+
+Action history
+Here are key actions taken for the app:
+
+Edited 4 files
+src/components/AppShell.tsx
+src/components/ClassicReaderView.tsx
+src/components/LocalKitabView.tsx
+src/components/ApiKitabView.tsx
+Built
+Benar, sebelumnya pada layar ponsel fitur Mode Fokus hanya menyembunyikan sidebar yang memang sudah tersembunyi di mode mobile. Sekarang Mode Fokus sudah diperbaiki agar perbedaannya langsung terasa nyata di ponsel maupun desktop:
+Menyembunyikan Header Atas Global: Saat Mode Fokus aktif, bilah header hijau di bagian atas layar otomatis disembunyikan sehingga area baca mendapat tambahan ruang vertikal yang lega.
+Menyederhanakan Baris Tombol Atas: Tombol Beranda / Perpustakaan, Daftar Isi / Daftar Bab, dan Edit naskah disembunyikan selama Mode Fokus, digantikan label ringkas bacaan aktif dan tombol Keluar Fokus yang selalu terlihat di ponsel.
+Area Baca Lebih Lebar & Bebas Gangguan: Padding tepi kartu bacaan dibuat lebih ramping di ponsel agar teks Arab dan terjemahan lebih lapang, sekaligus menyembunyikan widget tasbih (di Ruang Baca Klasik) dan catatan kaki (footer disclaimer), sementara tombol pindah halaman (Sebelumnya / Berikutnya) tetap tersedia untuk kenyamanan membaca.
+Kompilasi aplikasi dan pengecekan TypeScript telah berhasil tanpa galat.
+Checkpoint
+ubah nama alquran digital menjadi alquran & murattal
+ubah nama Do'a dan Dzikir menjadi Do'a Harian dan buat perhalaman untuk setiap do'a nya, tambahkan do'a - do'a yang lain jika kamu tahu dan bisa menambahkan nya
+jika memungkinkan, tambahkan sub judul kecil pada kartu mulai perjalanan mu tanpa mengubah ukuran kartunya
+tambahkan transisi yang mulus pada perpindahan halaman bacaan
+hilangkan fitur edit naskah dan penghitung tasbih
+rapihkan kartu kategori atau tag pada halaman perpustakaan agar tidak berantakan
+dzikir ba'da shalat seperti nya perlu di rapihkan lagi
+urutan kitab kuning yang ditampilkan di halaman utama juga perlu di perbaharui, urutkan berdasarkan kitab kitab pengetahuan dasar sampai ke kitab tingkat lanjut
+jika kamu bisa menambahkan kitab lain ke perpustakaan, tolong tambahkan
+Gemini 4 Hydrogen
+Ran for 8m 7s
+
+Action history
+Here are key actions taken for the app:
+
+Edited 21 files
+src/data/dailyPrayers.ts
+public/data/baiquniyyah.json
+public/data/ajurumiyyah.json
+src/data/dzikir.ts
+public/dzikir-overrides.json
+public/etahlil-pembagian-halaman-dzikir.json
+src/index.css
+src/types/emoeslife.ts
+src/services/preferences.ts
+src/components/KitabEditorView.tsx
+src/utils/kitabEngine.ts
+src/components/PesantrenCardMotifs.tsx
+public/download.html
+src/App.tsx
+src/components/AppShell.tsx
+src/components/HomeView.tsx
+src/components/KitabHubView.tsx
+src/components/ClassicReaderView.tsx
+src/components/LocalKitabView.tsx
+src/components/ApiKitabView.tsx
+src/components/QuranStudioView.tsx
+Built
+Semua pembaruan yang Anda minta telah selesai diterapkan dan lolos pemeriksaan build:
+Penamaan & Subjudul Kartu Beranda
+Mengubah Al-Qur’an Digital kembali menjadi Al-Qur’an & Murattal.
+Mengembalikan subjudul ringkas ("30 juz & audio qari" dan "Tawasul, tahlil & doa") pada kedua kartu sorotan utama tanpa memperbesar tinggi kartunya.
+Do'a Harian Per Halaman & Tambahan Do'a
+Mengubah Doa & Dzikir menjadi Do'a Harian dan menyajikan satu do'a per halaman lengkap dengan panel daftar do'a, pencarian, filter Tersimpan, tombol Salin & Simpan, navigasi Do'a Sebelumnya / Do'a Berikutnya, gestur geser (swipe), dan tombol panah keyboard.
+Menambahkan 30 do'a harian kurasi (tidur/bangun, kamar mandi, wudhu, pakaian, bercermin, makan, perjalanan, masjid, belajar/ilmu, orang tua, sapu jagat, sayyidul istighfar, pagi/sore, keteguhan hati, penutup majelis, hujan, adzan, qunut subuh, berbuka puasa, dan tilawah) lengkap dengan Arab berharakat, Latin, dan terjemahan Indonesia, yang tetap tersedia meski offline serta otomatis digabungkan tanpa duplikasi dengan data API daring.
+Transisi Halaman Bacaan yang Lebih Halus
+Memperhalus animasi perpindahan halaman dengan kurva gerak cubic-bezier pada mode bacaan Tahlil/Yasin/Dzikir, reader kitab lokal & katalog online, daftar Do'a Harian, serta perpindahan Surah dan Tafsir (tetap menghormati pengaturan reduced motion).
+Penghapusan Fitur Edit Naskah & Tasbih Digital
+Menghapus fitur Edit naskah (halaman editor beserta tombolnya di reader kitab) serta widget penghitung Tasbih digital dan penyimpanan statusnya.
+Perapihan Dzikir Ba'da Shalat
+Memperbaiki sejumlah penulisan huruf/harakat Arab, spasi berlebih, serta menyelaraskan format tanda pengulangan (٣×) dan pemisah halaman agar lebih nyaman dibaca.
+Perapihan Tag Kategori & Penambahan + Pengurutan Kitab Kuning
+Merapikan bar kategori di halaman Perpustakaan menjadi daftar horizontal yang bersih dan konsisten jumlahnya, serta menormalkan nama kategori (Ilmu Alat, Keluarga).
+Menambahkan 2 kitab dasar baru ke perpustakaan sehingga total menjadi 17 kitab kuning lokal: Matan Al-Ajurumiyyah (Nahwu / Ilmu Alat, 8 bab) dan Mandhumah Al-Baiquniyyah (Musthalah Hadis, 8 bab / 34 bait).
+Mengurutkan katalog kitab kuning dari kitab dasar ke tingkat lanjut (Aqidatul Awam, Safinah An-Najah, Sullamut Taufiq, Matan Al-Ajurumiyyah, Ta’lim Al-Muta’allim, Mandhumah Al-Baiquniyyah, Arba’in Nawawi, Bidayatul Hidayah sebagai 8 kitab utama di beranda, disusul Fathul Qarib, Bulughul Maram, Fathul Izar, Qurrotul Uyun, Al-Hikam, Futuhul Ghaib, Tafsir Jalalain, Muwatta Imam Malik, hingga Shahih Muslim).
+Checkpoint
+pada 2 kartu sorotan di halaman utama (mulai perjalananmu), hilangkan tulisan "UTAMA" dan "BACAAN UTAMA" agar judul tidak terpotong
+Dan pada kartu di bawah nya (yasin, dzikir, dan lain-lain) tambahkan sub judul singkat tanpa mengubah ukuran kartunya
+pada halaman studio ibadah, di tab alquran dan murattal, perbaiki tampilan kartu pemutar audio murattal agar lebih rapi dan tidak berantakan.
+Pada tab do'a harian, fokusnya harus ke kartu do'a nya, terutama saat pindah halaman, sebaiknya kartu bacaan nya yang langsung di sorot jadi tidak perlu scroll ke bawah lagi untuk melihat bacaan nya
+tambahkan tab dzikir ba'da shalat dan tahlil pada halaman studio ibadah. Mungkin nama tab nya perlu di ubah jadi lebih singkat agar muat, misal jadi "Al-Qur'an", "Dzikir", "Do'a", "Tahlil", dan "Tafsir"
+ganti tombol daftar isi yang ada pada halaman header menjadi tombol untuk menuju ke halaman download e-moeslife, dan ganti kartu download e-moeslife yang ada di bawah kartu jadwal shalat menjadi kartu untuk mencari masjid atau mushala terdekat menggunakan google maps
+Nama daftar "Mulai perjalananmu" seperti nya perlu di ubah agar lebih cocok
+Navbar yang ada di bawah sepertinya tidak perlu di tampilkan di halaman utama
+Gemini 4 Hydrogen
+Ran for 30s
+
+Action history
+Silakan konfirmasi pengaktifan Google Maps Platform pada dialog yang muncul agar fitur pencarian masjid dan mushala terdekat dapat disiapkan bersama pembaruan lainnya.
+Google Maps terms accepted, continue setting up Google Maps.
+Gemini 4 Hydrogen
+Ran for 6m 37s
+
+Action history
+Here are key actions taken for the app:
+
+Installed 1 package
+Edited 12 files
+.env.example
+server.ts
+tsconfig.json
+src/types/emoeslife.ts
+src/main.tsx
+src/components/PesantrenCardMotifs.tsx
+src/components/AppShell.tsx
+src/components/HomeView.tsx
+src/components/NearbyMosquesView.tsx
+src/components/QuranStudioView.tsx
+src/App.tsx
+.gmp_cache
+Built
+Seluruh pembaruan telah diterapkan dan diverifikasi (build Vite/PWA serta tsc --noEmit berhasil tanpa galat):
+Ringkasan Perubahan
+Halaman Utama (Beranda):
+Menghapus label "Utama" dan "Bacaan Utama" pada dua kartu sorotan utama (Al-Qur’an & Murattal dan Rangkaian Tahlil) agar judul tampil utuh tanpa terpotong.
+Menampilkan subjudul singkat di bawah 6 kartu pilihan lainnya (Surah Yasin, Surah Ar-Rahman, Dzikir Ba'da Shalat, Do'a Harian, Tafsir Al-Qur’an, Kitab Kuning) pada layar mobile maupun desktop tanpa menambah tinggi kartu.
+Mengganti judul daftar "Mulai perjalananmu" menjadi Bacaan & Amalan Harian (Ibadah Sehari-hari).
+Menyembunyikan bottom navbar pada halaman utama agar tampilan beranda lebih lega.
+Mengganti kartu cepat unduh di samping jadwal shalat menjadi kartu Masjid & Mushala Terdekat yang membuka peta interaktif Google Maps lengkap dengan filter (Semua, Masjid, Mushala), pilihan radius (1 km, 3 km, 5 km), pencarian wilayah, tombol GPS opsional (Gunakan Lokasi Saya), jarak otomatis, dan tautan Petunjuk Arah.
+Header Aplikasi:
+Mengganti tombol "Pindah bacaan" di header atas menjadi tombol Unduh menuju halaman pemasangan aplikasi (PWA).
+Studio Ibadah:
+Menambahkan tab Dzikir (Dzikir Ba'da Shalat 15 halaman terstruktur) dan Tahlil (Rangkaian Tahlil lengkap) dengan label ringkas: Al-Qur'an, Dzikir, Do'a, Tahlil, dan Tafsir.
+Merapikan kartu Pemutar Murattal pada tab Al-Qur'an menjadi tata letak 2 baris yang teratur (header + toggle Latin/Terjemahan, lalu pemilih Qari + tombol Putar Surah/Jeda & Stop, serta kontrol audio penuh di bawahnya).
+Memfokuskan tab Do'a Harian langsung ke kartu bacaan do'a dengan auto-scroll mulus (scrollIntoView) dan bingkai sorotan setiap kali halaman berpindah atau tab dibuka.
+Google Maps Platform Compliance & Notices
+ToS Compliance Review: Pedoman compliance-review Google Maps Platform ToS Compliance Filter telah ditinjau dan dipatuhi (penggunaan @vis.gl/react-google-maps, mapId="DEMO_MAP_ID", internalUsageAttributionIds, persetujuan lokasi eksplisit oleh pengguna, permintaan fields Places minimal, serta penanganan batas kuota demo two-tier).
+Source Attribution: N/A (seluruh kode komponen dibuat khusus untuk aplikasi ini).
+Google Maps Platform Appendix:
+Cost Notice: Usage of Google Maps Platform products and services may incur costs against your Google Cloud project billing account.
+Google Maps Platform APIs & SDKs Used:
+Maps JavaScript API (@vis.gl/react-google-maps, geometry library)
+Places API (New) (Place.searchNearby & Place.searchByText)
+API Key Restrictions: Pelajari cara membatasi dan mengamankan kunci API Google Maps Anda di https://docs.cloud.google.com/api-keys/docs/add-restrictions-api-keys.
+License Scope: Any Apache 2.0 license statements apply only to client wrapper libraries such as @vis.gl/react-google-maps, and do not supersede or waive Google Maps Platform Terms of Service.
+Terms of Service: Penggunaan layanan tunduk pada Google Maps Platform Terms of Service (termasuk ketentuan wilayah dan Prohibited Territories) di https://cloud.google.com/maps-platform/terms.
+Google Maps Platform has been connected
+Open the integrations panel to review settings & more
+Checkpoint
+hilangkan fallback lokasi ke jakarta jika perizinan lokasi di tolak baik untuk jadwal shalat maupun untuk fitur pencarian masjid terdekat, jika izin lokasi di berikan langsung gunakan lokasi saya
+tampilkan kembali navbar di halaman utama tapi content yang tertutupi navbar tersebut harus blur
+fitur pencarian yang ada di halaman utama harus nya bisa di gunakan untuk mencari judul, ayat, hadist, do'a atau sesuatu yang berhubungan dengan keyword yang di cari dengan sumber isi bacaan kitab kuning, do'a harian, dan al-qur'an. Saat ini jika saya ketik keyword "shalat" di pencarian, yang muncul adalah bacaan ba'da shalat semua, sedangkan jika saya ketik "zakat" malah tidak muncul apa pun di hasil pencariannnya
+samakan ukuran tombol download pada header dengan ukuran tombol mode gelap/terang
+saya ingin mengganti surah arrahman dengan panduan tata cara wudhu dan shalat lengkap dengan bacaan nya dan ilustrasi gambarnya jika memungkinkan

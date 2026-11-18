@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "book": "Al-Mandhumah Al-Baiquniyyah",
+  "chapters": [
+    {
+      "id": "baiquniyyah-1",
+      "title": "1. Muqaddimah Nadhom (Bait 1–2)",
+      "arabic": "1. أَبْدَأُ بِالْحَمْدِ مُصَلِّيًا عَلَى * مُحَمَّدٍ خَيْرِ نَبِيٍّ أُرْسِلَا\n\n2. وَذِيْ مِنَ أَقْسَامِ الْحَدِيْثِ عِدَّةْ * وَكُلُّ وَاحِدٍ أَتَى وَحَدَّهْ",
+      "translation": "Bait 1\nAku memulai dengan memuji Allah seraya bershalawat kepada Nabi Muhammad, sebaik-baik nabi yang telah diutus.\n\nBait 2\nInilah beberapa pembagian istilah hadis yang berjumlah cukup banyak, dan masing-masing bagian disebutkan beserta definisinya.\n\nPenjelasan:\nKitab Al-Mandhumah Al-Baiquniyyah disusun oleh Imam Umar bin Muhammad Al-Baiquni (wafat sekitar 1080 H). Nadhom berjumlah 34 bait ini menjadi rujukan dasar Ilmu Musthalah Hadis di pesantren untuk mengenal istilah-istilah derajat dan sanad hadis."
+    },
+    {
+      "id": "baiquniyyah-2",
+      "title": "2. Hadis Shahih, Hasan, dan Dha'if (Bait 3–6)",
+      "arabic": "3. أَوَّلُهَا الصَّحِيْحُ وَهْوَ مَا اتَّصَلْ * إِسْنَادُهُ وَلَمْ يُشَذَّ أَوْ يُعَلْ\n\n4. يَرْوِيْهِ عَدْلٌ ضَابِطٌ عَنْ مِثْلِهِ * مُعْتَمَدٌ فِيْ ضَبْطِهِ وَنَقْلِهِ\n\n5. وَالْحَسَنُ الْمَعْرُوْفُ طُرْقًا وَغَدَتْ * رِجَالُهُ لَا كَالصَّحِيْحِ اشْتَهَرَتْ\n\n6. وَكُلُّ مَا عَنْ رُتْبَةِ الْحُسْنِ قَصَرْ * فَهْوَ الضَّعِيْفُ وَهْوَ أَقْسَامًا كَثُرْ",
+      "translation": "Bait 3–4 (Hadis Shahih)\nPembagian pertama adalah Hadis Shahih, yaitu hadis yang bersambung sanadnya serta tidak syadz (janggal) dan tidak ber-'illat (cacat tersembunyi). Diriwayatkan oleh perawi yang adil dan dhabit (kuat hafalan/catatannya) dari perawi yang semisal dengannya, serta diakui keakuratan hafalan dan penukilannya.\n\nBait 5 (Hadis Hasan)\nSedangkan Hadis Hasan adalah hadis yang diketahui jalur periwayatannya, namun para perawinya tidak semasyhur kekuatan hafalan perawi Hadis Shahih (sedikit lebih ringan dhabit-nya).\n\nBait 6 (Hadis Dha'if)\nAdapun setiap hadis yang kurang dari derajat Hadis Hasan, maka itulah Hadis Dha'if (lemah), dan pembagiannya sangat banyak."
+    },
+    {
+      "id": "baiquniyyah-3",
+      "title": "3. Marfu', Maqthu', Musnad & Muttashil (Bait 7–10)",
+      "arabic": "7. وَمَا أُضِيْفَ لِلنَّبِيِّ الْمَرْفُوْعُ * وَمَا لِتَابِعٍ هُوَ الْمَقْطُوْعُ\n\n8. وَالْمُسْنَدُ الْمُتَّصِلُ الْإِسْنَادِ مِنْ * رَاوِيْهِ حَتَّى الْمُصْطَفَى وَلَمْ يَبِنْ\n\n9. وَمَا بِسَمْعِ كُلِّ رَاوٍ يَتَّصِلْ * إِسْنَادُهُ لِلْمُصْطَفَى فَالْمُتَّصِلْ\n\n10. مُسَلْسَلٌ قُلْ مَا عَلَى وَصْفٍ أَتَى * مِثْلُ أَمَا وَاللّٰهِ أَنْبَانِي الْفَتَى",
+      "translation": "Bait 7 (Marfu' dan Maqthu')\nHadis yang disandarkan kepada Nabi Muhammad ﷺ disebut Marfu', sedangkan perkataan atau perbuatan yang disandarkan kepada tabi'in disebut Maqthu'.\n\nBait 8 (Musnad)\nHadis Musnad adalah hadis yang bersambung sanadnya dari perawi terakhir hingga sampai kepada Nabi Al-Mushthafa ﷺ tanpa terputus.\n\nBait 9 (Muttashil)\nSetiap hadis yang sanadnya bersambung melalui pendengaran langsung setiap perawi hingga kepada Al-Mushthafa ﷺ (atau hingga sahabat), maka disebut Muttashil.\n\nBait 10 (Musalsal)\nKatakanlah bahwa hadis Musalsal adalah hadis yang diriwayatkan secara berantai di atas sifat atau keadaan tertentu, seperti ucapan perawi: 'Demi Allah, seorang pemuda telah memberitahukan kepadaku...' secara turun-temurun."
+    },
+    {
+      "id": "baiquniyyah-4",
+      "title": "4. Musalsal, 'Aziz, Masyhur & Mu'an'an (Bait 11–14)",
+      "arabic": "11. كَذَاكَ قَدْ حَدَّثَنِيْهِ قَائِمًا * أَوْ بَعْدَ أَنْ حَدَّثَنِيْ تَبَسَّمَا\n\n12. عَزِيْزُ مَرْوِيِّ اثْنَيْنِ أَوْ ثَلَاثَهْ * مَشْهُوْرُ مَرْوِيِّ فَوْقَ مَا ثَلَاثَهْ\n\n13. مُعَنْعَنٌ كَعَنْ سَعِيْدٍ عَنْ كَرَمْ * وَمُبْهَمٌ مَا فِيْهِ رَاوٍ لَمْ يُسَمْ\n\n14. وَكُلُّ مَا قَلَّتْ رِجَالُهُ عَلَا * وَضِدُّهُ ذَاكَ الَّذِيْ قَدْ نَزَلَا",
+      "translation": "Bait 11 (Contoh Musalsal)\nDemikian pula (musalsal dalam perbuatan), seperti perawi berkata: 'Ia meriwayatkan hadis ini kepadaku sambil berdiri,' atau 'Setelah menyampaikan hadis kepadaku, ia tersenyum.'\n\nBait 12 ('Aziz dan Masyhur)\nHadis 'Aziz adalah hadis yang diriwayatkan oleh dua atau tiga orang perawi (pada tiap tingkatan sanad). Sedangkan Hadis Masyhur adalah hadis yang diriwayatkan lebih dari tiga orang.\n\nBait 13 (Mu'an'an dan Mubham)\nHadis Mu'an'an adalah hadis yang memakai redaksi 'an (dari), seperti 'dari Sa'id, dari Karam'. Sedangkan Hadis Mubham adalah hadis yang di dalam sanadnya terdapat perawi yang tidak disebutkan namanya.\n\nBait 14 ('Ali dan Nazil)\nSetiap hadis yang sedikit jumlah perawi dalam sanadnya disebut sanad 'Ali (tinggi), dan kebalikannya (banyak jumlah perawinya) disebut sanad Nazil (rendah)."
+    },
+    {
+      "id": "baiquniyyah-5",
+      "title": "5. Mauquf, Mursal, Gharib & Munqathi' (Bait 15–19)",
+      "arabic": "15. وَمَا أَضَفْتَهُ إِلَى الْأَصْحَابِ مِنْ * قَوْلٍ وَفِعْلٍ فَهْوَ مَوْقُوْفٌ زُكِنْ\n\n16. وَمُرْسَلٌ مِنْهُ الصَّحَابِيُّ سَقَطْ * وَقُلْ غَرِيْبٌ مَا رَوَى رَاوٍ فَقَطْ\n\n17. وَكُلُّ مَا لَمْ يَتَّصِلْ بِحَالِ * إِسْنَادُهُ مُنْقَطِعُ الْأَوْصَالِ\n\n18. وَالْمُعْضَلُ السَّاقِطُ مِنْهُ اثْنَانِ * وَمَا أَتَى مُدَلَّسًا نَوْعَانِ\n\n19. الْأَوَّلُ الْإِسْقَاطُ لِلشَّيْخِ وَأَنْ * يَنْقُلَ عَمَّنْ فَوْقَهُ بِعَنْ وَأَنْ",
+      "translation": "Bait 15 (Mauquf)\nHadis yang engkau sandarkan kepada para sahabat, baik berupa perkataan maupun perbuatan, dikenal dengan istilah Hadis Mauquf.\n\nBait 16 (Mursal dan Gharib)\nHadis Mursal adalah hadis yang gugur penyebutan sahabatnya (tabi'in langsung menyandarkan kepada Nabi ﷺ). Dan sebutlah Gharib untuk hadis yang hanya diriwayatkan oleh seorang perawi saja.\n\nBait 17 (Munqathi')\nSetiap hadis yang sanadnya tidak bersambung dengan keadaan apa pun, disebut Munqathi' (terputus sambungannya).\n\nBait 18–19 (Mu'dhal dan Mudallas Bagian 1)\nHadis Mu'dhal adalah hadis yang gugur darinya dua orang perawi secara berturut-turut. Sedangkan Mudallas ada dua macam; yang pertama adalah menggugurkan nama gurunya lalu meriwayatkan dari guru di atas gurunya dengan lafaz 'an atau anna."
+    },
+    {
+      "id": "baiquniyyah-6",
+      "title": "6. Mudallas, Syadz, Maqlub & Fard (Bait 20–24)",
+      "arabic": "20. وَالثَّانِ لَا يُسْقِطُهُ لَكِنْ يَصِفْ * أَوْصَافَهُ بِمَا بِهِ لَا يَنْعَرِفْ\n\n21. وَمَا يُخَالِفْ ثِقَةٌ فِيْهِ الْمَلَا * فَالشَّاذُّ وَالْمَقْلُوْبُ قِسْمَانِ تَلَا\n\n22. إِبْدَالُ رَاوٍ مَا بِرَاوٍ قِسْمُ * وَقَلْبُ إِسْنَادٍ لِمَتْنٍ قِسْمُ\n\n23. وَالْفَرْدُ مَا قَيَّدْتَهُ بِثِقَةِ * أَوْ جَمْعٍ أَوْ قَصْرٍ عَلَى رِوَايَةِ\n\n24. وَمَا بِعِلَّةٍ غُمُوْضٍ أَوْ خَفَا * مُعَلَّلٌ عِنْدَهُمُ قَدْ عُرِفَا",
+      "translation": "Bait 20 (Mudallas Bagian 2)\nMacam kedua (tadlis syuyukh) yaitu ia tidak menggugurkan nama gurunya, tetapi menyebut sifat-sifat gurunya dengan sebutan yang membuat guru itu tidak dikenal.\n\nBait 21–22 (Syadz dan Maqlub)\nHadis yang perawi tsiqahnya menyelisihi riwayat jamaah perawi lain yang lebih kuat disebut Syadz. Sedangkan Hadis Maqlub ada dua jenis: menukar nama satu perawi dengan perawi lain, atau membalik sanad untuk suatu matan.\n\nBait 23 (Fard)\nHadis Fard adalah hadis yang engkau batasi keunikannya pada satu perawi tsiqah, atau pada penduduk negeri tertentu, atau terbatas pada satu jalur riwayat saja.\n\nBait 24 (Mu'allal)\nHadis yang mengandung cacat tersembunyi atau samar di kalangan ahli hadis dikenal sebagai Hadis Mu'allal."
+    },
+    {
+      "id": "baiquniyyah-7",
+      "title": "7. Mudhtharib, Mudraj, Mudabbaj & Munkar (Bait 25–29)",
+      "arabic": "25. وَذُو اخْتِلَافِ سَنَدٍ أَوْ مَتْنِ * مُضْطَرِبٌ عِنْدَ أُهَيْلِ الْفَنِّ\n\n26. وَالْمُدْرَجَاتُ فِي الْحَدِيْثِ مَا أَتَتْ * مِنْ بَعْضِ أَلْفَاظِ الرُّوَاةِ اتَّصَلَتْ\n\n27. وَمَا رَوَى كُلُّ قَرِيْنٍ عَنْ أَخِهْ * مُدَبَّجٌ فَاعْرِفْهُ حَقًّا وَانْتَخِهْ\n\n28. مُتَّفِقٌ لَفْظًا وَخَطًّا مُتَّفِقْ * وَضِدُّهُ فِيْمَا ذَكَرْنَا الْمُفْتَرِقْ\n\n29. مُؤْتَلِفٌ مُتَّفِقُ الْخَطِّ فَقَطْ * وَضِدُّهُ مُخْتَلِفٌ فَاخْشَ الْغَلَطْ",
+      "translation": "Bait 25 (Mudhtharib)\nHadis yang memiliki perselisihan pada sanad atau matannya (yang sama kuat dan tidak bisa dikompromikan) disebut Mudhtharib menurut para ahli hadis.\n\nBait 26 (Mudraj)\nMudrajat dalam hadis adalah sisipan sebagian ucapan perawi yang bersambung ke dalam teks matan hadis sehingga disangka bagian hadis.\n\nBait 27 (Mudabbaj)\nRiwayat antara dua perawi yang sebaya saling meriwayatkan satu sama lain disebut Mudabbaj; ketahuilah istilah ini dengan baik dan banggalah mempelajarinya.\n\nBait 28–29 (Muttafiq-Muftariq & Mu'talif-Mukhtalif)\nMuttafiq adalah nama perawi yang sama lafaz dan tulisannya (namun orangnya berbeda), kebalikannya disebut Muftariq. Mu'talif adalah yang sama tulisannya saja namun berbeda cara bacanya, sedangkan kebalikannya disebut Mukhtalif, maka berhati-hatilah dari kesalahan."
+    },
+    {
+      "id": "baiquniyyah-8",
+      "title": "8. Munkar, Matruk, Maudhu' & Penutup (Bait 30–34)",
+      "arabic": "30. وَالْمُنْكَرُ الْفَرْدُ بِهِ رَاوٍ غَدَا * تَعْدِيْلُهُ لَا يَحْمِلُ التَّفَرُّدَا\n\n31. مَتْرُوْكُهُ مَا وَاحِدٌ بِهِ انْفَرَدْ * وَأَجْمَعُوْا لِضَعْفِهِ فَهْوَ كَرَدْ\n\n32. وَالْكَذِبُ الْمُخْتَلَقُ الْمَصْنُوْعُ * عَلَى النَّبِيِّ فَذٰلِكَ الْمَوْضُوْعُ\n\n33. وَقَدْ أَتَتْ كَالْجَوْهَرِ الْمَكْنُوْنِ * سَمَّيْتُهَا مَنْظُوْمَةَ الْبَيْقُوْنِيْ\n\n34. فَوْقَ الثَّلَاثِيْنَ بِأَرْبَعٍ أَتَتْ * أَقْسَامُهَا تَمَّتْ بِخَيْرٍ خُتِمَتْ",
+      "translation": "Bait 30 (Munkar)\nHadis Munkar adalah hadis yang diriwayatkan sendirian oleh seorang perawi yang derajat keadilannya tidak cukup kuat untuk menanggung kesendirian riwayatnya (atau menyelisihi perawi tsiqah).\n\nBait 31 (Matruk)\nHadis Matruk adalah hadis yang diriwayatkan sendirian oleh perawi yang disepakati kelemahannya (atau tertuduh berdusta), sehingga riwayatnya tertolak.\n\nBait 32 (Maudhu')\nAdapun kedustaan yang dibuat-buat lalu disandarkan atas nama Nabi ﷺ, itulah Hadis Maudhu' (palsu).\n\nBait 33–34 (Penutup)\nNadhom ini telah tersusun bagaikan permata yang tersimpan rapi; aku menamakannya Mandhumah Al-Baiquniyyah.\nJumlah baitnya tiga puluh empat; segala pembagiannya telah selesai dan ditutup dengan kebaikan."
+    }
+  ]
+}

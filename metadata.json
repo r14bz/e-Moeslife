@@ -1,0 +1,6 @@
+{
+  "name": "e-Moeslife",
+  "description": "Ruang baca Islami digital untuk tahlil, dzikir, Yasin, Ar-Rahman, Al-Qur'an & Murattal, Tafsir, Jadwal Shalat, serta Perpustakaan Kitab Kuning.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

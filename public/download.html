@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#134a35">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="e-Moeslife">
+<meta name="description" content="Pasang aplikasi e-Moeslife (PWA) untuk membaca tahlil, dzikir, Al-Qur'an, Tafsir, Jadwal Shalat, dan Perpustakaan Kitab Kuning secara nyaman dan offline.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Unduh & Pasang e-Moeslife (PWA)">
+<meta property="og:description" content="Ruang baca Islami digital berbasis PWA — ringan, otomatis diperbarui, dan bisa dibaca offline.">
+<title>Unduh &amp; Pasang e-Moeslife (PWA) — Ruang Baca Islami Digital</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" href="/pwa-192x192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<style>
+:root{color-scheme:light;--green:#134a35;--green2:#1d5942;--gold:#c5a365;--gold-soft:#e6c98e;--cream:#ffffff;--card:#ffffff;--ink:#1d2c24;--muted:#5e6a62;--border:#e2e8e4}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--cream);color:var(--ink);font-family:"Plus Jakarta Sans",Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.6}
+a{color:inherit}button{font-family:inherit;cursor:pointer}
+.topbar{height:76px;padding:0 max(22px,calc((100% - 1120px)/2));display:flex;align-items:center;justify-content:space-between;background:var(--green);color:#fff;gap:20px;border-bottom:1px solid #0d3525}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none}.brand-mark{width:44px;height:44px;object-fit:contain}.brand-text{width:148px;height:auto;max-height:36px;object-fit:contain;object-position:left center}
+.back{font-size:13px;font-weight:600;text-decoration:none;color:#f2e7ce;border:1px solid #ffffff3d;padding:8px 14px;border-radius:12px;transition:background .18s}.back:hover{background:#ffffff14}
+.hero{position:relative;isolation:isolate;overflow:hidden;background:linear-gradient(125deg,#0d3025 0%,#144734 55%,#1f5e46 100%);color:#fff;padding:68px 22px 64px}
+.hero:before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,#0b2c23f2 0%,#10392bd9 52%,#134a3585 100%),url('/assets/mosque-banner.png') center 58%/cover no-repeat;opacity:.92}
+.hero:after{content:"";position:absolute;z-index:-1;width:440px;height:440px;border:1px solid #e2b35433;border-radius:50%;right:-110px;top:-200px;box-shadow:0 0 0 36px #e2b3540c,0 0 0 72px #e2b35408}
+.hero-inner{max-width:1120px;margin:auto;display:grid;grid-template-columns:1.3fr .9fr;gap:32px;align-items:center}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;color:#f3d99d;font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase}
+h1{max-width:650px;margin:14px 0 14px;font-family:Georgia,"Fraunces",serif;font-size:clamp(34px,5.4vw,56px);font-weight:600;line-height:1.1;letter-spacing:-1px}
+.hero-lead{max-width:580px;color:#e4ece6;font-size:16px;margin:0 0 24px}
+.actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:50px;padding:0 22px;border-radius:12px;border:none;text-decoration:none;font-weight:700;font-size:14px;transition:transform .18s,box-shadow .18s,background .18s}
+.btn:hover{transform:translateY(-1px)}.btn-primary{background:var(--gold-soft);color:#1d2d22;box-shadow:0 8px 24px #071d1740}.btn-primary:hover{background:#efd6a3}
+.btn-secondary{border:1px solid #ffffff52;color:#fff;background:#ffffff12}.btn-secondary:hover{background:#ffffff20}
+.btn svg{width:18px;height:18px;flex-shrink:0}
+.hero-note{font-size:12px;color:#cfe0d5;margin:14px 0 0}
+.status-msg{margin-top:12px;padding:10px 14px;border-radius:12px;background:#081c1580;border:1px solid #e2b35455;color:#f7e7be;font-size:12.5px;display:none}
+.status-msg.visible{display:block}
+.pkg-card{background:#092118a8;border:1px solid #ffffff26;border-radius:20px;padding:22px;backdrop-filter:blur(8px)}
+.pkg-head{display:flex;align-items:center;gap:14px;padding-bottom:16px;border-bottom:1px solid #ffffff1f}
+.pkg-icon{width:54px;height:54px;border-radius:14px;background:var(--cream);padding:4px;border:1px solid #ffffff38;object-fit:contain}
+.pkg-title{font-family:Georgia,serif;font-size:20px;font-weight:600;margin:0}.pkg-sub{font-size:12px;color:#cfe0d5;margin:2px 0 0}
+.pkg-list{margin:16px 0 0;padding:0;list-style:none;display:grid;gap:10px;font-size:12.5px}
+.pkg-list li{display:flex;justify-content:space-between;gap:12px;color:#cfe0d5}.pkg-list strong{color:#fff;text-align:right}
+.content{max-width:1120px;margin:0 auto;padding:54px 22px 72px}
+.guide-box{background:var(--card);border:1px solid var(--border);border-radius:22px;padding:28px;margin-bottom:46px;box-shadow:0 8px 24px #263b2c08}
+.guide-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;padding-bottom:18px;border-bottom:1px solid #e8eeea}
+.guide-head .eyebrow{color:#9c7d3c}
+.guide-head h2{font-family:Georgia,serif;color:var(--green);font-size:clamp(22px,3vw,30px);font-weight:600;margin:6px 0 4px}
+.guide-head p{margin:0;color:var(--muted);font-size:13px}
+.tabs{display:flex;flex-wrap:wrap;gap:8px}
+.tab-btn{min-height:36px;padding:0 14px;border-radius:10px;border:1px solid #dce4df;background:#ffffff;color:#354c3e;font-size:12.5px;font-weight:700;transition:all .15s}
+.tab-btn.active{background:var(--green);border-color:var(--green);color:#ffffff}
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:20px}
+.step{display:flex;gap:12px;align-items:flex-start;background:#f8faf9;border:1px solid #e8eeea;border-radius:16px;padding:16px}
+.step-num{width:30px;height:30px;flex:0 0 30px;border-radius:50%;display:grid;place-items:center;background:#e3efe8;color:var(--green);font-size:12.5px;font-weight:800}
+.step h3{font-size:14px;color:var(--green);margin:1px 0 4px}.step p{font-size:12.5px;color:var(--muted);margin:0;line-height:1.6}
+.section-head{text-align:center;max-width:650px;margin:0 auto 30px}.section-head .eyebrow{color:#9c7d3c}.section-head h2{font-family:Georgia,serif;color:var(--green);font-size:clamp(26px,4vw,36px);font-weight:600;line-height:1.2;margin:8px 0}.section-head p{color:var(--muted);margin:0;font-size:14px}
+.features{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.feature{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px 18px;box-shadow:0 6px 20px #263b2c06}
+.feature-icon{width:40px;height:40px;display:grid;place-items:center;border-radius:12px;background:#e6efe9;color:var(--green);font-size:19px;margin-bottom:14px}
+.feature h3{font-size:14.5px;color:var(--green);margin:0 0 6px}.feature p{font-size:12.5px;color:var(--muted);line-height:1.6;margin:0}
+.download-panel{margin-top:46px;background:linear-gradient(120deg,#eef5f0,#f7faf8);border:1px solid #dce6e0;border-radius:22px;padding:28px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.download-panel h2{font-family:Georgia,serif;color:var(--green);font-size:26px;font-weight:600;margin:0 0 6px}.download-panel p{color:var(--muted);font-size:13.5px;margin:0;max-width:620px}
+.download-panel .btn{background:var(--green);color:#fff;white-space:nowrap}
+footer{padding:24px 20px;text-align:center;background:#103629;color:#c9d6ca;font-size:12px}footer a{color:#e6c98e;text-decoration:none}
+@media(max-width:900px){.hero-inner{grid-template-columns:1fr}.features{grid-template-columns:repeat(2,minmax(0,1fr))}.steps{grid-template-columns:1fr}.download-panel{align-items:flex-start;flex-direction:column}.download-panel .btn{width:100%}}
+@media(max-width:480px){.topbar{height:66px;padding:0 15px}.brand-mark{width:38px;height:38px}.brand-text{width:124px}.back{font-size:12px;padding:7px 11px}.hero{padding:48px 16px}.content{padding:36px 16px 52px}.guide-box{padding:20px 16px}.features{gap:10px}.feature{padding:16px 14px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="topbar">
+<a class="brand" href="/" aria-label="e-Moeslife — Beranda">
+<img class="brand-mark" src="/assets/logo-mark.webp" alt="Logo e-Moeslife">
+<img class="brand-text" src="/assets/logo-text.webp" alt="e-Moeslife">
+</a>
+<a class="back" href="/">← Kembali ke beranda</a>
+</header>
+
+<main>
+<section class="hero">
+<div class="hero-inner">
+<div>
+<span class="eyebrow">Aplikasi Web Progresif (PWA)</span>
+<h1>Pasang e-Moeslife langsung di perangkatmu.</h1>
+<p class="hero-lead">Untuk sementara, file aplikasi e-Moeslife menggunakan <strong>PWA</strong> sebagai pengganti APK. Lebih ringan, aman tanpa instalasi file terpisah, pembaruan kitab otomatis, dan tetap nyaman dibaca saat offline.</p>
+<div class="actions">
+<button id="pwa-install-btn" type="button" class="btn btn-primary">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+<span id="pwa-install-label">Pasang Aplikasi (PWA)</span>
+</button>
+<a class="btn btn-secondary" href="/?view=download">Buka di Aplikasi &amp; Simpan Offline</a>
+</div>
+<p class="hero-note">Gratis digunakan · Mendukung Android, iPhone/iPad (Safari), dan Desktop</p>
+<div id="pwa-status-msg" class="status-msg" role="status"></div>
+</div>
+
+<aside class="pkg-card" aria-label="Informasi Paket PWA">
+<div class="pkg-head">
+<img class="pkg-icon" src="/pwa-192x192.png" alt="Ikon e-Moeslife">
+<div>
+<p class="pkg-title">e-Moeslife</p>
+<p class="pkg-sub">Paket PWA · Versi 2.0</p>
+</div>
+</div>
+<ul class="pkg-list">
+<li><span>Format file saat ini</span><strong>PWA (Web App Standar)</strong></li>
+<li><span>Mode Offline</span><strong>Tersedia untuk bacaan &amp; kitab</strong></li>
+<li><span>Pembaruan Konten</span><strong>Otomatis tanpa unduh APK ulang</strong></li>
+<li><span>Perangkat Didukung</span><strong>Android · iOS · Desktop</strong></li>
+</ul>
+</aside>
+</div>
+</section>
+
+<section class="content">
+<section id="panduan-pwa" class="guide-box" aria-labelledby="guide-heading">
+<div class="guide-head">
+<div>
+<span class="eyebrow">Panduan Pemasangan</span>
+<h2 id="guide-heading">Cara memasang e-Moeslife (PWA)</h2>
+<p id="guide-subtitle">Pilih jenis perangkatmu untuk melihat langkah pemasangan cepat ke layar utama.</p>
+</div>
+<div class="tabs" role="tablist" aria-label="Pilih perangkat">
+<button type="button" class="tab-btn active" data-platform="android" role="tab" aria-selected="true">Android</button>
+<button type="button" class="tab-btn" data-platform="ios" role="tab" aria-selected="false">iPhone / iPad</button>
+<button type="button" class="tab-btn" data-platform="desktop" role="tab" aria-selected="false">Desktop</button>
+</div>
+</div>
+<div id="guide-steps" class="steps"></div>
+</section>
+
+<div class="section-head">
+<span class="eyebrow">Kelengkapan Ruang Baca</span>
+<h2>Satu ruang untuk menemani ibadah harian</h2>
+<p>Semua bacaan utama, Al-Qur'an, dan perpustakaan kitab kuning dirangkum dalam tampilan yang tenang dan mudah dibaca.</p>
+</div>
+
+<div class="features">
+<article class="feature"><div class="feature-icon" aria-hidden="true">☾</div><h3>Jadwal shalat otomatis</h3><p>Waktu shalat menyesuaikan wilayah di Indonesia, lengkap dengan hitung mundur waktu berikutnya.</p></article>
+<article class="feature"><div class="feature-icon" aria-hidden="true">۞</div><h3>Tahlil, dzikir &amp; Yasin</h3><p>Tawasul, tahlil, dzikir ba'da shalat, Surah Yasin, Surah Ar-Rahman, dan doa penutup tersusun rapi.</p></article>
+<article class="feature"><div class="feature-icon" aria-hidden="true">۝</div><h3>Al-Qur’an 30 juz &amp; tafsir</h3><p>Baca Al-Qur'an lengkap dengan teks latin, terjemahan Indonesia, tafsir ayat, dan doa harian.</p></article>
+<article class="feature"><div class="feature-icon" aria-hidden="true">▣</div><h3>17 kitab kuning lokal</h3><p>Termasuk Aqidatul Awam, Safinah An-Najah, Al-Ajurumiyyah, Sullamut Taufiq, Al-Hikam, dan lainnya.</p></article>
+<article class="feature"><div class="feature-icon" aria-hidden="true">♫</div><h3>Audio murattal qari</h3><p>Dengarkan lantunan murattal Al-Qur'an langsung di halaman surah yang sedang dibuka.</p></article>
+<article class="feature"><div class="feature-icon" aria-hidden="true">▤</div><h3>Mode kitab &amp; lipat terjemah</h3><p>Pilih tampilan Arab saja, terjemah saja, atau berpasangan sesuai kebutuhan muthala'ah.</p></article>
+<article class="feature"><div class="feature-icon" aria-hidden="true">↻</div><h3>Pembaruan otomatis (PWA)</h3><p>Setiap perbaikan naskah atau tambahan kitab langsung tersedia tanpa perlu instalasi ulang file APK.</p></article>
+<article class="feature"><div class="feature-icon" aria-hidden="true">⌕</div><h3>Pencarian &amp; mode gelap</h3><p>Cari bacaan atau kitab dengan cepat, lengkap dengan pengaturan ukuran teks dan tema gelap.</p></article>
+</div>
+
+<section class="download-panel">
+<div>
+<h2>Siapkan e-Moeslife untuk dibaca offline</h2>
+<p>Buka aplikasi web e-Moeslife untuk memasang PWA dan menyimpan seluruh naskah kitab lokal ke penyimpanan offline perangkat.</p>
+</div>
+<a class="btn" href="/?view=download">Buka &amp; Simpan Offline <span aria-hidden="true">→</span></a>
+</section>
+</main>
+<footer>© e-Moeslife · Ruang Baca Islami Digital · <a href="/">Kembali ke beranda</a></footer>
+
+<script>
+(function () {
+  var guides = {
+    android: [
+      { title: "Tekan Pasang Aplikasi (PWA)", desc: "Gunakan Chrome atau Edge di Android. Jika tombol di atas mendukung pemasangan langsung, dialog instalasi akan muncul." },
+      { title: "Atau buka menu browser (⋮)", desc: "Ketuk ikon titik tiga di pojok kanan atas browser, lalu pilih \"Pasang aplikasi\" atau \"Tambahkan ke layar utama\"." },
+      { title: "Buka dari layar utama", desc: "Ikon e-Moeslife akan muncul layaknya aplikasi biasa dan siap dipakai membaca meski tanpa koneksi internet." }
+    ],
+    ios: [
+      { title: "Buka di browser Safari", desc: "Pastikan halaman e-Moeslife dibuka melalui Safari di iPhone atau iPad." },
+      { title: "Ketuk tombol Bagikan (Share)", desc: "Ketuk ikon kotak dengan panah menghadap ke atas pada bilah navigasi Safari." },
+      { title: "Pilih Tambah ke Layar Utama", desc: "Gulir daftar menu, pilih \"Tambah ke Layar Utama\" (Add to Home Screen), lalu ketuk \"Tambah\"." }
+    ],
+    desktop: [
+      { title: "Gunakan Chrome atau Edge", desc: "Klik tombol \"Pasang Aplikasi (PWA)\" di atas atau klik ikon instalasi di sisi kanan bilah alamat." },
+      { title: "Konfirmasi pemasangan", desc: "Pilih \"Install\" untuk menambahkan e-Moeslife sebagai aplikasi desktop mandiri." },
+      { title: "Akses cepat &amp; ringan", desc: "Terbuka di jendela tersendiri dengan pembaruan otomatis setiap kali versi baru tersedia." }
+    ]
+  };
+
+  var ua = navigator.userAgent.toLowerCase();
+  var isIOS = /iphone|ipad|ipod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  var isAndroid = /android/.test(ua);
+  var currentPlatform = isIOS ? "ios" : (isAndroid ? "android" : "desktop");
+
+  var stepsEl = document.getElementById("guide-steps");
+  var tabBtns = document.querySelectorAll(".tab-btn");
+  var installBtn = document.getElementById("pwa-install-btn");
+  var installLabel = document.getElementById("pwa-install-label");
+  var statusMsg = document.getElementById("pwa-status-msg");
+  var deferredPrompt = null;
+
+  function renderSteps(platformKey) {
+    currentPlatform = platformKey;
+    tabBtns.forEach(function (btn) {
+      var active = btn.getAttribute("data-platform") === platformKey;
+      btn.classList.toggle("active", active);
+      btn.setAttribute("aria-selected", active ? "true" : "false");
+    });
+    var items = guides[platformKey] || guides.android;
+    stepsEl.innerHTML = items.map(function (item, i) {
+      return '<div class="step"><span class="step-num">' + (i + 1) + '</span><div><h3>' + item.title + '</h3><p>' + item.desc + '</p></div></div>';
+    }).join("");
+  }
+
+  tabBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      renderSteps(btn.getAttribute("data-platform"));
+    });
+  });
+
+  renderSteps(currentPlatform);
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js").catch(function () {});
+  }
+
+  var isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  if (isStandalone && installLabel) {
+    installLabel.textContent = "Sudah Terpasang (Buka Aplikasi)";
+  }
+
+  window.addEventListener("beforeinstallprompt", function (e) {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (installLabel) installLabel.textContent = "Pasang Aplikasi e-Moeslife (PWA)";
+  });
+
+  window.addEventListener("appinstalled", function () {
+    deferredPrompt = null;
+    if (installLabel) installLabel.textContent = "Berhasil Terpasang";
+    if (statusMsg) {
+      statusMsg.textContent = "Alhamdulillah, e-Moeslife telah terpasang di layar utama perangkat Anda.";
+      statusMsg.classList.add("visible");
+    }
+  });
+
+  if (installBtn) {
+    installBtn.addEventListener("click", function () {
+      if (isStandalone) {
+        window.location.href = "/";
+        return;
+      }
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(function (choice) {
+          if (choice.outcome === "accepted") {
+            deferredPrompt = null;
+          } else if (statusMsg) {
+            statusMsg.textContent = "Pemasangan dibatalkan. Anda tetap bisa mengikuti panduan di bawah atau memasang kapan saja.";
+            statusMsg.classList.add("visible");
+          }
+        });
+        return;
+      }
+      document.getElementById("panduan-pwa").scrollIntoView({ behavior: "smooth" });
+      if (statusMsg) {
+        statusMsg.textContent = isIOS
+          ? "Di Safari iPhone/iPad: ketuk tombol Bagikan (Share), lalu pilih \"Tambah ke Layar Utama\"."
+          : "Jika dialog otomatis belum muncul di browser ini, gunakan menu browser (⋮ → Pasang aplikasi) atau buka \"Buka di Aplikasi & Simpan Offline\".";
+        statusMsg.classList.add("visible");
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>

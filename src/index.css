@@ -1,0 +1,273 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --font-display: "Fraunces", Georgia, serif;
+    --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    --font-arabic: "Amiri", "Noto Naskh Arabic", "Scheherazade New", serif;
+
+    /* Reading scale defaults (normal) */
+    --arabic-classic-size: clamp(1.32rem, 2.3vw, 1.68rem);
+    --arabic-classic-line: 2.04;
+    --arabic-reader-size: clamp(1.22rem, 2vw, 1.52rem);
+    --arabic-reader-line: 1.98;
+    --prose-reader-size: 0.92rem;
+    --prose-reader-line: 1.72;
+    --latin-reader-size: 0.86rem;
+
+    /* Al-Amtsilah at-Tashrifiyah — e-Moeslife Light Theme (Emerald + Mint + Gold) */
+    --tashrif-bg: #f4f8f5;
+    --tashrif-paper: #ffffff;
+    --tashrif-row-alt: #f5f9f6;
+    --tashrif-wazan-bg: #e7f1eb;
+    --tashrif-thead-bg: #dcebe2;
+    --tashrif-dhamir-head-bg: #cfe3d7;
+    --tashrif-control-bg: #ffffff;
+    --tashrif-border-strong: #134a35;
+    --tashrif-border-cell: #bdd2c5;
+    --tashrif-group-break: #5f8c73;
+    --tashrif-ink: #102a1f;
+    --tashrif-text: #103d2c;
+    --tashrif-muted: #52685b;
+    --tashrif-accent: #9c7d3c;
+    --tashrif-accent-text: #ffffff;
+    --tashrif-btn-bg: #134a35;
+    --tashrif-btn-text: #ffffff;
+    --tashrif-btn-disabled: #e2e8e4;
+    --tashrif-btn-disabled-text: #7c8b82;
+    --tashrif-cell-selected: #f3e4bd;
+    --tashrif-panel-bg: #103d2c;
+    --tashrif-panel-text: #eef5f0;
+    --tashrif-panel-bright: #ffffff;
+    --tashrif-panel-sub: #c9ddd0;
+    --tashrif-panel-border: #2a6a4f;
+    --tashrif-panel-chip-bg: #1c5b42;
+    --tashrif-tab-active-bg: #ffffff;
+    --tashrif-tab-active-text: #103d2c;
+    --tashrif-tab-active-border: #e6c98e;
+    --tashrif-ilal-bg: #0b2b1e;
+    --tashrif-ilal-accent: #e6c98e;
+  }
+
+  .dark {
+    /* Al-Amtsilah at-Tashrifiyah — e-Moeslife Dark Theme (Midnight Navy + Gold) */
+    --tashrif-bg: #0a1018;
+    --tashrif-paper: #111a27;
+    --tashrif-row-alt: #152132;
+    --tashrif-wazan-bg: #182940;
+    --tashrif-thead-bg: #162436;
+    --tashrif-dhamir-head-bg: #1d314a;
+    --tashrif-control-bg: #162131;
+    --tashrif-border-strong: #e2b354;
+    --tashrif-border-cell: #2a3c54;
+    --tashrif-group-break: #8f743b;
+    --tashrif-ink: #edf2f7;
+    --tashrif-text: #e9eef5;
+    --tashrif-muted: #94a3b8;
+    --tashrif-accent: #e2b354;
+    --tashrif-accent-text: #0b111a;
+    --tashrif-btn-bg: #e2b354;
+    --tashrif-btn-text: #0b111a;
+    --tashrif-btn-disabled: #1e293b;
+    --tashrif-btn-disabled-text: #64748b;
+    --tashrif-cell-selected: #3d3217;
+    --tashrif-panel-bg: #0f1722;
+    --tashrif-panel-text: #e9eef5;
+    --tashrif-panel-bright: #ffffff;
+    --tashrif-panel-sub: #cbd5e1;
+    --tashrif-panel-border: #e2b354;
+    --tashrif-panel-chip-bg: #1d2b3f;
+    --tashrif-tab-active-bg: #e2b354;
+    --tashrif-tab-active-text: #0b111a;
+    --tashrif-tab-active-border: #e2b354;
+    --tashrif-ilal-bg: #080d14;
+    --tashrif-ilal-accent: #e2b354;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    font-size: 14.5px;
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  html[data-font-size="small"] {
+    font-size: 13px;
+    --arabic-classic-size: clamp(1.02rem, 1.65vw, 1.22rem);
+    --arabic-classic-line: 1.85;
+    --arabic-reader-size: clamp(0.98rem, 1.55vw, 1.15rem);
+    --arabic-reader-line: 1.82;
+    --prose-reader-size: 0.85rem;
+    --prose-reader-line: 1.62;
+    --latin-reader-size: 0.8rem;
+  }
+
+  html[data-font-size="large"] {
+    font-size: 16px;
+    --arabic-classic-size: clamp(1.68rem, 2.9vw, 2.15rem);
+    --arabic-classic-line: 2.22;
+    --arabic-reader-size: clamp(1.5rem, 2.5vw, 1.88rem);
+    --arabic-reader-line: 2.15;
+    --prose-reader-size: 1.03rem;
+    --prose-reader-line: 1.85;
+    --latin-reader-size: 0.96rem;
+  }
+
+  body {
+    @apply bg-white text-[#1d2c24] dark:bg-[#0A1018] dark:text-[#E9EEF5] transition-colors duration-200;
+  }
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-arabic {
+  font-family: var(--font-arabic);
+  direction: rtl;
+  unicode-bidi: plaintext;
+}
+
+.font-mono-tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.arabic-classic-text {
+  font-family: var(--font-arabic);
+  font-size: var(--arabic-classic-size);
+  line-height: var(--arabic-classic-line);
+  direction: rtl;
+  unicode-bidi: plaintext;
+}
+
+.arabic-reader-text {
+  font-family: var(--font-arabic);
+  font-size: var(--arabic-reader-size);
+  line-height: var(--arabic-reader-line);
+  direction: rtl;
+  unicode-bidi: plaintext;
+}
+
+.prose-reader-text {
+  font-size: var(--prose-reader-size);
+  line-height: var(--prose-reader-line);
+}
+
+.latin-reader-text {
+  font-size: var(--latin-reader-size);
+  line-height: 1.78;
+}
+
+@keyframes pageTurnOutNext {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-16px) scale(0.992);
+  }
+}
+
+@keyframes pageTurnInNext {
+  from {
+    opacity: 0;
+    transform: translateX(18px) scale(0.992);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes pageTurnOutPrev {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(16px) scale(0.992);
+  }
+}
+
+@keyframes pageTurnInPrev {
+  from {
+    opacity: 0;
+    transform: translateX(-18px) scale(0.992);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes pageEnterFade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.turn-out-next {
+  animation: pageTurnOutNext 150ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.turn-in-next {
+  animation: pageTurnInNext 260ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.turn-out-prev {
+  animation: pageTurnOutPrev 150ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.turn-in-prev {
+  animation: pageTurnInPrev 260ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.page-enter-next {
+  animation: pageTurnInNext 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.page-enter-prev {
+  animation: pageTurnInPrev 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.page-enter-fade {
+  animation: pageEnterFade 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+  .turn-out-next,
+  .turn-in-next,
+  .turn-out-prev,
+  .turn-in-prev,
+  .page-enter-next,
+  .page-enter-prev,
+  .page-enter-fade {
+    animation: none !important;
+  }
+}
