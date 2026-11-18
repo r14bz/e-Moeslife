@@ -5,7 +5,33 @@ const versionName = process.env.VERSION_NAME || `2.0.${versionCode}`;
 const signMode = process.env.APK_SIGN_MODE === "release" ? "release" : "debug";
 const signLabel = signMode === "release" ? "Release Signed" : "Debug Signed";
 const currentSha = (process.env.GITHUB_SHA || safeExec("git rev-parse HEAD")).trim();
-const prevBody = process.env.PREV_RELEASE_BODY || "";
+
+function parsePrevRelease() {
+  const rawJson = process.env.PREV_RELEASE_JSON || "";
+  if (rawJson) {
+    try {
+      const data = JSON.parse(rawJson);
+      const body = typeof data.body === "string" ? data.body : "";
+      const assets = Array.isArray(data.assets) ? data.assets : [];
+      const apkAsset = assets.find((a) =>
+        String(a?.name || "")
+          .toLowerCase()
+          .endsWith(".apk")
+      );
+      const currentDownloads =
+        typeof apkAsset?.download_count === "number" && Number.isFinite(apkAsset.download_count)
+          ? apkAsset.download_count
+          : 0;
+      return { body, currentDownloads };
+    } catch {
+      // Fallback to PREV_RELEASE_BODY
+    }
+  }
+  return { body: process.env.PREV_RELEASE_BODY || "", currentDownloads: 0 };
+}
+
+const prevRelease = parsePrevRelease();
+const prevBody = prevRelease.body;
 
 function safeExec(cmd) {
   try {
@@ -15,16 +41,25 @@ function safeExec(cmd) {
   }
 }
 
-function extractPrevCommit(body) {
+function extractPrevMetadata(body) {
   const match = body.match(/<!--\s*emoeslife-release:(\{[\s\S]*?\})\s*-->/);
-  if (!match) return "";
+  if (!match) return { commit: "", prevDownloads: 0 };
   try {
     const parsed = JSON.parse(match[1]);
-    return typeof parsed.commit === "string" ? parsed.commit.trim() : "";
+    return {
+      commit: typeof parsed.commit === "string" ? parsed.commit.trim() : "",
+      prevDownloads:
+        typeof parsed.prevDownloads === "number" && Number.isFinite(parsed.prevDownloads)
+          ? parsed.prevDownloads
+          : 0,
+    };
   } catch {
-    return "";
+    return { commit: "", prevDownloads: 0 };
   }
 }
+
+const prevMeta = extractPrevMetadata(prevBody);
+const cumulativePrevDownloads = prevMeta.prevDownloads + prevRelease.currentDownloads;
 
 function hasCommit(sha) {
   if (!sha || !/^[0-9a-f]{7,40}$/i.test(sha)) return false;
@@ -32,7 +67,7 @@ function hasCommit(sha) {
 }
 
 function collectCommitSubjects() {
-  const prevSha = extractPrevCommit(prevBody);
+  const prevSha = prevMeta.commit;
   let raw = "";
   if (prevSha && hasCommit(prevSha) && prevSha !== currentSha) {
     raw = safeExec(`git log --no-merges --pretty=format:%s ${prevSha}..HEAD`);
@@ -138,6 +173,7 @@ lines.push(
     versionName,
     signed: signMode,
     commit: currentSha,
+    prevDownloads: cumulativePrevDownloads,
   })} -->`
 );
 

@@ -383,7 +383,7 @@ footer a{color:#e6c98e;text-decoration:none}
 <ul class="pkg-list">
 <li><span>Package ID</span><strong>com.emoeslife.app</strong></li>
 <li><span>Format Installer</span><strong>Android Package (.apk)</strong></li>
-<li><span>Perpustakaan Kitab</span><strong>Kitab Kuning (100% Offline)</strong></li>
+<li><span>Total Diunduh</span><strong id="apk-download-count">Memuat…</strong></li>
 <li><span>Pembaruan Aplikasi</span><strong>Notifikasi Update Otomatis</strong></li>
 <li><span>Kompatibilitas OS</span><strong>Android 7.0+ (arm64 / universal)</strong></li>
 </ul>
@@ -477,15 +477,23 @@ footer a{color:#e6c98e;text-decoration:none}
   })
     .then(function (res) { return res.ok ? res.json() : null; })
     .then(function (rel) {
-      if (!rel) return;
+      var countEl = document.getElementById("apk-download-count");
+      if (!rel) {
+        if (countEl) countEl.textContent = "—";
+        return;
+      }
       var subEl = document.getElementById("apk-version-sub");
       var body = rel.body || "";
       var versionText = "";
+      var prevDownloads = 0;
       var marker = body.match(/<!--\s*emoeslife-release:(\{[\s\S]*?\})\s*-->/);
       if (marker) {
         try {
           var meta = JSON.parse(marker[1]);
           if (meta && meta.versionName) versionText = "v" + meta.versionName;
+          if (meta && typeof meta.prevDownloads === "number" && isFinite(meta.prevDownloads)) {
+            prevDownloads = meta.prevDownloads;
+          }
         } catch (e) {}
       }
       if (!versionText && rel.name) {
@@ -499,8 +507,18 @@ footer a{color:#e6c98e;text-decoration:none}
       if (subEl && (versionText || sizeText)) {
         subEl.textContent = ["Signed APK", versionText, sizeText].filter(Boolean).join(" · ");
       }
+      if (countEl) {
+        var currentDownloads = asset && typeof asset.download_count === "number" ? asset.download_count : 0;
+        var totalDownloads = prevDownloads + currentDownloads;
+        countEl.textContent = totalDownloads.toLocaleString("id-ID") + " kali";
+      }
     })
-    .catch(function () {});
+    .catch(function () {
+      var countEl = document.getElementById("apk-download-count");
+      if (countEl && countEl.textContent === "Memuat…") {
+        countEl.textContent = "—";
+      }
+    });
 })();
 </script>
 </body>

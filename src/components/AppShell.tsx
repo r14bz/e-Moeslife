@@ -9,6 +9,7 @@ import {
   Home,
   Library,
   Moon,
+  RefreshCw,
   Smartphone,
   Sun,
   WifiOff,
@@ -231,10 +232,9 @@ export const AppShell: React.FC<AppShellProps> = ({
                 className="flex min-h-[40px] w-full items-center justify-between rounded-xl border border-[#dce4df] bg-[#f5f8f6] px-3.5 text-xs font-semibold text-[#174231] transition-colors hover:bg-[#eaf1ed] dark:border-slate-800 dark:bg-[#152030] dark:text-slate-200 dark:hover:bg-[#1B293C]"
               >
                 <span className="flex items-center gap-2">
-                  <Download className="h-4 w-4 text-[#9c7d3c] dark:text-[#E2B354]" />
+                  <RefreshCw className="h-4 w-4 text-[#9c7d3c] dark:text-[#E2B354]" />
                   <span>Cek Pembaruan APK</span>
                 </span>
-                <span aria-hidden="true">↻</span>
               </button>
             ) : (
               <a
@@ -292,7 +292,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                     title="Cek pembaruan APK"
                     className="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl border border-white/25 bg-white/10 text-white transition-colors hover:bg-white/20 dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200 dark:hover:bg-[#1E2C40]"
                   >
-                    <Download className="h-4 w-4 shrink-0" />
+                    <RefreshCw className="h-4 w-4 shrink-0" />
                   </button>
                 ) : (
                   <a

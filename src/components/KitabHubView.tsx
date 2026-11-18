@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import { ArrowRight, CheckCircle2, CloudDownload, Search } from "lucide-react";
 import type { LocalBookMeta } from "../types/emoeslife";
 import { countCachedLocalKitabs, prefetchAllLocalKitabs } from "../hooks/usePWAInstall";
@@ -15,14 +16,16 @@ export const KitabHubView: React.FC<KitabHubViewProps> = ({
   apiBooks,
   onOpenBook,
 }) => {
+  const isNativeApp = Capacitor.isNativePlatform();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("Semua");
   const [cachedCount, setCachedCount] = useState(0);
   const [prefetching, setPrefetching] = useState(false);
 
   useEffect(() => {
+    if (isNativeApp) return;
     countCachedLocalKitabs().then(setCachedCount);
-  }, []);
+  }, [isNativeApp]);
 
   const allBooks = useMemo(() => [...localBooks, ...apiBooks], [localBooks, apiBooks]);
 
@@ -76,25 +79,27 @@ export const KitabHubView: React.FC<KitabHubViewProps> = ({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handlePrefetchAll}
-          disabled={prefetching || cachedCount >= localBooks.length}
-          className="inline-flex min-h-[38px] shrink-0 items-center gap-1.5 self-start rounded-xl border border-[#dce4df] bg-white px-3 text-xs font-semibold text-[#134a35] shadow-xs transition-colors hover:bg-[#f4f7f5] disabled:opacity-75 md:self-auto dark:border-slate-700 dark:bg-[#162131] dark:text-[#E2B354]"
-        >
-          {cachedCount >= localBooks.length ? (
-            <CheckCircle2 className="h-3.5 w-3.5" />
-          ) : (
-            <CloudDownload className="h-3.5 w-3.5" />
-          )}
-          <span>
-            {prefetching
-              ? `Mengunduh (${cachedCount}/${localBooks.length})…`
-              : cachedCount >= localBooks.length
-              ? `${localBooks.length} kitab siap offline`
-              : `Simpan Offline (${cachedCount}/${localBooks.length})`}
-          </span>
-        </button>
+        {!isNativeApp && (
+          <button
+            type="button"
+            onClick={handlePrefetchAll}
+            disabled={prefetching || cachedCount >= localBooks.length}
+            className="inline-flex min-h-[38px] shrink-0 items-center gap-1.5 self-start rounded-xl border border-[#dce4df] bg-white px-3 text-xs font-semibold text-[#134a35] shadow-xs transition-colors hover:bg-[#f4f7f5] disabled:opacity-75 md:self-auto dark:border-slate-700 dark:bg-[#162131] dark:text-[#E2B354]"
+          >
+            {cachedCount >= localBooks.length ? (
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            ) : (
+              <CloudDownload className="h-3.5 w-3.5" />
+            )}
+            <span>
+              {prefetching
+                ? `Mengunduh (${cachedCount}/${localBooks.length})…`
+                : cachedCount >= localBooks.length
+                ? `${localBooks.length} kitab siap offline`
+                : `Simpan Offline (${cachedCount}/${localBooks.length})`}
+            </span>
+          </button>
+        )}
       </div>
 
       {/* Rounded Search Input */}

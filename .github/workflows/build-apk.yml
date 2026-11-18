@@ -122,8 +122,8 @@ jobs:
           VERSION_CODE: ${{ github.run_number }}
           VERSION_NAME: 2.0.${{ github.run_number }}
         run: |
-          PREV_RELEASE_BODY=$(gh release view v2.0-android --json body -q .body 2>/dev/null || true)
-          export PREV_RELEASE_BODY
+          PREV_RELEASE_JSON=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/v2.0-android" 2>/dev/null || true)
+          export PREV_RELEASE_JSON
           node scripts/generate-release-notes.mjs > release-notes.md
           if gh release view v2.0-android >/dev/null 2>&1; then
             gh release edit v2.0-android \
