@@ -362,7 +362,7 @@ footer a{color:#e6c98e;text-decoration:none}
 <h1>Unduh e-Moeslife untuk Android.</h1>
 <p class="hero-lead">Nikmati ruang baca Islami digital dalam bentuk aplikasi Android native berbasis <strong>Capacitor</strong>. Lebih responsif, akses penuh layar, dan seluruh 18 kitab kuning lokal tersimpan langsung di perangkat Anda.</p>
 <div class="actions">
-<a id="apk-download-btn" class="btn btn-primary" href="/downloads/e-moeslife.apk" download="e-moeslife.apk">
+<a id="apk-download-btn" class="btn btn-primary" href="https://github.com/r14bz/e-Moeslife/releases/latest/download/e-moeslife.apk" download="e-moeslife.apk">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
 <span>Unduh APK Android (Capacitor)</span>
 </a>
@@ -445,7 +445,7 @@ footer a{color:#e6c98e;text-decoration:none}
 <h2>Siap pasang e-Moeslife Android (Capacitor)?</h2>
 <p>Unduh installer APK terbaru untuk pengalaman aplikasi native Android atau langsung buka e-Moeslife di peramban Anda.</p>
 </div>
-<a class="btn apk-trigger" href="/downloads/e-moeslife.apk" download="e-moeslife.apk">Unduh e-Moeslife.apk <span aria-hidden="true">→</span></a>
+<a class="btn apk-trigger" href="https://github.com/r14bz/e-Moeslife/releases/latest/download/e-moeslife.apk" download="e-moeslife.apk">Unduh e-moeslife.apk <span aria-hidden="true">→</span></a>
 </section>
 </section>
 </main>
@@ -453,49 +453,23 @@ footer a{color:#e6c98e;text-decoration:none}
 
 <script>
 (function () {
-  var statusEl = document.getElementById("apk-status-msg");
+  var localUrl = "/downloads/e-moeslife.apk";
+  var releaseUrl = "https://github.com/r14bz/e-Moeslife/releases/latest/download/e-moeslife.apk";
   var triggers = [document.getElementById("apk-download-btn"), document.querySelector(".apk-trigger")];
 
-  function checkApkAvailability(showMessageIfMissing) {
-    return fetch("/downloads/e-moeslife.apk", { method: "HEAD", cache: "no-store" })
-      .then(function (res) {
-        var contentType = (res.headers.get("content-type") || "").toLowerCase();
-        var available = res.ok && contentType.indexOf("text/html") === -1;
-        if (!available && showMessageIfMissing && statusEl) {
-          statusEl.innerHTML =
-            "Berkas <strong>e-moeslife.apk</strong> belum tersedia di folder <code>/public/downloads/e-moeslife.apk</code>. " +
-            "Jalankan workflow <strong>Build Android APK (Capacitor)</strong> di tab <em>Actions</em> GitHub Anda untuk mengompilasi APK otomatis, lalu unggah hasilnya ke folder tersebut.";
-          statusEl.classList.add("visible");
-        }
-        return available;
-      })
-      .catch(function () {
-        if (showMessageIfMissing && statusEl) {
-          statusEl.innerHTML =
-            "Belum dapat memeriksa berkas <strong>e-moeslife.apk</strong>. Pastikan koneksi aktif atau jalankan build APK Capacitor terlebih dahulu.";
-          statusEl.classList.add("visible");
-        }
-        return false;
+  fetch(localUrl, { method: "HEAD", cache: "no-store" })
+    .then(function (res) {
+      var contentType = (res.headers.get("content-type") || "").toLowerCase();
+      var target = res.ok && contentType.indexOf("text/html") === -1 ? localUrl : releaseUrl;
+      triggers.forEach(function (el) {
+        if (el) el.setAttribute("href", target);
       });
-  }
-
-  triggers.forEach(function (el) {
-    if (!el) return;
-    el.addEventListener("click", function (e) {
-      e.preventDefault();
-      var href = el.getAttribute("href");
-      checkApkAvailability(true).then(function (ok) {
-        if (ok && href) {
-          var temp = document.createElement("a");
-          temp.href = href;
-          temp.setAttribute("download", "e-moeslife.apk");
-          document.body.appendChild(temp);
-          temp.click();
-          temp.remove();
-        }
+    })
+    .catch(function () {
+      triggers.forEach(function (el) {
+        if (el) el.setAttribute("href", releaseUrl);
       });
     });
-  });
 })();
 </script>
 </body>
