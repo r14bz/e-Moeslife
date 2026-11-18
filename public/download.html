@@ -481,7 +481,7 @@ footer a{color:#e6c98e;text-decoration:none}
       var subEl = document.getElementById("apk-version-sub");
       var body = rel.body || "";
       var versionText = "";
-      var marker = body.match(/<!--\s*emoeslife-release:(\{[^}]+\})\s*-->/);
+      var marker = body.match(/<!--\s*emoeslife-release:(\{[\s\S]*?\})\s*-->/);
       if (marker) {
         try {
           var meta = JSON.parse(marker[1]);

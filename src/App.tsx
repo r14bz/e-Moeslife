@@ -29,11 +29,13 @@ import { DownloadView } from "./components/DownloadView";
 import { WudhuShalatView } from "./components/WudhuShalatView";
 import { ApkUpdatePrompt } from "./components/ApkUpdatePrompt";
 import { KITAB_TASHRIF_DATA } from "./data/kitabTashrifData";
+import { LocalNotifications } from "@capacitor/local-notifications";
 import {
   checkForApkUpdate,
   dismissApkVersion,
   INSTALLED_APK_VERSION_NAME,
   isNativeAndroidApp,
+  notifyApkUpdateAvailable,
   type ApkReleaseInfo,
 } from "./services/apkUpdater";
 import { requestStartupPermissionsOnLaunch } from "./services/locationService";
@@ -89,17 +91,55 @@ export function App() {
   useEffect(() => {
     if (!isNativeAndroidApp()) return;
     let active = true;
-    checkForApkUpdate()
-      .then(({ updateAvailable }) => {
-        if (active && updateAvailable) {
+    let checking = false;
+
+    const runAutoUpdateCheck = () => {
+      if (checking) return;
+      if (typeof navigator !== "undefined" && !navigator.onLine) return;
+      checking = true;
+      checkForApkUpdate()
+        .then(({ updateAvailable }) => {
+          if (!active || !updateAvailable) return;
           setApkUpdateRelease(updateAvailable);
+          void notifyApkUpdateAvailable(updateAvailable);
+        })
+        .catch(() => {
+          // Silent fallback when offline
+        })
+        .finally(() => {
+          checking = false;
+        });
+    };
+
+    runAutoUpdateCheck();
+    window.addEventListener("online", runAutoUpdateCheck);
+
+    let removeNotifListener: (() => Promise<void>) | null = null;
+    LocalNotifications.addListener("localNotificationActionPerformed", (action) => {
+      const extra = action.notification?.extra as { type?: string } | undefined;
+      if (extra?.type === "apk-update") {
+        void checkForApkUpdate({ force: true }).then(({ updateAvailable }) => {
+          if (active && updateAvailable) {
+            setApkUpdateRelease(updateAvailable);
+          }
+        });
+      }
+    })
+      .then((handle) => {
+        if (active) {
+          removeNotifListener = () => handle.remove();
+        } else {
+          void handle.remove();
         }
       })
-      .catch(() => {
-        // Silent fallback when offline
-      });
+      .catch(() => undefined);
+
     return () => {
       active = false;
+      window.removeEventListener("online", runAutoUpdateCheck);
+      if (removeNotifListener) {
+        void removeNotifListener();
+      }
     };
   }, []);
 

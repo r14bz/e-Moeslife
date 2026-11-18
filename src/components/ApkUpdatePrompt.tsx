@@ -1,8 +1,17 @@
 import React from "react";
-import { Download, RefreshCw, ShieldCheck, X } from "lucide-react";
+import {
+  CheckCircle2,
+  Download,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+  Wrench,
+  X,
+} from "lucide-react";
 import {
   formatApkSize,
   INSTALLED_APK_VERSION_NAME,
+  type ApkChangelogCategory,
   type ApkReleaseInfo,
 } from "../services/apkUpdater";
 
@@ -10,6 +19,43 @@ interface ApkUpdatePromptProps {
   release: ApkReleaseInfo | null;
   statusMessage?: string | null;
   onDismiss: () => void;
+}
+
+const CATEGORY_STYLE: Record<
+  ApkChangelogCategory,
+  { icon: React.ReactNode; badgeClass: string }
+> = {
+  fitur: {
+    icon: <Sparkles className="h-3.5 w-3.5" />,
+    badgeClass:
+      "bg-emerald-50 text-[#134a35] border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/70",
+  },
+  keamanan: {
+    icon: <ShieldCheck className="h-3.5 w-3.5" />,
+    badgeClass:
+      "bg-amber-50 text-[#9c6a12] border-amber-200 dark:bg-amber-950/50 dark:text-[#E2B354] dark:border-amber-800/70",
+  },
+  perbaikan: {
+    icon: <Wrench className="h-3.5 w-3.5" />,
+    badgeClass:
+      "bg-sky-50 text-sky-800 border-sky-200 dark:bg-sky-950/50 dark:text-sky-300 dark:border-sky-800/70",
+  },
+  lainnya: {
+    icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+    badgeClass:
+      "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
+  },
+};
+
+function formatReleaseDate(iso: string): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 export const ApkUpdatePrompt: React.FC<ApkUpdatePromptProps> = ({
@@ -43,6 +89,7 @@ export const ApkUpdatePrompt: React.FC<ApkUpdatePromptProps> = ({
 
   if (!release) return null;
   const sizeLabel = formatApkSize(release.sizeBytes);
+  const dateLabel = formatReleaseDate(release.publishedAt);
 
   return (
     <div
@@ -73,6 +120,11 @@ export const ApkUpdatePrompt: React.FC<ApkUpdatePromptProps> = ({
               >
                 e-Moeslife v{release.versionName}
               </h2>
+              {dateLabel && (
+                <p className="text-[11px] text-[#5e6a62] dark:text-slate-400">
+                  Dirilis {dateLabel}
+                </p>
+              )}
             </div>
           </div>
           <button
@@ -101,15 +153,54 @@ export const ApkUpdatePrompt: React.FC<ApkUpdatePromptProps> = ({
           </div>
         </div>
 
-        <p className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-[#5e6a62] dark:text-slate-300">
-          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#134a35] dark:text-[#E2B354]" />
+        <div className="mt-3.5 rounded-2xl border border-[#e8eeea] bg-[#fbfcfb] p-3.5 dark:border-slate-800 dark:bg-[#131D2B]">
+          <p className="text-[11px] font-bold tracking-wider text-[#9c7d3c] uppercase dark:text-[#E2B354]">
+            Catatan Pembaruan (Changelog)
+          </p>
+
+          {release.changelog.length > 0 ? (
+            <div className="mt-2.5 max-h-48 space-y-3 overflow-y-auto pr-1">
+              {release.changelog.map((group) => {
+                const style = CATEGORY_STYLE[group.category];
+                return (
+                  <div key={group.category} className="space-y-1.5">
+                    <div
+                      className={`inline-flex items-center gap-1.5 rounded-lg border px-2 py-0.5 text-[11px] font-bold ${style.badgeClass}`}
+                    >
+                      {style.icon}
+                      <span>{group.label}</span>
+                    </div>
+                    <ul className="space-y-1 pl-1 text-xs leading-relaxed text-[#354c3e] dark:text-slate-300">
+                      {group.items.map((item, idx) => (
+                        <li key={`${group.category}-${idx}`} className="flex items-start gap-2">
+                          <span
+                            aria-hidden="true"
+                            className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#134a35] dark:bg-[#E2B354]"
+                          />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="mt-2 text-xs leading-relaxed text-[#5e6a62] dark:text-slate-300">
+              Pembaruan aplikasi tersedia dengan peningkatan stabilitas dan pengalaman baca.
+            </p>
+          )}
+        </div>
+
+        <p className="mt-3 flex items-start gap-2 text-[11px] leading-relaxed text-[#5e6a62] dark:text-slate-400">
+          <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#134a35] dark:text-[#E2B354]" />
           <span>
             Setelah berkas APK selesai diunduh, ketuk notifikasi unduhan lalu pilih{" "}
             <strong>Perbarui / Update</strong>. Data bacaan dan pengaturan tetap tersimpan.
           </span>
         </p>
 
-        <div className="mt-5 flex flex-col gap-2 sm:flex-row-reverse">
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row-reverse">
           <a
             href={release.downloadUrl}
             target="_blank"

@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
@@ -117,28 +119,19 @@ jobs:
       - name: Publish to GitHub Release (latest)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: 2.0.${{ github.run_number }}
         run: |
-          VERSION_CODE="${{ github.run_number }}"
-          VERSION_NAME="2.0.${{ github.run_number }}"
-          SIGN_LABEL="Release Signed"
-          if [ "$APK_SIGN_MODE" != "release" ]; then
-            SIGN_LABEL="Debug Signed"
-          fi
-          NOTES=$(printf '%s\n' \
-            "Build otomatis aplikasi Android e-Moeslife berbasis Capacitor." \
-            "" \
-            "- Versi: v${VERSION_NAME} (Build ${VERSION_CODE})" \
-            "- Tipe Signature: ${SIGN_LABEL}" \
-            "- Package ID: com.emoeslife.app" \
-            "" \
-            "<!-- emoeslife-release:{\"versionCode\":${VERSION_CODE},\"versionName\":\"${VERSION_NAME}\",\"signed\":\"${APK_SIGN_MODE}\"} -->")
+          PREV_RELEASE_BODY=$(gh release view v2.0-android --json body -q .body 2>/dev/null || true)
+          export PREV_RELEASE_BODY
+          node scripts/generate-release-notes.mjs > release-notes.md
           if gh release view v2.0-android >/dev/null 2>&1; then
             gh release edit v2.0-android \
               --title "e-Moeslife Android v${VERSION_NAME}" \
-              --notes "$NOTES"
+              --notes-file release-notes.md
             gh release upload v2.0-android release-apk/e-moeslife.apk --clobber
           else
             gh release create v2.0-android release-apk/e-moeslife.apk \
               --title "e-Moeslife Android v${VERSION_NAME}" \
-              --notes "$NOTES"
+              --notes-file release-notes.md
           fi

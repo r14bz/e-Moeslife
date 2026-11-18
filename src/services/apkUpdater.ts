@@ -1,4 +1,6 @@
 import { Capacitor } from "@capacitor/core";
+import { LocalNotifications } from "@capacitor/local-notifications";
+import { requestStartupPermissionsOnLaunch } from "./locationService";
 
 export const RELEASES_TAG_API_URL =
   "https://api.github.com/repos/r14bz/e-Moeslife/releases/tags/v2.0-android";
@@ -7,14 +9,23 @@ export const RELEASES_LATEST_API_URL =
 export const DEFAULT_APK_DOWNLOAD_URL =
   "https://github.com/r14bz/e-Moeslife/releases/latest/download/e-moeslife.apk";
 
-const DISMISSED_VERSION_KEY = "emoeslife-apk-dismissed-version";
-const LAST_CHECK_AT_KEY = "emoeslife-apk-last-check-at";
-const AUTO_CHECK_INTERVAL_MS = 2 * 60 * 60 * 1000; // 2 hours
+const DISMISSED_VERSION_SESSION_KEY = "emoeslife-apk-dismissed-version-session";
+const NOTIFIED_VERSION_STORAGE_KEY = "emoeslife-apk-notified-version";
+const UPDATE_CHANNEL_ID = "pembaruan-aplikasi";
+export const APK_UPDATE_NOTIFICATION_ID = 519901;
 
 export const INSTALLED_APK_VERSION_CODE =
   Number.parseInt(import.meta.env.VITE_APK_VERSION_CODE || "0", 10) || 0;
 export const INSTALLED_APK_VERSION_NAME =
   import.meta.env.VITE_APK_VERSION_NAME || "2.0.0";
+
+export type ApkChangelogCategory = "fitur" | "keamanan" | "perbaikan" | "lainnya";
+
+export interface ApkChangelogGroup {
+  category: ApkChangelogCategory;
+  label: string;
+  items: string[];
+}
 
 export interface ApkReleaseInfo {
   versionCode: number;
@@ -23,6 +34,7 @@ export interface ApkReleaseInfo {
   downloadUrl: string;
   sizeBytes: number;
   publishedAt: string;
+  changelog: ApkChangelogGroup[];
 }
 
 interface GitHubReleaseAsset {
@@ -40,8 +52,113 @@ interface GitHubReleaseResponse {
   assets?: GitHubReleaseAsset[];
 }
 
+const CATEGORY_LABELS: Record<ApkChangelogCategory, string> = {
+  fitur: "Fitur Baru",
+  keamanan: "Keamanan",
+  perbaikan: "Perbaikan & Peningkatan",
+  lainnya: "Pembaruan Lainnya",
+};
+
+const CATEGORY_ORDER: ApkChangelogCategory[] = ["fitur", "keamanan", "perbaikan", "lainnya"];
+
 export function isNativeAndroidApp(): boolean {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android";
+}
+
+function mapHeadingToCategory(heading: string): ApkChangelogCategory | "ignore" | null {
+  const normalized = heading.trim().toLowerCase();
+  if (/informasi\s+rilis|release\s+info|metadata/.test(normalized)) return "ignore";
+  if (/keamanan|security|proteksi|izin|permission/.test(normalized)) return "keamanan";
+  if (/fitur|feature|penambahan|baru/.test(normalized)) return "fitur";
+  if (/perbaikan|peningkatan|fix|bug|stabil|performa|optimasi/.test(normalized)) {
+    return "perbaikan";
+  }
+  if (/lainnya|other|catatan|perubahan|changelog/.test(normalized)) return "lainnya";
+  return null;
+}
+
+function classifyBulletText(text: string): ApkChangelogCategory {
+  const lower = text.toLowerCase();
+  if (
+    /\b(keamanan|security|keystore|signature|signed|signing|permission|izin|auth|token|enkripsi|privasi)\b/.test(
+      lower
+    )
+  ) {
+    return "keamanan";
+  }
+  if (
+    /\b(fitur|feature|tambah|menambahkan|notifikasi|jadwal|changelog|pencarian|audio|tema|mode|doa|kitab)\b/.test(
+      lower
+    )
+  ) {
+    return "fitur";
+  }
+  if (/\b(perbaik|fix|bug|optimal|stabil|offline|rapi|sinkron|kecepatan|kinerja)\b/.test(lower)) {
+    return "perbaikan";
+  }
+  return "lainnya";
+}
+
+function isBoilerplateLine(line: string): boolean {
+  const clean = line.trim().toLowerCase();
+  if (!clean) return true;
+  if (clean.startsWith("build otomatis aplikasi android e-moeslife")) return true;
+  if (clean.startsWith("ringkasan pembaruan aplikasi android")) return true;
+  if (/^(versi|tipe signature|package id)\s*:/.test(clean)) return true;
+  return false;
+}
+
+function parseChangelogFromBody(
+  body: string,
+  signed: ApkReleaseInfo["signed"]
+): ApkChangelogGroup[] {
+  const cleanedBody = body.replace(/<!--\s*emoeslife-release:[\s\S]*?-->/g, "").trim();
+  const buckets: Record<ApkChangelogCategory, string[]> = {
+    fitur: [],
+    keamanan: [],
+    perbaikan: [],
+    lainnya: [],
+  };
+
+  let currentSection: ApkChangelogCategory | "ignore" | null = null;
+
+  for (const rawLine of cleanedBody.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    const headingMatch = line.match(/^#{1,4}\s+(.+)$/);
+    if (headingMatch) {
+      currentSection = mapHeadingToCategory(headingMatch[1]);
+      continue;
+    }
+
+    if (currentSection === "ignore") continue;
+
+    const bulletMatch = line.match(/^[-*•]\s+(.+)$/);
+    const content = (bulletMatch ? bulletMatch[1] : line).replace(/\*\*(.+?)\*\*/g, "$1").trim();
+
+    if (!content || isBoilerplateLine(content)) continue;
+    if (!bulletMatch && currentSection === null && cleanedBody.includes("###")) continue;
+
+    const targetCategory: ApkChangelogCategory =
+      currentSection ?? classifyBulletText(content);
+
+    if (!buckets[targetCategory].includes(content)) {
+      buckets[targetCategory].push(content);
+    }
+  }
+
+  if (signed === "release" && buckets.keamanan.length === 0) {
+    buckets.keamanan.push(
+      "Rilis ditandatangani dengan Release Keystore resmi agar pembaruan menjaga data tersimpan."
+    );
+  }
+
+  return CATEGORY_ORDER.filter((cat) => buckets[cat].length > 0).map((cat) => ({
+    category: cat,
+    label: CATEGORY_LABELS[cat],
+    items: buckets[cat],
+  }));
 }
 
 function parseReleaseMetadata(release: GitHubReleaseResponse): ApkReleaseInfo | null {
@@ -50,7 +167,7 @@ function parseReleaseMetadata(release: GitHubReleaseResponse): ApkReleaseInfo | 
   let versionName = "";
   let signed: ApkReleaseInfo["signed"] = "unknown";
 
-  const markerMatch = body.match(/<!--\s*emoeslife-release:(\{[^}]+\})\s*-->/);
+  const markerMatch = body.match(/<!--\s*emoeslife-release:(\{[\s\S]*?\})\s*-->/);
   if (markerMatch) {
     try {
       const parsed = JSON.parse(markerMatch[1]) as {
@@ -93,6 +210,7 @@ function parseReleaseMetadata(release: GitHubReleaseResponse): ApkReleaseInfo | 
     downloadUrl: apkAsset?.browser_download_url || DEFAULT_APK_DOWNLOAD_URL,
     sizeBytes: apkAsset?.size || 0,
     publishedAt: apkAsset?.updated_at || release.published_at || "",
+    changelog: parseChangelogFromBody(body, signed),
   };
 }
 
@@ -103,7 +221,9 @@ export function formatApkSize(bytes: number): string {
 
 export function getDismissedApkVersion(): number {
   try {
-    return Number.parseInt(localStorage.getItem(DISMISSED_VERSION_KEY) || "0", 10) || 0;
+    return (
+      Number.parseInt(sessionStorage.getItem(DISMISSED_VERSION_SESSION_KEY) || "0", 10) || 0
+    );
   } catch {
     return 0;
   }
@@ -111,7 +231,7 @@ export function getDismissedApkVersion(): number {
 
 export function dismissApkVersion(versionCode: number): void {
   try {
-    localStorage.setItem(DISMISSED_VERSION_KEY, String(versionCode));
+    sessionStorage.setItem(DISMISSED_VERSION_SESSION_KEY, String(versionCode));
   } catch {
     // Ignore storage failures
   }
@@ -147,18 +267,6 @@ export async function checkForApkUpdate(options?: {
     return { updateAvailable: null, latest: null };
   }
 
-  if (!force) {
-    try {
-      const lastCheck = Number.parseInt(localStorage.getItem(LAST_CHECK_AT_KEY) || "0", 10) || 0;
-      if (Date.now() - lastCheck < AUTO_CHECK_INTERVAL_MS) {
-        return { updateAvailable: null, latest: null };
-      }
-      localStorage.setItem(LAST_CHECK_AT_KEY, String(Date.now()));
-    } catch {
-      // Continue without throttle persistence
-    }
-  }
-
   const latest = await fetchLatestApkRelease();
   if (!latest) return { updateAvailable: null, latest: null };
 
@@ -174,4 +282,64 @@ export async function checkForApkUpdate(options?: {
   }
 
   return { updateAvailable: latest, latest };
+}
+
+function buildNotificationSummary(release: ApkReleaseInfo): string {
+  const highlights = release.changelog.flatMap((group) => group.items).slice(0, 2);
+  if (highlights.length > 0) {
+    return `${highlights.join(" • ")} — Ketuk untuk melihat detail & memperbarui.`;
+  }
+  return `Versi terbaru v${release.versionName} tersedia. Ketuk untuk mengunduh pembaruan.`;
+}
+
+export async function notifyApkUpdateAvailable(release: ApkReleaseInfo): Promise<void> {
+  if (!isNativeAndroidApp()) return;
+
+  try {
+    const alreadyNotified =
+      Number.parseInt(localStorage.getItem(NOTIFIED_VERSION_STORAGE_KEY) || "0", 10) || 0;
+    if (alreadyNotified >= release.versionCode) return;
+
+    await requestStartupPermissionsOnLaunch().catch(() => undefined);
+
+    const perm = await LocalNotifications.checkPermissions();
+    if (perm.display !== "granted") return;
+
+    try {
+      await LocalNotifications.createChannel({
+        id: UPDATE_CHANNEL_ID,
+        name: "Pembaruan Aplikasi",
+        description: "Pemberitahuan otomatis saat versi terbaru e-Moeslife tersedia",
+        importance: 4,
+        visibility: 1,
+        sound: "default",
+        vibration: true,
+      });
+    } catch {
+      // Channel may already exist on Android
+    }
+
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id: APK_UPDATE_NOTIFICATION_ID,
+          title: `Pembaruan e-Moeslife v${release.versionName}`,
+          body: buildNotificationSummary(release),
+          channelId: UPDATE_CHANNEL_ID,
+          schedule: {
+            at: new Date(Date.now() + 600),
+            allowWhileIdle: true,
+          },
+          extra: {
+            type: "apk-update",
+            versionCode: release.versionCode,
+          },
+        },
+      ],
+    });
+
+    localStorage.setItem(NOTIFIED_VERSION_STORAGE_KEY, String(release.versionCode));
+  } catch {
+    // Silent fallback if notification scheduling fails
+  }
 }
