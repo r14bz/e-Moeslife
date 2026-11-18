@@ -14,13 +14,7 @@ import {
   findCollectionStart,
   isValidManualDzikirLayout,
 } from "./utils/readerEngine";
-import {
-  firstText,
-  kitabApiRequest,
-  LOCAL_BOOKS,
-  normalizeBookName,
-  pickKitabArray,
-} from "./utils/kitabEngine";
+import { LOCAL_BOOKS } from "./utils/kitabEngine";
 import { AppShell } from "./components/AppShell";
 import { HomeView } from "./components/HomeView";
 import { BacaanHubView } from "./components/BacaanHubView";
@@ -77,7 +71,7 @@ export function App() {
   });
   const [tocOpen, setTocOpen] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
-  const [apiBooks, setApiBooks] = useState<LocalBookMeta[]>([]);
+  const apiBooks: LocalBookMeta[] = [];
   const [mapsQuotaExceeded, setMapsQuotaExceeded] = useState(false);
   const [apkUpdateRelease, setApkUpdateRelease] = useState<ApkReleaseInfo | null>(null);
   const [apkUpdateStatus, setApkUpdateStatus] = useState<string | null>(null);
@@ -172,58 +166,6 @@ export function App() {
       });
 
     Promise.allSettled([overridesTask, layoutTask]);
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    const localSlugs = new Set([
-      ...LOCAL_BOOKS.map((book) => book.slug),
-      "safinah",
-      "safinah-an-najah",
-      "sullamut",
-    ]);
-    const localTitles = new Set(LOCAL_BOOKS.map((book) => normalizeBookName(book.title)));
-
-    kitabApiRequest({ action: "list" })
-      .then((payload) => {
-        if (!active) return;
-        const rows = pickKitabArray(payload);
-        const deduped: LocalBookMeta[] = [];
-        const seenSlugs = new Set<string>();
-        const seenTitles = new Set<string>();
-
-        for (const item of rows) {
-          const slug = firstText(item, ["slug", "id", "kitab_id", "kode"]);
-          const title = firstText(item, ["nama", "judul", "title", "name", "kitab"], slug);
-          if (!slug || !title) continue;
-          const normTitle = normalizeBookName(title);
-          if (
-            localSlugs.has(slug) ||
-            localTitles.has(normTitle) ||
-            seenSlugs.has(slug) ||
-            seenTitles.has(normTitle)
-          ) {
-            continue;
-          }
-          seenSlugs.add(slug);
-          seenTitles.add(normTitle);
-          deduped.push({
-            file: "",
-            slug,
-            title,
-            category: firstText(item, ["kategori", "category", "bidang", "topik"], "Kitab Kuning"),
-            source: "api",
-          });
-        }
-        setApiBooks(deduped);
-      })
-      .catch(() => {
-        if (active) setApiBooks([]);
-      });
-
     return () => {
       active = false;
     };

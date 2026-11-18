@@ -19,6 +19,7 @@ export const LOCAL_BOOKS: LocalBookMeta[] = [
   },
   { file: "sullamut-taufiq.json", slug: "sullamut-taufiq", title: "Sullamut Taufiq", category: "Fiqih", source: "local" },
   { file: "ajurumiyyah.json", slug: "ajurumiyyah", title: "Matan Al-Ajurumiyyah", category: "Ilmu Alat", source: "local" },
+  { file: "imriti.json", slug: "imriti", title: "Nadhom Imriti", category: "Ilmu Alat", source: "local" },
   {
     file: "",
     slug: "amtsilah-tashrifiyah",
@@ -27,19 +28,24 @@ export const LOCAL_BOOKS: LocalBookMeta[] = [
     format: "tashrif",
     source: "local",
   },
+  { file: "alfiyah.json", slug: "alfiyah", title: "Alfiyah Ibnu Malik", category: "Ilmu Alat", source: "local" },
   { file: "taklim.json", slug: "taklim", title: "Ta’lim Al-Muta’allim", category: "Adab", source: "local" },
+  { file: "nashoihul.json", slug: "nashoihul", title: "Nashoihul Ibad", category: "Adab", source: "local" },
   { file: "baiquniyyah.json", slug: "baiquniyyah", title: "Mandhumah Al-Baiquniyyah", category: "Hadis", source: "local" },
   { file: "arbain.json", slug: "arbain", title: "Arba’in Nawawi", category: "Hadis", source: "local" },
   { file: "bidayatul.json", slug: "bidayatul", title: "Bidayatul Hidayah", category: "Tasawuf", source: "local" },
   { file: "qarib.json", slug: "qarib", title: "Fathul Qarib", category: "Fiqih", source: "local" },
   { file: "bulughul.json", slug: "bulughul", title: "Bulughul Maram", category: "Hadis", source: "local" },
+  { file: "riyadhus.json", slug: "riyadhus", title: "Riyadhus Shalihin", category: "Hadis", source: "local" },
   { file: "izar.json", slug: "izar", title: "Fathul Izar", category: "Keluarga", source: "local" },
   { file: "uyun.json", slug: "uyun", title: "Qurrotul Uyun", category: "Keluarga", source: "local" },
+  { file: "uqudulujain.json", slug: "uqudulujain", title: "Uqudulujain", category: "Keluarga", source: "local" },
   { file: "alhikam.json", slug: "alhikam", title: "Al-Hikam", category: "Tasawuf", source: "local" },
   { file: "futuhul.json", slug: "futuhul", title: "Futuhul Ghaib", category: "Tasawuf", source: "local" },
   { file: "jalalain.json", slug: "jalalain", title: "Tafsir Jalalain", category: "Tafsir", source: "local" },
   { file: "muwatta.json", slug: "muwatta", title: "Muwatta Imam Malik", category: "Hadis", source: "local" },
   { file: "muslim.json", slug: "muslim", title: "Shahih Muslim", category: "Hadis", source: "local" },
+  { file: "bukhari.json", slug: "bukhari", title: "Shahih Bukhari", category: "Hadis", source: "local" },
 ];
 
 export const normalizeBookName = (value: string): string =>

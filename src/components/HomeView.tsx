@@ -521,7 +521,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   >
                     <Search className="h-3.5 w-3.5" />
                     <span>
-                      Cari juga di Bulughul Maram, Tafsir Jalalain, Muwatta &amp; Shahih Muslim
+                      Cari juga di Bulughul, Riyadhus Shalihin, Bukhari, Muslim, Muwatta &amp; Jalalain
                     </span>
                   </button>
                 </div>
@@ -591,7 +591,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 Tampilkan semua kitab
               </span>
               <span className="block truncate text-[11px] text-[#5e6a62] dark:text-slate-400">
-                Jelajahi seluruh {allBooks.length} kitab kuning lokal & referensi
+                Jelajahi seluruh {allBooks.length} kitab kuning lokal (100% offline)
               </span>
             </div>
           </div>

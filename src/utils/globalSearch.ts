@@ -59,7 +59,7 @@ interface IndexedChapter {
   displayText: string;
 }
 
-const HEAVY_SLUGS = new Set(["bulughul", "muwatta", "jalalain", "muslim"]);
+const HEAVY_SLUGS = new Set(["bulughul", "muwatta", "jalalain", "muslim", "bukhari", "riyadhus"]);
 
 // Module-level caches for instant repeated searches
 const kitabChapterCache: Record<string, IndexedChapter[]> = {};
