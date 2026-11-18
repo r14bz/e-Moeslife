@@ -186,7 +186,7 @@ export async function syncPrayerNotifications(
           );
           if (!fireAt) continue;
           const fireMs = fireAt.getTime();
-          if (fireMs <= nowMs + 4000 || fireMs > horizonMs) continue;
+          if (fireMs <= nowMs + 1000 || fireMs > horizonMs) continue;
 
           const hhmm = String(timeVal).trim().slice(0, 5);
           notifications.push({

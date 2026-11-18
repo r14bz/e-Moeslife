@@ -223,9 +223,8 @@ export const PrayerBanner: React.FC = () => {
   const [schedule, setSchedule] = useState<DailyPrayerSchedule | null>(null);
   const [clockText, setClockText] = useState("--:--:--");
   const [dateText, setDateText] = useState("");
-  const [nextLabel, setNextLabel] = useState("Menunggu izin lokasi…");
-  const [countdown, setCountdown] = useState("--:--:--");
-  const [graceSubNote, setGraceSubNote] = useState("");
+  const [statusLabel, setStatusLabel] = useState("Menunggu izin lokasi…");
+  const [timeWindowText, setTimeWindowText] = useState("");
   const [inGrace, setInGrace] = useState(false);
   const [activePrayerKey, setActivePrayerKey] = useState<string>("");
   const [scene, setScene] = useState<SkyScene>("day");
@@ -293,7 +292,8 @@ export const PrayerBanner: React.FC = () => {
 
   const requestGpsLocation = async (mountedCheck?: () => boolean) => {
     setLocationStatus("detecting");
-    setNextLabel("Mendeteksi lokasi Anda…");
+    setStatusLabel("Mendeteksi lokasi Anda…");
+    setTimeWindowText("");
     try {
       const detected = await detectLocation();
       if (mountedCheck && !mountedCheck()) return;
@@ -313,8 +313,8 @@ export const PrayerBanner: React.FC = () => {
         "code" in err &&
         (err as { code?: number }).code === 1;
       setLocationStatus(isDenied ? "denied" : "error");
-      setNextLabel(isDenied ? "Izin lokasi diperlukan" : "Lokasi belum terdeteksi");
-      setCountdown("--:--:--");
+      setStatusLabel(isDenied ? "Izin lokasi diperlukan" : "Lokasi belum terdeteksi");
+      setTimeWindowText("");
     }
   };
 
@@ -324,35 +324,42 @@ export const PrayerBanner: React.FC = () => {
     if (activeLoc) {
       fetchScheduleFor(activeLoc)
         .then(() => {
-          if (mounted) setLocationStatus("ready");
+          if (mounted) {
+            setLocationStatus("ready");
+            setStatusLabel("");
+          }
         })
         .catch(() => {
           if (!mounted) return;
           setLocationStatus("error");
-          setNextLabel("Jadwal belum dapat dimuat");
-          setCountdown("--:--:--");
+          setStatusLabel("Jadwal belum dapat dimuat");
+          setTimeWindowText("");
         });
     } else {
       void requestGpsLocation(() => mounted);
     }
     const onPermissionsReady = (event: Event) => {
-      if (!mounted || locationRef.current?.manual) return;
+      if (!mounted) return;
       const detail = (event as CustomEvent<{ locationGranted?: boolean }>).detail;
-      if (detail?.locationGranted) {
-        if (!locationRef.current) {
-          void requestGpsLocation(() => mounted);
-        } else if (monthlyBatchesRef.current.length > 0) {
-          void scheduleAlertsFor(locationRef.current, monthlyBatchesRef.current);
-        }
+      if (detail?.locationGranted && !locationRef.current) {
+        void requestGpsLocation(() => mounted);
       } else if (locationRef.current && monthlyBatchesRef.current.length > 0) {
         void scheduleAlertsFor(locationRef.current, monthlyBatchesRef.current);
       }
     };
+    const onVisibilityChange = () => {
+      if (!mounted || document.visibilityState !== "visible") return;
+      if (locationRef.current && monthlyBatchesRef.current.length > 0) {
+        void scheduleAlertsFor(locationRef.current, monthlyBatchesRef.current);
+      }
+    };
     window.addEventListener(PERMISSIONS_READY_EVENT, onPermissionsReady);
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
       mounted = false;
       window.removeEventListener(PERMISSIONS_READY_EVENT, onPermissionsReady);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, []);
 
@@ -393,9 +400,8 @@ export const PrayerBanner: React.FC = () => {
 
       const tickDateKey = `${parts.year}-${parts.month}-${parts.day}`;
       if (activeDateKeyRef.current && tickDateKey !== activeDateKeyRef.current) {
-        setNextLabel("Memperbarui jadwal…");
-        setCountdown("--:--:--");
-        setGraceSubNote("");
+        setStatusLabel("Memperbarui jadwal…");
+        setTimeWindowText("");
         setInGrace(false);
         if (
           shouldRetryRefresh({
@@ -408,7 +414,8 @@ export const PrayerBanner: React.FC = () => {
         ) {
           refreshingRef.current = true;
           fetchScheduleFor(loc)
-            .catch(() => setNextLabel("Jadwal belum dapat dimuat"))
+            .then(() => setStatusLabel(""))
+            .catch(() => setStatusLabel("Jadwal belum dapat dimuat"))
             .finally(() => {
               refreshingRef.current = false;
             });
@@ -419,12 +426,10 @@ export const PrayerBanner: React.FC = () => {
       const ticker = computePrayerTicker(
         schedule,
         Number(parts.hour),
-        Number(parts.minute),
-        Number(parts.second)
+        Number(parts.minute)
       );
-      setNextLabel(ticker.primaryLabel);
-      setCountdown(ticker.countdownText);
-      setGraceSubNote(ticker.subNote);
+      setStatusLabel(ticker.primaryLabel);
+      setTimeWindowText(ticker.timeWindowText);
       setInGrace(ticker.inGrace);
       setActivePrayerKey(ticker.activePrayerKey);
 
@@ -526,6 +531,8 @@ export const PrayerBanner: React.FC = () => {
     try {
       await fetchScheduleFor(nextLoc);
       setLocation(nextLoc);
+      setLocationStatus("ready");
+      setStatusLabel("");
       localStorage.setItem(PRAYER_STORAGE_KEY, JSON.stringify(nextLoc));
       setModalOpen(false);
     } catch (err) {
@@ -544,6 +551,7 @@ export const PrayerBanner: React.FC = () => {
       await fetchScheduleFor(nextLoc);
       setLocation(nextLoc);
       setLocationStatus("ready");
+      setStatusLabel("");
       localStorage.removeItem(PRAYER_STORAGE_KEY);
       setModalOpen(false);
     } catch (err) {
@@ -625,7 +633,7 @@ export const PrayerBanner: React.FC = () => {
                   isLightSky ? "text-[#134a35] dark:text-[#E7C67E]" : "text-[#F3D792]"
                 }`}
               >
-                Jadwal Shalat Harian
+                Jadwal Shalat
               </p>
               <div className="mt-1 flex items-baseline gap-2">
                 <span
@@ -661,37 +669,34 @@ export const PrayerBanner: React.FC = () => {
             </div>
 
             <div className="flex flex-col items-start gap-1.5 sm:items-end">
-              <div className="sm:text-right">
-                <p
-                  className={`text-[11px] font-medium ${
-                    inGrace
-                      ? isLightSky
-                        ? "text-[#8a5d14] dark:text-[#F7DC94]"
-                        : "text-[#F7DC94]"
-                      : isLightSky
-                      ? "text-[#2c4a3d] dark:text-slate-200"
-                      : "text-slate-200"
-                  }`}
-                >
-                  {nextLabel}
-                </p>
-                <p
-                  className={`font-mono-tabular text-base font-semibold sm:text-lg ${
-                    isLightSky ? "text-[#103d2c] dark:text-[#F4D99B]" : "text-[#F4D99B]"
-                  }`}
-                >
-                  {countdown}
-                </p>
-                {graceSubNote && (
-                  <p
-                    className={`text-[10px] ${
-                      isLightSky ? "text-[#425c50] dark:text-slate-300" : "text-slate-200/90"
-                    }`}
-                  >
-                    {graceSubNote}
-                  </p>
-                )}
-              </div>
+              {(statusLabel || timeWindowText) && (
+                <div className="sm:text-right">
+                  {statusLabel && (
+                    <p
+                      className={`text-xs font-semibold ${
+                        inGrace
+                          ? isLightSky
+                            ? "text-[#8a5d14] dark:text-[#F7DC94]"
+                            : "text-[#F7DC94]"
+                          : isLightSky
+                          ? "text-[#2c4a3d] dark:text-slate-200"
+                          : "text-slate-200"
+                      }`}
+                    >
+                      {statusLabel}
+                    </p>
+                  )}
+                  {timeWindowText && (
+                    <p
+                      className={`font-mono-tabular text-sm font-semibold sm:text-base ${
+                        isLightSky ? "text-[#103d2c] dark:text-[#F4D99B]" : "text-[#F4D99B]"
+                      }`}
+                    >
+                      {timeWindowText}
+                    </p>
+                  )}
+                </div>
+              )}
               <div className="flex flex-wrap items-center gap-1.5">
                 {!location && locationStatus !== "detecting" && (
                   <button

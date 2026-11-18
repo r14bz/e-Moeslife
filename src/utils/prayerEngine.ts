@@ -146,16 +146,14 @@ export const PRAYER_GRACE_MINUTES = 30;
 export interface PrayerTickerStatus {
   inGrace: boolean;
   primaryLabel: string;
-  countdownText: string;
-  subNote: string;
+  timeWindowText: string;
   activePrayerKey: string;
 }
 
 export function computePrayerTicker(
   schedule: DailyPrayerSchedule,
   hour: number,
-  minute: number,
-  second: number
+  minute: number
 ): PrayerTickerStatus {
   const currentMinutes = hour * 60 + minute;
   const timeline = PRAYERS.map((item) => ({
@@ -174,23 +172,17 @@ export function computePrayerTicker(
     return {
       inGrace: true,
       primaryLabel: `Masuk waktu ${currentInGrace.label}`,
-      countdownText: `${startStr} – ${endStr}`,
-      subNote: `Hitung mundur berikutnya pukul ${endStr}`,
+      timeWindowText: `${startStr} – ${endStr}`,
       activePrayerKey: String(currentInGrace.key),
     };
   }
 
-  const next = timeline.find((item) => item.minutes > currentMinutes) || timeline[0];
-  const delta =
-    (next.minutes + (next.minutes <= currentMinutes ? 1440 : 0) - currentMinutes) * 60000 -
-    second * 1000;
   const passed = timeline.filter((item) => item.minutes <= currentMinutes).at(-1);
 
   return {
     inGrace: false,
-    primaryLabel: `Menuju ${next.label}`,
-    countdownText: formatCountdown(delta),
-    subNote: "",
+    primaryLabel: "",
+    timeWindowText: "",
     activePrayerKey: passed ? String(passed.key) : "",
   };
 }
