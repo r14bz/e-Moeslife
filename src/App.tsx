@@ -33,7 +33,15 @@ import { ApiKitabView } from "./components/ApiKitabView";
 import { NearbyMosquesView } from "./components/NearbyMosquesView";
 import { DownloadView } from "./components/DownloadView";
 import { WudhuShalatView } from "./components/WudhuShalatView";
+import { ApkUpdatePrompt } from "./components/ApkUpdatePrompt";
 import { KITAB_TASHRIF_DATA } from "./data/kitabTashrifData";
+import {
+  checkForApkUpdate,
+  dismissApkVersion,
+  INSTALLED_APK_VERSION_NAME,
+  isNativeAndroidApp,
+  type ApkReleaseInfo,
+} from "./services/apkUpdater";
 
 const FONT_SIZES: FontSizeScale[] = ["small", "normal", "large"];
 
@@ -70,11 +78,50 @@ export function App() {
   const [focusMode, setFocusMode] = useState(false);
   const [apiBooks, setApiBooks] = useState<LocalBookMeta[]>([]);
   const [mapsQuotaExceeded, setMapsQuotaExceeded] = useState(false);
+  const [apkUpdateRelease, setApkUpdateRelease] = useState<ApkReleaseInfo | null>(null);
+  const [apkUpdateStatus, setApkUpdateStatus] = useState<string | null>(null);
 
   useEffect(() => {
     const onQuota = () => setMapsQuotaExceeded(true);
     window.addEventListener("gmp-quota-exceeded", onQuota);
     return () => window.removeEventListener("gmp-quota-exceeded", onQuota);
+  }, []);
+
+  useEffect(() => {
+    if (!isNativeAndroidApp()) return;
+    let active = true;
+    checkForApkUpdate()
+      .then(({ updateAvailable }) => {
+        if (active && updateAvailable) {
+          setApkUpdateRelease(updateAvailable);
+        }
+      })
+      .catch(() => {
+        // Silent fallback when offline
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleManualApkUpdateCheck = useCallback(async () => {
+    setApkUpdateStatus("Memeriksa pembaruan aplikasi…");
+    const { updateAvailable, latest } = await checkForApkUpdate({ force: true });
+    if (updateAvailable) {
+      setApkUpdateStatus(null);
+      setApkUpdateRelease(updateAvailable);
+      return;
+    }
+    if (latest) {
+      setApkUpdateStatus(
+        `Aplikasi sudah menggunakan versi terbaru (v${INSTALLED_APK_VERSION_NAME}).`
+      );
+    } else {
+      setApkUpdateStatus("Tidak dapat memeriksa pembaruan saat ini. Periksa koneksi internet.");
+    }
+    window.setTimeout(() => {
+      setApkUpdateStatus(null);
+    }, 4500);
   }, []);
 
   useEffect(() => {
@@ -273,6 +320,7 @@ export function App() {
         onOpenClassicToc={handleOpenClassicToc}
         onChangeFontSize={setFontSize}
         onToggleTheme={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
+        onCheckApkUpdate={isNativeAndroidApp() ? handleManualApkUpdateCheck : undefined}
       >
       {route.view === "home" && (
         <HomeView
@@ -377,6 +425,17 @@ export function App() {
         <DownloadView localBooks={LOCAL_BOOKS} onNavigate={navigate} />
       )}
     </AppShell>
+      <ApkUpdatePrompt
+        release={apkUpdateRelease}
+        statusMessage={apkUpdateStatus}
+        onDismiss={() => {
+          if (apkUpdateRelease) {
+            dismissApkVersion(apkUpdateRelease.versionCode);
+            setApkUpdateRelease(null);
+          }
+          setApkUpdateStatus(null);
+        }}
+      />
     </>
   );
 }

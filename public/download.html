@@ -377,7 +377,7 @@ footer a{color:#e6c98e;text-decoration:none}
 <img class="pkg-icon" src="/assets/app-icon/icon.png" alt="Ikon e-Moeslife">
 <div>
 <p class="pkg-title">e-Moeslife Android</p>
-<p class="pkg-sub">Build Capacitor · Versi 2.0</p>
+<p id="apk-version-sub" class="pkg-sub">Build Capacitor · Versi Terbaru</p>
 </div>
 </div>
 <ul class="pkg-list">
@@ -470,6 +470,37 @@ footer a{color:#e6c98e;text-decoration:none}
         if (el) el.setAttribute("href", releaseUrl);
       });
     });
+
+  fetch("https://api.github.com/repos/r14bz/e-Moeslife/releases/tags/v2.0-android", {
+    cache: "no-store",
+    headers: { Accept: "application/vnd.github+json" }
+  })
+    .then(function (res) { return res.ok ? res.json() : null; })
+    .then(function (rel) {
+      if (!rel) return;
+      var subEl = document.getElementById("apk-version-sub");
+      var body = rel.body || "";
+      var versionText = "";
+      var marker = body.match(/<!--\s*emoeslife-release:(\{[^}]+\})\s*-->/);
+      if (marker) {
+        try {
+          var meta = JSON.parse(marker[1]);
+          if (meta && meta.versionName) versionText = "v" + meta.versionName;
+        } catch (e) {}
+      }
+      if (!versionText && rel.name) {
+        var titleMatch = rel.name.match(/v\d+\.\d+\.\d+/i);
+        if (titleMatch) versionText = titleMatch[0];
+      }
+      var asset = (rel.assets || []).find(function (a) {
+        return (a.name || "").toLowerCase().indexOf(".apk") !== -1;
+      });
+      var sizeText = asset && asset.size ? (asset.size / (1024 * 1024)).toFixed(1) + " MB" : "";
+      if (subEl && (versionText || sizeText)) {
+        subEl.textContent = ["Build Capacitor", versionText, sizeText].filter(Boolean).join(" · ");
+      }
+    })
+    .catch(function () {});
 })();
 </script>
 </body>

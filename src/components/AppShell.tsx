@@ -26,6 +26,7 @@ interface AppShellProps {
   onOpenClassicToc: () => void;
   onChangeFontSize: (size: FontSizeScale) => void;
   onToggleTheme: () => void;
+  onCheckApkUpdate?: () => void;
   children: React.ReactNode;
 }
 
@@ -60,6 +61,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   onOpenClassicToc,
   onChangeFontSize,
   onToggleTheme,
+  onCheckApkUpdate,
   children,
 }) => {
   const activeTab = getActiveTab(route);
@@ -222,16 +224,30 @@ export const AppShell: React.FC<AppShellProps> = ({
                 <span>Pasang di iPhone / iPad</span>
               </button>
             )}
-            <a
-              href="/download.html"
-              className="flex min-h-[40px] w-full items-center justify-between rounded-xl border border-[#dce4df] bg-[#f5f8f6] px-3.5 text-xs font-semibold text-[#174231] transition-colors hover:bg-[#eaf1ed] dark:border-slate-800 dark:bg-[#152030] dark:text-slate-200 dark:hover:bg-[#1B293C]"
-            >
-              <span className="flex items-center gap-2">
-                <Download className="h-4 w-4 text-[#9c7d3c] dark:text-[#E2B354]" />
-                <span>Unduh Aplikasi (Android)</span>
-              </span>
-              <span aria-hidden="true">→</span>
-            </a>
+            {onCheckApkUpdate ? (
+              <button
+                type="button"
+                onClick={onCheckApkUpdate}
+                className="flex min-h-[40px] w-full items-center justify-between rounded-xl border border-[#dce4df] bg-[#f5f8f6] px-3.5 text-xs font-semibold text-[#174231] transition-colors hover:bg-[#eaf1ed] dark:border-slate-800 dark:bg-[#152030] dark:text-slate-200 dark:hover:bg-[#1B293C]"
+              >
+                <span className="flex items-center gap-2">
+                  <Download className="h-4 w-4 text-[#9c7d3c] dark:text-[#E2B354]" />
+                  <span>Cek Pembaruan APK</span>
+                </span>
+                <span aria-hidden="true">↻</span>
+              </button>
+            ) : (
+              <a
+                href="/download.html"
+                className="flex min-h-[40px] w-full items-center justify-between rounded-xl border border-[#dce4df] bg-[#f5f8f6] px-3.5 text-xs font-semibold text-[#174231] transition-colors hover:bg-[#eaf1ed] dark:border-slate-800 dark:bg-[#152030] dark:text-slate-200 dark:hover:bg-[#1B293C]"
+              >
+                <span className="flex items-center gap-2">
+                  <Download className="h-4 w-4 text-[#9c7d3c] dark:text-[#E2B354]" />
+                  <span>Unduh Aplikasi (Android)</span>
+                </span>
+                <span aria-hidden="true">→</span>
+              </a>
+            )}
           </div>
         </aside>
       )}
@@ -266,16 +282,28 @@ export const AppShell: React.FC<AppShellProps> = ({
                 </span>
               </div>
 
-              {/* Right Controls: Direct link to /download.html, Compact Font Dropdown, Theme Toggle */}
+              {/* Right Controls: Direct link to /download.html (or update check in APK), Compact Font Dropdown, Theme Toggle */}
               <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-                <a
-                  href="/download.html"
-                  aria-label="Unduh aplikasi e-Moeslife Android"
-                  title="Unduh e-Moeslife Android (Capacitor)"
-                  className="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl border border-white/25 bg-white/10 text-white transition-colors hover:bg-white/20 dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200 dark:hover:bg-[#1E2C40]"
-                >
-                  <Download className="h-4 w-4 shrink-0" />
-                </a>
+                {onCheckApkUpdate ? (
+                  <button
+                    type="button"
+                    onClick={onCheckApkUpdate}
+                    aria-label="Cek pembaruan APK e-Moeslife"
+                    title="Cek pembaruan APK"
+                    className="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl border border-white/25 bg-white/10 text-white transition-colors hover:bg-white/20 dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200 dark:hover:bg-[#1E2C40]"
+                  >
+                    <Download className="h-4 w-4 shrink-0" />
+                  </button>
+                ) : (
+                  <a
+                    href="/download.html"
+                    aria-label="Unduh aplikasi e-Moeslife Android"
+                    title="Unduh e-Moeslife Android (Capacitor)"
+                    className="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl border border-white/25 bg-white/10 text-white transition-colors hover:bg-white/20 dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200 dark:hover:bg-[#1E2C40]"
+                  >
+                    <Download className="h-4 w-4 shrink-0" />
+                  </a>
+                )}
 
                 {/* Compact Font Size Dropdown ("A ⌄") matching reference header */}
                 <div className="relative" ref={fontMenuRef}>

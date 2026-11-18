@@ -46,6 +46,8 @@ jobs:
       - name: Build web assets
         env:
           VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
+          VITE_APK_VERSION_CODE: ${{ github.run_number }}
+          VITE_APK_VERSION_NAME: 2.0.${{ github.run_number }}
         run: npm run build
 
       - name: Add & sync Capacitor Android project
@@ -62,16 +64,49 @@ jobs:
           fi
           python3 scripts/generate-android-icons.py
 
-      - name: Build Android Debug APK
+      - name: Configure Android versioning & release signing
+        env:
+          APK_VERSION_CODE: ${{ github.run_number }}
+          APK_VERSION_NAME: 2.0.${{ github.run_number }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ -n "$ANDROID_KEYSTORE_PASSWORD" ] && [ -n "$ANDROID_KEY_ALIAS" ]; then
+            printf '%s' "$ANDROID_KEYSTORE_BASE64" | tr -d ' \r\n' | base64 -d > android/app/release.keystore
+            export ANDROID_KEYSTORE_PATH="release.keystore"
+            export ANDROID_KEY_PASSWORD="${ANDROID_KEY_PASSWORD:-$ANDROID_KEYSTORE_PASSWORD}"
+            echo "APK_SIGN_MODE=release" >> "$GITHUB_ENV"
+          else
+            echo "::warning::Secret keystore rilis belum diatur — menggunakan debug-signed APK sementara."
+            echo "APK_SIGN_MODE=debug" >> "$GITHUB_ENV"
+          fi
+          node scripts/configure-android-build.mjs
+
+      - name: Build Android APK
+        env:
+          ANDROID_KEYSTORE_PATH: release.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          if [ "$APK_SIGN_MODE" = "release" ]; then
+            ./gradlew assembleRelease --no-daemon
+          else
+            ./gradlew assembleDebug --no-daemon
+          fi
 
       - name: Prepare e-moeslife.apk artifact
         run: |
           mkdir -p release-apk
-          cp android/app/build/outputs/apk/debug/app-debug.apk release-apk/e-moeslife.apk
+          if [ "$APK_SIGN_MODE" = "release" ]; then
+            cp android/app/build/outputs/apk/release/app-release.apk release-apk/e-moeslife.apk
+          else
+            cp android/app/build/outputs/apk/debug/app-debug.apk release-apk/e-moeslife.apk
+          fi
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -83,10 +118,27 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          VERSION_CODE="${{ github.run_number }}"
+          VERSION_NAME="2.0.${{ github.run_number }}"
+          SIGN_LABEL="Release Signed"
+          if [ "$APK_SIGN_MODE" != "release" ]; then
+            SIGN_LABEL="Debug Signed"
+          fi
+          NOTES=$(printf '%s\n' \
+            "Build otomatis aplikasi Android e-Moeslife berbasis Capacitor." \
+            "" \
+            "- Versi: v${VERSION_NAME} (Build ${VERSION_CODE})" \
+            "- Tipe Signature: ${SIGN_LABEL}" \
+            "- Package ID: com.emoeslife.app" \
+            "" \
+            "<!-- emoeslife-release:{\"versionCode\":${VERSION_CODE},\"versionName\":\"${VERSION_NAME}\",\"signed\":\"${APK_SIGN_MODE}\"} -->")
           if gh release view v2.0-android >/dev/null 2>&1; then
+            gh release edit v2.0-android \
+              --title "e-Moeslife Android v${VERSION_NAME}" \
+              --notes "$NOTES"
             gh release upload v2.0-android release-apk/e-moeslife.apk --clobber
           else
             gh release create v2.0-android release-apk/e-moeslife.apk \
-              --title "e-Moeslife Android (Capacitor)" \
-              --notes "Build otomatis aplikasi Android e-Moeslife berbasis Capacitor."
+              --title "e-Moeslife Android v${VERSION_NAME}" \
+              --notes "$NOTES"
           fi
