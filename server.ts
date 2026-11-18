@@ -11,7 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const KITAB_BASE_URL = "https://api.ahmadsanusi.com";
-const ALLOWED_KITAB_ACTIONS = new Set(["list", "categories", "detail", "chapter", "search"]);
+const ALLOWED_KITAB_ACTIONS = new Set(["list", "detail", "chapter", "search"]);
 
 async function startServer() {
   const app = express();
@@ -27,101 +27,75 @@ async function startServer() {
   });
 
   app.get("/api/kitab", async (req, res) => {
-    const action = String(req.query.action || "");
-    const apiKey = process.env.AHMADSANUSI_API_KEY;
+    const pick = (v: unknown) => (Array.isArray(v) ? String(v[0] || "") : String(v || ""));
+    const action = pick(req.query.action || "list").trim().toLowerCase();
+    const apiKey = (process.env.AHMADSANUSI_API_KEY || "").trim();
+
+    if (!ALLOWED_KITAB_ACTIONS.has(action)) {
+      return res.status(400).json({ status: "error", message: "Aksi API kitab tidak valid." });
+    }
 
     if (!apiKey) {
       if (action === "list") {
-        return res.status(200).json({ status: "ok", unconfigured: true, data: [] });
+        return res.status(200).json({
+          status: "ok",
+          unconfigured: true,
+          data: [],
+        });
       }
       return res.status(503).json({
         status: "error",
-        message: "Konfigurasi layanan kitab belum tersedia di server.",
+        message: "API key kitab (AHMADSANUSI_API_KEY) belum dikonfigurasi di server.",
       });
     }
 
-    const slug = typeof req.query.slug === "string" ? req.query.slug : "";
-    const nomor = req.query.nomor;
-    const q = typeof req.query.q === "string" ? req.query.q : "";
-    const page = req.query.page;
-    const limit = req.query.limit;
-
-    if (!ALLOWED_KITAB_ACTIONS.has(action)) {
-      return res.status(400).json({ status: "error", message: "Permintaan katalog kitab tidak valid." });
-    }
-
-    let apiPath = "/v1/kitab";
-    if (action === "categories") apiPath += "/kategori";
-    if (action === "detail" || action === "chapter" || action === "search") {
-      if (!/^[a-z0-9][a-z0-9_-]{0,100}$/i.test(slug)) {
-        return res.status(400).json({ status: "error", message: "Identitas kitab tidak valid." });
-      }
-      apiPath += "/" + encodeURIComponent(slug);
-      if (action === "chapter") {
-        const chapterNumber = String(nomor ?? "");
-        if (!/^[0-9]{1,5}$/.test(chapterNumber)) {
-          return res.status(400).json({ status: "error", message: "Nomor bab tidak valid." });
-        }
-        apiPath += "/bab/" + chapterNumber;
-      } else if (action === "search") {
-        apiPath += "/search";
-        const keyword = q.trim();
-        if (keyword.length < 2 || keyword.length > 100) {
-          return res.status(400).json({
-            status: "error",
-            message: "Kata pencarian minimal 2 dan maksimal 100 karakter.",
-          });
-        }
-      }
-    }
-
-    const targetUrl = new URL(KITAB_BASE_URL + apiPath);
-    if (action === "search") targetUrl.searchParams.set("q", q.trim());
+    const upstream = new URL(`${KITAB_BASE_URL}/v1/kitab`);
     if (action === "detail") {
-      const pageNumber = Number(page ?? 1);
-      const pageLimit = Number(limit ?? 100);
-      if (
-        !Number.isInteger(pageNumber) ||
-        pageNumber < 1 ||
-        pageNumber > 1000 ||
-        !Number.isInteger(pageLimit) ||
-        pageLimit < 1 ||
-        pageLimit > 100
-      ) {
-        return res.status(400).json({ status: "error", message: "Parameter halaman kitab tidak valid." });
+      const slug = pick(req.query.slug).trim();
+      if (!slug) {
+        return res.status(400).json({ status: "error", message: "Parameter slug kitab wajib diisi." });
       }
-      targetUrl.searchParams.set("page", String(pageNumber));
-      targetUrl.searchParams.set("limit", String(pageLimit));
+      upstream.pathname = `/v1/kitab/${encodeURIComponent(slug)}`;
+      if (req.query.page) upstream.searchParams.set("page", pick(req.query.page));
+      if (req.query.limit) upstream.searchParams.set("limit", pick(req.query.limit));
+    } else if (action === "chapter") {
+      const slug = pick(req.query.slug).trim();
+      const nomor = pick(req.query.nomor).trim();
+      if (!slug || !nomor) {
+        return res.status(400).json({
+          status: "error",
+          message: "Parameter slug dan nomor bab wajib diisi.",
+        });
+      }
+      upstream.pathname = `/v1/kitab/${encodeURIComponent(slug)}/bab/${encodeURIComponent(nomor)}`;
+    } else if (action === "search") {
+      const q = pick(req.query.q).trim();
+      if (!q) {
+        return res.status(400).json({ status: "error", message: "Kata kunci pencarian wajib diisi." });
+      }
+      upstream.pathname = "/v1/kitab/search";
+      upstream.searchParams.set("q", q);
     }
 
     try {
-      const upstream = await fetch(targetUrl, {
+      const response = await fetch(upstream.toString(), {
         method: "GET",
-        headers: { Accept: "application/json", "X-API-Key": apiKey },
+        headers: {
+          "X-API-Key": apiKey,
+          Accept: "application/json",
+        },
       });
-      const body = await upstream.text();
-      let data: Record<string, unknown>;
+      const text = await response.text();
+      res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate=86400");
       try {
-        data = JSON.parse(body);
+        return res.status(response.status).json(JSON.parse(text));
       } catch {
-        data = { status: "error", message: "Respons layanan kitab bukan JSON yang valid." };
+        return res.status(response.status).send(text);
       }
-      if (!upstream.ok) {
-        const status = upstream.status === 401 || upstream.status === 403 ? 502 : upstream.status;
-        return res.status(status).json({
-          status: "error",
-          message:
-            upstream.status === 401 || upstream.status === 403
-              ? "Autentikasi layanan kitab ditolak. Periksa AHMADSANUSI_API_KEY."
-              : String(data.detail || data.message || "Layanan kitab sedang bermasalah."),
-        });
-      }
-      res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=1800");
-      return res.status(200).json(data);
     } catch {
       return res.status(502).json({
         status: "error",
-        message: "Tidak dapat terhubung ke layanan kitab. Silakan coba kembali.",
+        message: "Gagal menghubungi layanan kitab kuning.",
       });
     }
   });

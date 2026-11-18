@@ -1,3 +1,4 @@
+import { Capacitor } from "@capacitor/core";
 import type {
   KitabViewPreferences,
   LocalBookMeta,
@@ -502,7 +503,12 @@ function unwrapPayload(value: unknown): unknown {
 
 export async function kitabApiRequest(params: Record<string, string>): Promise<unknown> {
   const query = new URLSearchParams(params);
-  const response = await fetch(`/api/kitab?${query.toString()}`, { headers: { Accept: "application/json" } });
+  const endpoint = Capacitor.isNativePlatform()
+    ? "https://e-moeslife.vercel.app/api/kitab"
+    : "/api/kitab";
+  const response = await fetch(`${endpoint}?${query.toString()}`, {
+    headers: { Accept: "application/json" },
+  });
   const json = (await response.json().catch(() => ({}))) as Record<string, unknown>;
   if (!response.ok || json.status === "error" || json.success === false) {
     throw new Error(

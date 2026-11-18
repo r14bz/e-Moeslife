@@ -129,7 +129,7 @@ export const AppShell: React.FC<AppShellProps> = ({
     "kitab-hub": "Perpustakaan Kitab Kuning",
     "local-kitab": "Pembaca Kitab Kuning",
     "tashrif-kitab": "Al-Amtsilah at-Tashrifiyah",
-    "api-kitab": "Pembaca Kitab",
+    "api-kitab": "Pembaca Kitab Kuning",
     "nearby-mosques": "Masjid & Mushala Terdekat",
     download: "Unduh & Pasang Aplikasi (PWA)",
   };

@@ -15,9 +15,9 @@ import {
   isValidManualDzikirLayout,
 } from "./utils/readerEngine";
 import {
-  LOCAL_BOOKS,
   firstText,
   kitabApiRequest,
+  LOCAL_BOOKS,
   normalizeBookName,
   pickKitabArray,
 } from "./utils/kitabEngine";
@@ -179,37 +179,51 @@ export function App() {
 
   useEffect(() => {
     let active = true;
+    const localSlugs = new Set([
+      ...LOCAL_BOOKS.map((book) => book.slug),
+      "safinah",
+      "safinah-an-najah",
+      "sullamut",
+    ]);
+    const localTitles = new Set(LOCAL_BOOKS.map((book) => normalizeBookName(book.title)));
+
     kitabApiRequest({ action: "list" })
       .then((payload) => {
         if (!active) return;
-        const localSlugs = new Set(
-          LOCAL_BOOKS.flatMap((b) => [
-            b.slug,
-            ...(b.slug === "safinah-reading-library" ? ["safinah", "safinah-an-najah"] : []),
-            ...(b.slug === "sullamut-taufiq" ? ["sullamut"] : []),
-          ])
-        );
-        const localTitles = new Set(LOCAL_BOOKS.map((b) => normalizeBookName(b.title)));
-        const mapped: LocalBookMeta[] = pickKitabArray(payload)
-          .map((item) => ({
+        const rows = pickKitabArray(payload);
+        const deduped: LocalBookMeta[] = [];
+        const seenSlugs = new Set<string>();
+        const seenTitles = new Set<string>();
+
+        for (const item of rows) {
+          const slug = firstText(item, ["slug", "id", "kitab_id", "kode"]);
+          const title = firstText(item, ["nama", "judul", "title", "name", "kitab"], slug);
+          if (!slug || !title) continue;
+          const normTitle = normalizeBookName(title);
+          if (
+            localSlugs.has(slug) ||
+            localTitles.has(normTitle) ||
+            seenSlugs.has(slug) ||
+            seenTitles.has(normTitle)
+          ) {
+            continue;
+          }
+          seenSlugs.add(slug);
+          seenTitles.add(normTitle);
+          deduped.push({
             file: "",
-            slug: firstText(item, ["slug", "kode", "id_slug"]),
-            title: firstText(item, ["nama", "nama_kitab", "judul", "title", "name"], "Kitab tanpa judul"),
-            category: firstText(item, ["kategori", "category"], "Kitab klasik"),
-            source: "api" as const,
-          }))
-          .filter(
-            (book) =>
-              book.slug &&
-              book.title &&
-              !localSlugs.has(book.slug) &&
-              !localTitles.has(normalizeBookName(book.title))
-          );
-        setApiBooks(mapped);
+            slug,
+            title,
+            category: firstText(item, ["kategori", "category", "bidang", "topik"], "Kitab Kuning"),
+            source: "api",
+          });
+        }
+        setApiBooks(deduped);
       })
       .catch(() => {
-        // Silent fallback: local manuscripts in /public/data remain fully available.
+        if (active) setApiBooks([]);
       });
+
     return () => {
       active = false;
     };

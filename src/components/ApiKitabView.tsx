@@ -324,7 +324,6 @@ export const ApiKitabView: React.FC<ApiKitabViewProps> = ({
                 {refText && (
                   <p className="mt-4 text-xs text-[#7c745f] dark:text-slate-400">Referensi: {refText}</p>
                 )}
-
               </>
             )}
           </article>
