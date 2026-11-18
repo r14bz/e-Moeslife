@@ -303,7 +303,7 @@ export const DownloadView: React.FC<DownloadViewProps> = ({ localBooks, onNaviga
           <div className="rounded-2xl border border-white/15 bg-black/20 p-5 backdrop-blur-xs lg:col-span-5">
             <div className="flex items-center gap-3 border-b border-white/15 pb-4">
               <img
-                src="/pwa-192x192.png"
+                src="/assets/app-icon/icon.png"
                 alt="Ikon Aplikasi e-Moeslife"
                 className="h-14 w-14 rounded-2xl border border-white/20 bg-white object-contain p-1"
               />
