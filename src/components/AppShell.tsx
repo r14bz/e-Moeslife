@@ -228,7 +228,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             >
               <span className="flex items-center gap-2">
                 <Download className="h-4 w-4 text-[#9c7d3c] dark:text-[#E2B354]" />
-                <span>Unduh Aplikasi (PWA)</span>
+                <span>Unduh Aplikasi (Android)</span>
               </span>
               <span aria-hidden="true">→</span>
             </a>
@@ -270,8 +270,8 @@ export const AppShell: React.FC<AppShellProps> = ({
               <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
                 <a
                   href="/download.html"
-                  aria-label="Unduh aplikasi e-Moeslife"
-                  title="Unduh e-Moeslife (PWA)"
+                  aria-label="Unduh aplikasi e-Moeslife Android"
+                  title="Unduh e-Moeslife Android (Capacitor)"
                   className="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl border border-white/25 bg-white/10 text-white transition-colors hover:bg-white/20 dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200 dark:hover:bg-[#1E2C40]"
                 >
                   <Download className="h-4 w-4 shrink-0" />
