@@ -222,27 +222,16 @@ export const AppShell: React.FC<AppShellProps> = ({
                 <span>Pasang di iPhone / iPad</span>
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => onNavigate({ view: "download" })}
-              className={`flex min-h-[40px] w-full items-center justify-between rounded-xl border px-3.5 text-xs font-semibold transition-colors ${
-                route.view === "download"
-                  ? "border-[#134a35] bg-[#134a35] text-white dark:border-[#E2B354] dark:bg-[#1D3557] dark:text-white"
-                  : "border-[#dce4df] bg-[#f5f8f6] text-[#174231] hover:bg-[#eaf1ed] dark:border-slate-800 dark:bg-[#152030] dark:text-slate-200 dark:hover:bg-[#1B293C]"
-              }`}
+            <a
+              href="/download.html"
+              className="flex min-h-[40px] w-full items-center justify-between rounded-xl border border-[#dce4df] bg-[#f5f8f6] px-3.5 text-xs font-semibold text-[#174231] transition-colors hover:bg-[#eaf1ed] dark:border-slate-800 dark:bg-[#152030] dark:text-slate-200 dark:hover:bg-[#1B293C]"
             >
               <span className="flex items-center gap-2">
-                <Download
-                  className={`h-4 w-4 ${
-                    route.view === "download"
-                      ? "text-[#e6c98e]"
-                      : "text-[#9c7d3c] dark:text-[#E2B354]"
-                  }`}
-                />
+                <Download className="h-4 w-4 text-[#9c7d3c] dark:text-[#E2B354]" />
                 <span>Unduh Aplikasi (PWA)</span>
               </span>
               <span aria-hidden="true">→</span>
-            </button>
+            </a>
           </div>
         </aside>
       )}
@@ -277,33 +266,16 @@ export const AppShell: React.FC<AppShellProps> = ({
                 </span>
               </div>
 
-              {/* Right Controls: PWA Install, Unduh e-Moeslife, Compact Font Dropdown, Theme Toggle */}
+              {/* Right Controls: Direct link to /download.html, Compact Font Dropdown, Theme Toggle */}
               <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-                {!isInstalled && isInstallable && (
-                  <button
-                    type="button"
-                    onClick={() => install()}
-                    title="Pasang aplikasi ke layar utama"
-                    className="inline-flex min-h-[38px] shrink-0 items-center gap-1 rounded-xl border border-white/25 bg-white/10 px-2.5 text-xs font-semibold text-white transition-colors hover:bg-white/20 lg:hidden dark:border-slate-700 dark:bg-[#E2B354] dark:text-[#0B111A]"
-                  >
-                    <Smartphone className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Pasang</span>
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => onNavigate({ view: "download" })}
+                <a
+                  href="/download.html"
                   aria-label="Unduh aplikasi e-Moeslife"
                   title="Unduh e-Moeslife (PWA)"
-                  className={`inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl border transition-colors ${
-                    route.view === "download"
-                      ? "border-[#e6c98e] bg-white text-[#134a35] dark:border-[#E2B354] dark:bg-[#E2B354] dark:text-[#0B111A]"
-                      : "border-white/25 bg-white/10 text-white hover:bg-white/20 dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200 dark:hover:bg-[#1E2C40]"
-                  }`}
+                  className="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl border border-white/25 bg-white/10 text-white transition-colors hover:bg-white/20 dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200 dark:hover:bg-[#1E2C40]"
                 >
                   <Download className="h-4 w-4 shrink-0" />
-                </button>
+                </a>
 
                 {/* Compact Font Size Dropdown ("A ⌄") matching reference header */}
                 <div className="relative" ref={fontMenuRef}>
