@@ -20,6 +20,7 @@ import {
   Star,
 } from "lucide-react";
 import { FooterDisclaimer } from "./FooterDisclaimer";
+import { getCurrentCoordinates } from "../services/locationService";
 
 type PlaceFilter = "all" | "mosque" | "mushala";
 
@@ -472,18 +473,12 @@ export const NearbyMosquesView: React.FC<NearbyMosquesViewProps> = ({ onBackHome
   }, [envApiKey]);
 
   const requestUserLocation = useCallback(() => {
-    if (!("geolocation" in navigator)) {
-      setGeoLoading(false);
-      setGeoStatus("denied");
-      setGeoError("Perangkat atau peramban ini tidak mendukung deteksi lokasi GPS.");
-      return;
-    }
     setGeoLoading(true);
     setGeoStatus("requesting");
     setGeoError("");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const nextPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    getCurrentCoordinates({ enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 })
+      .then((coords) => {
+        const nextPos = { lat: coords.latitude, lng: coords.longitude };
         setUserPosition(nextPos);
         setCenter(nextPos);
         setLocationLabel("Lokasi Anda saat ini");
@@ -493,11 +488,16 @@ export const NearbyMosquesView: React.FC<NearbyMosquesViewProps> = ({ onBackHome
         setSearchInput("");
         setSearchTrigger((t) => t + 1);
         setGeoLoading(false);
-      },
-      (err) => {
+      })
+      .catch((err) => {
         setGeoLoading(false);
         setGeoStatus("denied");
-        if (err.code === err.PERMISSION_DENIED) {
+        const isDenied =
+          typeof err === "object" &&
+          err !== null &&
+          "code" in err &&
+          (err as { code?: number }).code === 1;
+        if (isDenied) {
           setGeoError(
             "Izin lokasi ditolak. Aktifkan izin lokasi atau ketik nama kota/kecamatan pada kolom pencarian di atas."
           );
@@ -506,9 +506,7 @@ export const NearbyMosquesView: React.FC<NearbyMosquesViewProps> = ({ onBackHome
             "Lokasi GPS belum dapat dideteksi. Coba izinkan lagi atau ketik nama kota/kecamatan di kolom pencarian."
           );
         }
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-    );
+      });
   }, []);
 
   useEffect(() => {

@@ -42,6 +42,7 @@ import {
   isNativeAndroidApp,
   type ApkReleaseInfo,
 } from "./services/apkUpdater";
+import { requestStartupPermissionsOnLaunch } from "./services/locationService";
 
 const FONT_SIZES: FontSizeScale[] = ["small", "normal", "large"];
 
@@ -85,6 +86,10 @@ export function App() {
     const onQuota = () => setMapsQuotaExceeded(true);
     window.addEventListener("gmp-quota-exceeded", onQuota);
     return () => window.removeEventListener("gmp-quota-exceeded", onQuota);
+  }, []);
+
+  useEffect(() => {
+    void requestStartupPermissionsOnLaunch();
   }, []);
 
   useEffect(() => {

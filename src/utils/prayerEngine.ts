@@ -1,4 +1,5 @@
 import type { DailyPrayerSchedule, PrayerLocation, SkyScene } from "../types/emoeslife";
+import { getCurrentCoordinates } from "../services/locationService";
 
 const SHALAT_API = "https://equran.id/api/v2/shalat";
 export const PRAYER_STORAGE_KEY = "em-prayer-location-v1";
@@ -307,15 +308,11 @@ export async function loadMonthlySchedule(
 }
 
 export async function detectLocation(): Promise<PrayerLocation> {
-  if (!navigator.geolocation) throw new Error("GPS tidak tersedia.");
-  const position = await new Promise<GeolocationPosition>((resolve, reject) =>
-    navigator.geolocation.getCurrentPosition(resolve, reject, {
-      enableHighAccuracy: false,
-      timeout: 12000,
-      maximumAge: 3600000,
-    })
-  );
-  const { latitude, longitude } = position.coords;
+  const { latitude, longitude } = await getCurrentCoordinates({
+    enableHighAccuracy: false,
+    timeout: 12000,
+    maximumAge: 3600000,
+  });
   const fallbackZone = getZoneByLongitude(longitude);
   const reverse = await fetchWithTimeout<{
     principalSubdivisionCode?: string;

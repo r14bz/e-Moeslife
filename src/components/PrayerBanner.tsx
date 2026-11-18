@@ -1,6 +1,16 @@
 import React, { useEffect, useRef, useState } from "react";
-import { MapPin, Compass, X } from "lucide-react";
+import { Bell, BellOff, MapPin, Compass, X } from "lucide-react";
 import type { DailyPrayerSchedule, PrayerLocation, SkyScene } from "../types/emoeslife";
+import { PERMISSIONS_READY_EVENT } from "../services/locationService";
+import {
+  disablePrayerNotifications,
+  isPrayerNotificationsEnabled,
+  requestPrayerNotificationPermission,
+  setPrayerNotificationsEnabled,
+  syncPrayerNotifications,
+  triggerWebPrayerNotificationIfDue,
+  type MonthlyBatch,
+} from "../services/prayerNotifications";
 import {
   PRAYER_STORAGE_KEY,
   PRAYERS,
@@ -230,23 +240,54 @@ export const PrayerBanner: React.FC = () => {
   const [dialogError, setDialogError] = useState("");
   const [dialogLoading, setDialogLoading] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
+  const [notifEnabled, setNotifEnabled] = useState<boolean>(() => isPrayerNotificationsEnabled());
+  const [notifFeedback, setNotifFeedback] = useState<string>("");
 
   const locationRef = useRef(location);
   locationRef.current = location;
   const activeDateKeyRef = useRef("");
   const refreshingRef = useRef(false);
   const lastAttemptAtRef = useRef(Number.NaN);
+  const monthlyBatchesRef = useRef<MonthlyBatch[]>([]);
+
+  const scheduleAlertsFor = async (targetLoc: PrayerLocation, batches: MonthlyBatch[]) => {
+    monthlyBatchesRef.current = batches;
+    if (!isPrayerNotificationsEnabled()) return;
+    await syncPrayerNotifications(targetLoc, batches);
+  };
 
   const fetchScheduleFor = async (targetLoc: PrayerLocation) => {
     const now = new Date();
     lastAttemptAtRef.current = Date.now();
     const parts = localParts(now, targetLoc.timezone);
+    const yearNum = Number(parts.year);
+    const monthNum = Number(parts.month);
+    const dayNum = Number(parts.day);
     const requestedDateKey = `${parts.year}-${parts.month}-${parts.day}`;
-    const data = await loadMonthlySchedule(targetLoc, Number(parts.year), Number(parts.month));
-    const daily = data.jadwal.find((item) => Number(item.tanggal) === Number(parts.day));
+    const data = await loadMonthlySchedule(targetLoc, yearNum, monthNum);
+    const daily = data.jadwal.find((item) => Number(item.tanggal) === dayNum);
     if (!daily) throw new Error("Jadwal hari ini belum tersedia.");
     activeDateKeyRef.current = requestedDateKey;
     setSchedule(daily);
+
+    const batches: MonthlyBatch[] = [{ year: yearNum, month: monthNum, jadwal: data.jadwal }];
+    if (dayNum >= 25) {
+      const nextMonth = monthNum === 12 ? 1 : monthNum + 1;
+      const nextYear = monthNum === 12 ? yearNum + 1 : yearNum;
+      loadMonthlySchedule(targetLoc, nextYear, nextMonth)
+        .then((nextData) => {
+          void scheduleAlertsFor(targetLoc, [
+            ...batches,
+            { year: nextYear, month: nextMonth, jadwal: nextData.jadwal },
+          ]);
+        })
+        .catch(() => {
+          void scheduleAlertsFor(targetLoc, batches);
+        });
+    } else {
+      void scheduleAlertsFor(targetLoc, batches);
+    }
+
     return daily;
   };
 
@@ -294,8 +335,24 @@ export const PrayerBanner: React.FC = () => {
     } else {
       void requestGpsLocation(() => mounted);
     }
+    const onPermissionsReady = (event: Event) => {
+      if (!mounted || locationRef.current?.manual) return;
+      const detail = (event as CustomEvent<{ locationGranted?: boolean }>).detail;
+      if (detail?.locationGranted) {
+        if (!locationRef.current) {
+          void requestGpsLocation(() => mounted);
+        } else if (monthlyBatchesRef.current.length > 0) {
+          void scheduleAlertsFor(locationRef.current, monthlyBatchesRef.current);
+        }
+      } else if (locationRef.current && monthlyBatchesRef.current.length > 0) {
+        void scheduleAlertsFor(locationRef.current, monthlyBatchesRef.current);
+      }
+    };
+    window.addEventListener(PERMISSIONS_READY_EVENT, onPermissionsReady);
+
     return () => {
       mounted = false;
+      window.removeEventListener(PERMISSIONS_READY_EVENT, onPermissionsReady);
     };
   }, []);
 
@@ -370,6 +427,13 @@ export const PrayerBanner: React.FC = () => {
       setGraceSubNote(ticker.subNote);
       setInGrace(ticker.inGrace);
       setActivePrayerKey(ticker.activePrayerKey);
+
+      triggerWebPrayerNotificationIfDue(
+        loc,
+        schedule,
+        tickDateKey,
+        `${parts.hour}:${parts.minute}`
+      );
 
       const nextScene = getScene(now, loc.timezone, schedule);
       setScene(nextScene);
@@ -487,6 +551,39 @@ export const PrayerBanner: React.FC = () => {
     } finally {
       setGpsLoading(false);
     }
+  };
+
+  const handleToggleNotifications = async () => {
+    if (notifEnabled) {
+      await disablePrayerNotifications();
+      setNotifEnabled(false);
+      setNotifFeedback("Notifikasi waktu shalat dimatikan.");
+      window.setTimeout(() => setNotifFeedback(""), 3500);
+      return;
+    }
+
+    const perm = await requestPrayerNotificationPermission();
+    if (perm !== "granted") {
+      setNotifEnabled(false);
+      setPrayerNotificationsEnabled(false);
+      setNotifFeedback("Izin notifikasi belum diaktifkan di perangkat Anda.");
+      window.setTimeout(() => setNotifFeedback(""), 4500);
+      return;
+    }
+
+    setPrayerNotificationsEnabled(true);
+    setNotifEnabled(true);
+    if (locationRef.current && monthlyBatchesRef.current.length > 0) {
+      const res = await syncPrayerNotifications(locationRef.current, monthlyBatchesRef.current);
+      setNotifFeedback(
+        res.scheduledCount > 0
+          ? `Pengingat shalat aktif (${res.scheduledCount} jadwal terdekat).`
+          : "Pengingat waktu shalat aktif."
+      );
+    } else {
+      setNotifFeedback("Pengingat waktu shalat diaktifkan.");
+    }
+    window.setTimeout(() => setNotifFeedback(""), 4000);
   };
 
   const sceneStyle = SCENE_STYLES[scene];
@@ -608,6 +705,39 @@ export const PrayerBanner: React.FC = () => {
                 )}
                 <button
                   type="button"
+                  onClick={() => void handleToggleNotifications()}
+                  aria-pressed={notifEnabled}
+                  aria-label={
+                    notifEnabled
+                      ? "Matikan notifikasi waktu shalat"
+                      : "Aktifkan notifikasi waktu shalat"
+                  }
+                  title={
+                    notifEnabled
+                      ? "Notifikasi waktu shalat aktif (ketuk untuk mematikan)"
+                      : "Aktifkan notifikasi waktu shalat"
+                  }
+                  className={`inline-flex min-h-[34px] items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-semibold backdrop-blur-sm transition-colors ${
+                    notifEnabled
+                      ? isLightSky
+                        ? "border-[#134a35]/30 bg-[#134a35]/15 text-[#103d2c] hover:bg-[#134a35]/25 dark:border-[#E2B354]/40 dark:bg-[#E2B354]/20 dark:text-[#F4D99B]"
+                        : "border-[#F3D792]/50 bg-[#E2B354]/20 text-[#F4D99B] hover:bg-[#E2B354]/30"
+                      : isLightSky
+                      ? "border-[#134a35]/20 bg-white/75 text-[#425c50] hover:bg-white/95 dark:border-white/25 dark:bg-white/10 dark:text-slate-300"
+                      : "border-white/25 bg-white/15 text-white/80 hover:bg-white/25"
+                  }`}
+                >
+                  {notifEnabled ? (
+                    <Bell className="h-3 w-3" />
+                  ) : (
+                    <BellOff className="h-3 w-3" />
+                  )}
+                  <span className="hidden sm:inline">
+                    {notifEnabled ? "Pengingat Aktif" : "Pengingat Mati"}
+                  </span>
+                </button>
+                <button
+                  type="button"
                   onClick={openLocationDialog}
                   className={`inline-flex min-h-[34px] items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-semibold backdrop-blur-sm transition-colors ${
                     isLightSky
@@ -621,6 +751,19 @@ export const PrayerBanner: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {notifFeedback && (
+            <p
+              role="status"
+              className={`rounded-xl border px-3 py-1.5 text-[11px] leading-snug backdrop-blur-sm ${
+                isLightSky
+                  ? "border-[#134a35]/15 bg-white/80 text-[#173d2e] dark:border-white/15 dark:bg-white/10 dark:text-slate-200"
+                  : "border-white/20 bg-white/10 text-slate-100"
+              }`}
+            >
+              {notifFeedback}
+            </p>
+          )}
 
           {!location && locationStatus !== "detecting" && (
             <p

@@ -85,6 +85,22 @@ def main() -> None:
         encoding="utf-8",
     )
 
+    drawable_dir = RES_DIR / "drawable"
+    drawable_dir.mkdir(parents=True, exist_ok=True)
+    stat_icon_xml = drawable_dir / "ic_stat_emoeslife.xml"
+    stat_icon_xml.write_text(
+        '<vector xmlns:android="http://schemas.android.com/apk/res/android"\n'
+        '    android:width="24dp"\n'
+        '    android:height="24dp"\n'
+        '    android:viewportWidth="24"\n'
+        '    android:viewportHeight="24">\n'
+        "    <path\n"
+        '        android:fillColor="#FFFFFFFF"\n'
+        '        android:pathData="M12,2L14.9,5.1H19V9.1L22,12L19,14.9V19H14.9L12,22L9.1,19H5V14.9L2,12L5,9.1V5.1H9.1L12,2ZM12,4.8L10,7H7V10L4.8,12L7,14V17H10L12,19.2L14,17H17V14L19.2,12L17,10V7H14L12,4.8ZM12,8.5A3.5,3.5 0 1,1 8.5,12A3.5,3.5 0 0,1 12,8.5Z" />\n'
+        "</vector>\n",
+        encoding="utf-8",
+    )
+
     splash_count = 0
     for splash_path in sorted(RES_DIR.glob("drawable*/splash.png")):
         with Image.open(splash_path) as existing:

@@ -10,6 +10,12 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: false,
   },
+  plugins: {
+    LocalNotifications: {
+      smallIcon: "ic_stat_emoeslife",
+      iconColor: "#009950",
+    },
+  },
 };
 
 export default config;

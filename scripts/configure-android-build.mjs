@@ -54,3 +54,37 @@ if (keystoreRelPath && fs.existsSync(keystoreAbsPath)) {
 }
 
 fs.writeFileSync(appGradlePath, gradle, "utf8");
+
+const manifestPath = path.join(
+  rootDir,
+  "android",
+  "app",
+  "src",
+  "main",
+  "AndroidManifest.xml"
+);
+
+if (fs.existsSync(manifestPath)) {
+  let manifest = fs.readFileSync(manifestPath, "utf8");
+  const requiredEntries = [
+    '<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />',
+    '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />',
+    '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',
+    '<uses-permission android:name="android.permission.USE_EXACT_ALARM" />',
+    '<uses-feature android:name="android.hardware.location.gps" android:required="false" />',
+  ];
+
+  const missing = requiredEntries.filter((entry) => {
+    const match = entry.match(/android:name="([^"]+)"/);
+    return match ? !manifest.includes(match[1]) : false;
+  });
+
+  if (missing.length > 0) {
+    manifest = manifest.replace(
+      "</manifest>",
+      `    ${missing.join("\n    ")}\n</manifest>`
+    );
+    fs.writeFileSync(manifestPath, manifest, "utf8");
+    console.log(`Added ${missing.length} AndroidManifest permissions/features.`);
+  }
+}
