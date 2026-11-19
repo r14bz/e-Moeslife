@@ -28,6 +28,7 @@ import { ImrithiKitabPage } from "./components/ImrithiKitabPage";
 import { JurumiyahKitabPage } from "./components/JurumiyahKitabPage";
 import { AqidatulAwamKitabPage } from "./components/AqidatulAwamKitabPage";
 import { BaiquniyyahKitabPage } from "./components/BaiquniyyahKitabPage";
+import { NashoihulIbadKitabPage } from "./components/NashoihulIbadKitabPage";
 import { ApiKitabView } from "./components/ApiKitabView";
 import { NearbyMosquesView } from "./components/NearbyMosquesView";
 import { DownloadView } from "./components/DownloadView";
@@ -39,6 +40,7 @@ import { imrithiBabs } from "./data/imrithi";
 import { semuaBabJurumiyah } from "./data/jurumiyah";
 import { aqidatulAwamBabs } from "./data/aqidatulAwam";
 import { baiquniyyahBabs } from "./data/baiquniyyah";
+import { kitabNashoihulIbad } from "./data/nashoihul-ibad";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { consumePendingNativeUpdateOpen } from "./services/apkInstaller";
 import {
@@ -261,6 +263,7 @@ export function App() {
       nextRoute.view !== "jurumiyah-kitab" &&
       nextRoute.view !== "aqidatul-awam-kitab" &&
       nextRoute.view !== "baiquniyyah-kitab" &&
+      nextRoute.view !== "nashoihul-kitab" &&
       nextRoute.view !== "api-kitab"
     ) {
       setFocusMode(false);
@@ -363,6 +366,14 @@ export function App() {
             ? baiquniyyahBabs[chapterIndex].id
             : undefined;
         navigate({ view: "baiquniyyah-kitab", babId });
+        return;
+      }
+      if (book.format === "nashoihul-ibad") {
+        const babId =
+          typeof chapterIndex === "number" && kitabNashoihulIbad[chapterIndex]
+            ? kitabNashoihulIbad[chapterIndex].id
+            : undefined;
+        navigate({ view: "nashoihul-kitab", babId });
         return;
       }
       if (book.source === "local") {
@@ -532,6 +543,15 @@ export function App() {
 
       {route.view === "baiquniyyah-kitab" && (
         <BaiquniyyahKitabPage
+          initialBabId={route.babId}
+          focusMode={focusMode}
+          onToggleFocus={() => setFocusMode((f) => !f)}
+          onBackToLibrary={() => navigate({ view: "kitab-hub" })}
+        />
+      )}
+
+      {route.view === "nashoihul-kitab" && (
+        <NashoihulIbadKitabPage
           initialBabId={route.babId}
           focusMode={focusMode}
           onToggleFocus={() => setFocusMode((f) => !f)}

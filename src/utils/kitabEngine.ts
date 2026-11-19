@@ -58,7 +58,14 @@ export const LOCAL_BOOKS: LocalBookMeta[] = [
     source: "local",
   },
   { file: "taklim.json", slug: "taklim", title: "Ta’lim Al-Muta’allim", category: "Adab", source: "local" },
-  { file: "nashoihul.json", slug: "nashoihul", title: "Nashoihul Ibad", category: "Adab", source: "local" },
+  {
+    file: "",
+    slug: "nashoihul",
+    title: "Nashoihul Ibad",
+    category: "Adab",
+    format: "nashoihul-ibad",
+    source: "local",
+  },
   {
     file: "",
     slug: "baiquniyyah",

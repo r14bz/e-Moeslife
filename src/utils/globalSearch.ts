@@ -7,6 +7,7 @@ import { allImrithiBaits, imrithiBabs } from "../data/imrithi";
 import { semuaBabJurumiyah } from "../data/jurumiyah";
 import { aqidatulAwamBabs, aqidatulAwamBaits } from "../data/aqidatulAwam";
 import { baiquniyyahBabs, baiquniyyahBaits } from "../data/baiquniyyah";
+import { kitabNashoihulIbad } from "../data/nashoihul-ibad";
 import { SHALAT_INTENTIONS, SHALAT_STEPS, WUDHU_STEPS } from "../data/wudhuShalatGuide";
 import type { EQuranDoaItem, EQuranSurahSummary, LocalBookMeta } from "../types/emoeslife";
 import { arrayAt, normalizeChapter, parseStructuredSafinah } from "./kitabEngine";
@@ -199,6 +200,28 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
         title,
         displayText,
         searchText: `${title} ${bab.judulArab} ${baitsText}`.toLocaleLowerCase("id"),
+      };
+    });
+    kitabChapterCache[book.slug] = indexed;
+    return indexed;
+  }
+
+  if (book.format === "nashoihul-ibad") {
+    const indexed: IndexedChapter[] = kitabNashoihulIbad.map((bab) => {
+      const maqalahText = bab.daftarMaqalah
+        .map((m) => {
+          const poinText = (m.poinPerkara || [])
+            .map((p) => `${p.arab} ${p.latin || ""} ${p.arti} ${p.penjelasan || ""}`)
+            .join(" ");
+          return `${m.sumber || ""} ${m.arabUtama} ${m.latinUtama || ""} ${m.terjemahUtama} ${poinText} ${m.syarah || ""}`;
+        })
+        .join(" ");
+      const title = bab.judulIndonesia;
+      const displayText = `${bab.judulArab} · ${bab.judulLatin} · ${bab.deskripsiSingkat || ""} · ${maqalahText}`;
+      return {
+        title,
+        displayText,
+        searchText: `${title} ${bab.judulArab} ${bab.judulLatin} ${bab.deskripsiSingkat || ""} ${maqalahText}`.toLocaleLowerCase("id"),
       };
     });
     kitabChapterCache[book.slug] = indexed;
