@@ -25,7 +25,14 @@ export const LOCAL_BOOKS: LocalBookMeta[] = [
     source: "local",
   },
   { file: "sullamut-taufiq.json", slug: "sullamut-taufiq", title: "Sullamut Taufiq", category: "Fiqih", source: "local" },
-  { file: "ajurumiyyah.json", slug: "ajurumiyyah", title: "Matan Al-Ajurumiyyah", category: "Ilmu Alat", source: "local" },
+  {
+    file: "",
+    slug: "ajurumiyyah",
+    title: "Matan Al-Ajurumiyyah",
+    category: "Ilmu Alat",
+    format: "jurumiyah",
+    source: "local",
+  },
   {
     file: "",
     slug: "imriti",

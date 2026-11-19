@@ -16,6 +16,7 @@ export type AppRoute =
   | { view: "tashrif-kitab"; tab?: "istilahi" | "lughawi" }
   | { view: "alfiyah-kitab"; juz?: number; babIndex?: number }
   | { view: "imrithi-kitab"; babId?: string }
+  | { view: "jurumiyah-kitab"; babId?: number }
   | { view: "aqidatul-awam-kitab"; babId?: string }
   | { view: "baiquniyyah-kitab"; babId?: string }
   | { view: "api-kitab"; slug: string; title: string }
@@ -57,7 +58,7 @@ export interface LocalBookMeta {
   slug: string;
   title: string;
   category: string;
-  format?: "structured" | "tashrif" | "alfiyah" | "imrithi" | "aqidatul-awam" | "baiquniyyah";
+  format?: "structured" | "tashrif" | "alfiyah" | "imrithi" | "jurumiyah" | "aqidatul-awam" | "baiquniyyah";
   source: "local" | "api";
 }
 

@@ -4,6 +4,7 @@ import { KITAB_TASHRIF_DATA } from "../data/kitabTashrifData";
 import { TASHRIF_LUGHAWI_DATA } from "../data/tashrifLughawiData";
 import { ALFIYAH_DATA } from "../data/alfiyah";
 import { allImrithiBaits, imrithiBabs } from "../data/imrithi";
+import { semuaBabJurumiyah } from "../data/jurumiyah";
 import { aqidatulAwamBabs, aqidatulAwamBaits } from "../data/aqidatulAwam";
 import { baiquniyyahBabs, baiquniyyahBaits } from "../data/baiquniyyah";
 import { SHALAT_INTENTIONS, SHALAT_STEPS, WUDHU_STEPS } from "../data/wudhuShalatGuide";
@@ -145,6 +146,23 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
         title,
         displayText,
         searchText: `${title} ${bab.judulArab} ${baitsText}`.toLocaleLowerCase("id"),
+      };
+    });
+    kitabChapterCache[book.slug] = indexed;
+    return indexed;
+  }
+
+  if (book.format === "jurumiyah") {
+    const indexed: IndexedChapter[] = semuaBabJurumiyah.map((bab) => {
+      const matanText = bab.isi
+        .map((item) => `${item.arab} ${item.terjemahan} ${item.catatan || ""}`)
+        .join(" ");
+      const title = `${bab.id}. ${bab.judulIndo}`;
+      const displayText = `${bab.judulArab} · ${bab.judulLatin} · ${bab.ringkasan || ""} · ${matanText}`;
+      return {
+        title,
+        displayText,
+        searchText: `${title} ${bab.judulArab} ${bab.judulLatin} ${bab.ringkasan || ""} ${matanText}`.toLocaleLowerCase("id"),
       };
     });
     kitabChapterCache[book.slug] = indexed;

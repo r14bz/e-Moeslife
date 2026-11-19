@@ -25,6 +25,7 @@ import { LocalKitabView } from "./components/LocalKitabView";
 import { TashrifKitabPage } from "./components/TashrifKitabPage";
 import { AlfiyahKitabPage } from "./components/AlfiyahKitabPage";
 import { ImrithiKitabPage } from "./components/ImrithiKitabPage";
+import { JurumiyahKitabPage } from "./components/JurumiyahKitabPage";
 import { AqidatulAwamKitabPage } from "./components/AqidatulAwamKitabPage";
 import { BaiquniyyahKitabPage } from "./components/BaiquniyyahKitabPage";
 import { ApiKitabView } from "./components/ApiKitabView";
@@ -35,6 +36,7 @@ import { ApkUpdatePrompt } from "./components/ApkUpdatePrompt";
 import { KITAB_TASHRIF_DATA } from "./data/kitabTashrifData";
 import { ALFIYAH_DATA } from "./data/alfiyah";
 import { imrithiBabs } from "./data/imrithi";
+import { semuaBabJurumiyah } from "./data/jurumiyah";
 import { aqidatulAwamBabs } from "./data/aqidatulAwam";
 import { baiquniyyahBabs } from "./data/baiquniyyah";
 import { LocalNotifications } from "@capacitor/local-notifications";
@@ -256,6 +258,7 @@ export function App() {
       nextRoute.view !== "tashrif-kitab" &&
       nextRoute.view !== "alfiyah-kitab" &&
       nextRoute.view !== "imrithi-kitab" &&
+      nextRoute.view !== "jurumiyah-kitab" &&
       nextRoute.view !== "aqidatul-awam-kitab" &&
       nextRoute.view !== "baiquniyyah-kitab" &&
       nextRoute.view !== "api-kitab"
@@ -336,6 +339,14 @@ export function App() {
             ? imrithiBabs[chapterIndex].id
             : undefined;
         navigate({ view: "imrithi-kitab", babId });
+        return;
+      }
+      if (book.format === "jurumiyah") {
+        const babId =
+          typeof chapterIndex === "number" && semuaBabJurumiyah[chapterIndex]
+            ? semuaBabJurumiyah[chapterIndex].id
+            : undefined;
+        navigate({ view: "jurumiyah-kitab", babId });
         return;
       }
       if (book.format === "aqidatul-awam") {
@@ -494,6 +505,15 @@ export function App() {
 
       {route.view === "imrithi-kitab" && (
         <ImrithiKitabPage
+          initialBabId={route.babId}
+          focusMode={focusMode}
+          onToggleFocus={() => setFocusMode((f) => !f)}
+          onBackToLibrary={() => navigate({ view: "kitab-hub" })}
+        />
+      )}
+
+      {route.view === "jurumiyah-kitab" && (
+        <JurumiyahKitabPage
           initialBabId={route.babId}
           focusMode={focusMode}
           onToggleFocus={() => setFocusMode((f) => !f)}
