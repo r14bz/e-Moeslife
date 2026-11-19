@@ -4,6 +4,8 @@ import { KITAB_TASHRIF_DATA } from "../data/kitabTashrifData";
 import { TASHRIF_LUGHAWI_DATA } from "../data/tashrifLughawiData";
 import { ALFIYAH_DATA } from "../data/alfiyah";
 import { allImrithiBaits, imrithiBabs } from "../data/imrithi";
+import { aqidatulAwamBabs, aqidatulAwamBaits } from "../data/aqidatulAwam";
+import { baiquniyyahBabs, baiquniyyahBaits } from "../data/baiquniyyah";
 import { SHALAT_INTENTIONS, SHALAT_STEPS, WUDHU_STEPS } from "../data/wudhuShalatGuide";
 import type { EQuranDoaItem, EQuranSurahSummary, LocalBookMeta } from "../types/emoeslife";
 import { arrayAt, normalizeChapter, parseStructuredSafinah } from "./kitabEngine";
@@ -134,6 +136,42 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
   if (book.format === "imrithi") {
     const indexed: IndexedChapter[] = imrithiBabs.map((bab) => {
       const baitsText = allImrithiBaits
+        .filter((bait) => bait.babId === bab.id)
+        .map((bait) => `${bait.shadr} ${bait.ajuz} ${bait.terjemah} ${bait.catatan || ""}`)
+        .join(" ");
+      const title = `${bab.urutan}. ${bab.judulIndo}`;
+      const displayText = `${bab.judulArab} · ${baitsText}`;
+      return {
+        title,
+        displayText,
+        searchText: `${title} ${bab.judulArab} ${baitsText}`.toLocaleLowerCase("id"),
+      };
+    });
+    kitabChapterCache[book.slug] = indexed;
+    return indexed;
+  }
+
+  if (book.format === "aqidatul-awam") {
+    const indexed: IndexedChapter[] = aqidatulAwamBabs.map((bab) => {
+      const baitsText = aqidatulAwamBaits
+        .filter((bait) => bait.babId === bab.id)
+        .map((bait) => `${bait.shadr} ${bait.ajuz} ${bait.terjemah} ${bait.syarah || ""}`)
+        .join(" ");
+      const title = `${bab.urutan}. ${bab.judulIndo}`;
+      const displayText = `${bab.judulArab} · ${baitsText}`;
+      return {
+        title,
+        displayText,
+        searchText: `${title} ${bab.judulArab} ${baitsText}`.toLocaleLowerCase("id"),
+      };
+    });
+    kitabChapterCache[book.slug] = indexed;
+    return indexed;
+  }
+
+  if (book.format === "baiquniyyah") {
+    const indexed: IndexedChapter[] = baiquniyyahBabs.map((bab) => {
+      const baitsText = baiquniyyahBaits
         .filter((bait) => bait.babId === bab.id)
         .map((bait) => `${bait.shadr} ${bait.ajuz} ${bait.terjemah} ${bait.catatan || ""}`)
         .join(" ");

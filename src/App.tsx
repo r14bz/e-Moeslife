@@ -25,6 +25,8 @@ import { LocalKitabView } from "./components/LocalKitabView";
 import { TashrifKitabPage } from "./components/TashrifKitabPage";
 import { AlfiyahKitabPage } from "./components/AlfiyahKitabPage";
 import { ImrithiKitabPage } from "./components/ImrithiKitabPage";
+import { AqidatulAwamKitabPage } from "./components/AqidatulAwamKitabPage";
+import { BaiquniyyahKitabPage } from "./components/BaiquniyyahKitabPage";
 import { ApiKitabView } from "./components/ApiKitabView";
 import { NearbyMosquesView } from "./components/NearbyMosquesView";
 import { DownloadView } from "./components/DownloadView";
@@ -33,6 +35,8 @@ import { ApkUpdatePrompt } from "./components/ApkUpdatePrompt";
 import { KITAB_TASHRIF_DATA } from "./data/kitabTashrifData";
 import { ALFIYAH_DATA } from "./data/alfiyah";
 import { imrithiBabs } from "./data/imrithi";
+import { aqidatulAwamBabs } from "./data/aqidatulAwam";
+import { baiquniyyahBabs } from "./data/baiquniyyah";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { consumePendingNativeUpdateOpen } from "./services/apkInstaller";
 import {
@@ -252,6 +256,8 @@ export function App() {
       nextRoute.view !== "tashrif-kitab" &&
       nextRoute.view !== "alfiyah-kitab" &&
       nextRoute.view !== "imrithi-kitab" &&
+      nextRoute.view !== "aqidatul-awam-kitab" &&
+      nextRoute.view !== "baiquniyyah-kitab" &&
       nextRoute.view !== "api-kitab"
     ) {
       setFocusMode(false);
@@ -330,6 +336,22 @@ export function App() {
             ? imrithiBabs[chapterIndex].id
             : undefined;
         navigate({ view: "imrithi-kitab", babId });
+        return;
+      }
+      if (book.format === "aqidatul-awam") {
+        const babId =
+          typeof chapterIndex === "number" && aqidatulAwamBabs[chapterIndex]
+            ? aqidatulAwamBabs[chapterIndex].id
+            : undefined;
+        navigate({ view: "aqidatul-awam-kitab", babId });
+        return;
+      }
+      if (book.format === "baiquniyyah") {
+        const babId =
+          typeof chapterIndex === "number" && baiquniyyahBabs[chapterIndex]
+            ? baiquniyyahBabs[chapterIndex].id
+            : undefined;
+        navigate({ view: "baiquniyyah-kitab", babId });
         return;
       }
       if (book.source === "local") {
@@ -472,6 +494,24 @@ export function App() {
 
       {route.view === "imrithi-kitab" && (
         <ImrithiKitabPage
+          initialBabId={route.babId}
+          focusMode={focusMode}
+          onToggleFocus={() => setFocusMode((f) => !f)}
+          onBackToLibrary={() => navigate({ view: "kitab-hub" })}
+        />
+      )}
+
+      {route.view === "aqidatul-awam-kitab" && (
+        <AqidatulAwamKitabPage
+          initialBabId={route.babId}
+          focusMode={focusMode}
+          onToggleFocus={() => setFocusMode((f) => !f)}
+          onBackToLibrary={() => navigate({ view: "kitab-hub" })}
+        />
+      )}
+
+      {route.view === "baiquniyyah-kitab" && (
+        <BaiquniyyahKitabPage
           initialBabId={route.babId}
           focusMode={focusMode}
           onToggleFocus={() => setFocusMode((f) => !f)}

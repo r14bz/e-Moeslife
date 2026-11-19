@@ -8,7 +8,14 @@ import type {
 
 // Diurutkan berjenjang dari kitab pengetahuan dasar hingga tingkat lanjut
 export const LOCAL_BOOKS: LocalBookMeta[] = [
-  { file: "aqidatul-awam.json", slug: "aqidatul-awam", title: "Aqidatul Awam", category: "Aqidah", source: "local" },
+  {
+    file: "",
+    slug: "aqidatul-awam",
+    title: "Aqidatul Awam",
+    category: "Aqidah",
+    format: "aqidatul-awam",
+    source: "local",
+  },
   {
     file: "safinah-reading-library.json",
     slug: "safinah-reading-library",
@@ -45,7 +52,14 @@ export const LOCAL_BOOKS: LocalBookMeta[] = [
   },
   { file: "taklim.json", slug: "taklim", title: "Ta’lim Al-Muta’allim", category: "Adab", source: "local" },
   { file: "nashoihul.json", slug: "nashoihul", title: "Nashoihul Ibad", category: "Adab", source: "local" },
-  { file: "baiquniyyah.json", slug: "baiquniyyah", title: "Mandhumah Al-Baiquniyyah", category: "Hadis", source: "local" },
+  {
+    file: "",
+    slug: "baiquniyyah",
+    title: "Mandhumah Al-Baiquniyyah",
+    category: "Hadis",
+    format: "baiquniyyah",
+    source: "local",
+  },
   { file: "arbain.json", slug: "arbain", title: "Arba’in Nawawi", category: "Hadis", source: "local" },
   { file: "bidayatul.json", slug: "bidayatul", title: "Bidayatul Hidayah", category: "Tasawuf", source: "local" },
   { file: "qarib.json", slug: "qarib", title: "Fathul Qarib", category: "Fiqih", source: "local" },

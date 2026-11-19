@@ -10,9 +10,9 @@ ROOT = Path(__file__).resolve().parent.parent
 ICON_PATH = ROOT / "public" / "assets" / "app-icon" / "icon.png"
 RES_DIR = ROOT / "android" / "app" / "src" / "main" / "res"
 
-# Exact brand green from public/assets/app-icon/icon.png
-BRAND_GREEN_HEX = "#009950"
-BRAND_GREEN_RGBA = (0, 153, 80, 255)
+# Clean white canvas matching public/assets/app-icon/icon.png
+ICON_BG_HEX = "#FFFFFF"
+ICON_BG_RGBA = (255, 255, 255, 255)
 
 MIPMAP_SIZES = {
     "mipmap-mdpi": (48, 108),
@@ -24,11 +24,11 @@ MIPMAP_SIZES = {
 
 
 def make_round_icon(src: Image.Image, target_px: int) -> Image.Image:
-    """Create a smooth circular launcher icon on solid brand green."""
+    """Create a smooth circular launcher icon on clean white background."""
     base_size = 512
-    canvas = Image.new("RGBA", (base_size, base_size), BRAND_GREEN_RGBA)
+    canvas = Image.new("RGBA", (base_size, base_size), ICON_BG_RGBA)
 
-    inner_px = round(base_size * 0.80)
+    inner_px = round(base_size * 0.88)
     inner = src.resize((inner_px, inner_px), Image.Resampling.LANCZOS)
     offset = (base_size - inner_px) // 2
     canvas.alpha_composite(inner, (offset, offset))
@@ -46,7 +46,7 @@ def make_round_icon(src: Image.Image, target_px: int) -> Image.Image:
 def make_adaptive_foreground(src: Image.Image, fg_px: int) -> Image.Image:
     """Create 108dp adaptive icon foreground with emblem centered inside 66dp safe zone."""
     canvas = Image.new("RGBA", (fg_px, fg_px), (0, 0, 0, 0))
-    inner_px = round(fg_px * 0.70)
+    inner_px = round(fg_px * 0.74)
     inner = src.resize((inner_px, inner_px), Image.Resampling.LANCZOS)
     offset = (fg_px - inner_px) // 2
     canvas.alpha_composite(inner, (offset, offset))
@@ -80,7 +80,7 @@ def main() -> None:
     bg_xml.write_text(
         '<?xml version="1.0" encoding="utf-8"?>\n'
         "<resources>\n"
-        f'    <color name="ic_launcher_background">{BRAND_GREEN_HEX}</color>\n'
+        f'    <color name="ic_launcher_background">{ICON_BG_HEX}</color>\n'
         "</resources>\n",
         encoding="utf-8",
     )
