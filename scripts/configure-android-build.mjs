@@ -156,6 +156,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
@@ -169,7 +170,10 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.json.JSONObject;
@@ -183,6 +187,14 @@ public final class ApkUpdateChecker {
     private static final String CHANNEL_ID = "pembaruan-aplikasi";
     private static final int NOTIFICATION_ID = 519901;
     private static final long MIN_CHECK_COOLDOWN_MS = 10L * 60L * 1000L;
+    private static final int NOTIFICATION_ACCENT_COLOR = Color.parseColor("#009950");
+
+    private static final String[] CATEGORY_ORDER = new String[] {
+        "fitur",
+        "keamanan",
+        "perbaikan",
+        "lainnya"
+    };
 
     private static final String[] ENDPOINTS = new String[] {
         "https://api.github.com/repos/r14bz/e-Moeslife/releases/tags/v2.0-android",
@@ -290,29 +302,113 @@ public final class ApkUpdateChecker {
         }
     }
 
-    private static List<String> extractHighlights(String body) {
-        List<String> items = new ArrayList<>();
-        if (body == null || body.isEmpty()) return items;
-        String cleaned = body.replaceAll("(?s)<!--\\\\s*emoeslife-release:.*?-->", "");
-        boolean skipSection = false;
+    private static String getCategoryLabel(String category) {
+        if ("fitur".equals(category)) return "Fitur Baru";
+        if ("keamanan".equals(category)) return "Keamanan";
+        if ("perbaikan".equals(category)) return "Perbaikan & Peningkatan";
+        return "Pembaruan Lainnya";
+    }
+
+    private static String mapHeadingToCategory(String heading) {
+        String normalized = heading.trim().toLowerCase(Locale.ROOT);
+        if (normalized.matches(".*(informasi\\\\s+rilis|release\\\\s+info|metadata).*")) return "ignore";
+        if (normalized.matches(".*(keamanan|security|proteksi|izin|permission).*")) return "keamanan";
+        if (normalized.matches(".*(fitur|feature|penambahan|baru).*")) return "fitur";
+        if (normalized.matches(".*(perbaikan|peningkatan|fix|bug|stabil|performa|optimasi).*")) return "perbaikan";
+        if (normalized.matches(".*(lainnya|other|catatan|perubahan|changelog).*")) return "lainnya";
+        return null;
+    }
+
+    private static String classifyBulletText(String text) {
+        String lower = text.toLowerCase(Locale.ROOT);
+        if (Pattern.compile("\\\\b(keamanan|security|keystore|signature|signed|signing|permission|izin|auth|token|enkripsi|privasi)\\\\b").matcher(lower).find()) {
+            return "keamanan";
+        }
+        if (Pattern.compile("\\\\b(fitur|feature|tambah|menambahkan|notifikasi|jadwal|changelog|pencarian|audio|tema|mode|doa|kitab)\\\\b").matcher(lower).find()) {
+            return "fitur";
+        }
+        if (Pattern.compile("\\\\b(perbaik|fix|bug|optimal|stabil|offline|rapi|sinkron|kecepatan|kinerja)\\\\b").matcher(lower).find()) {
+            return "perbaikan";
+        }
+        return "lainnya";
+    }
+
+    private static boolean isBoilerplateLine(String line) {
+        String clean = line.trim().toLowerCase(Locale.ROOT);
+        if (clean.isEmpty()) return true;
+        if (clean.startsWith("build otomatis aplikasi android e-moeslife")) return true;
+        if (clean.startsWith("ringkasan pembaruan aplikasi android")) return true;
+        return clean.matches("^(versi|tipe signature|package id)\\\\s*:.*");
+    }
+
+    private static final class ParsedChangelog {
+        final List<String> highlights = new ArrayList<>();
+        final List<String> taggedLines = new ArrayList<>();
+    }
+
+    private static ParsedChangelog parseChangelog(String body, String signed) {
+        ParsedChangelog result = new ParsedChangelog();
+        Map<String, List<String>> buckets = new LinkedHashMap<>();
+        for (String cat : CATEGORY_ORDER) {
+            buckets.put(cat, new ArrayList<String>());
+        }
+
+        String cleaned = body == null
+            ? ""
+            : body.replaceAll("(?s)<!--\\\\s*emoeslife-release:.*?-->", "").trim();
+        boolean hasHeadings = cleaned.contains("###");
+        String currentSection = null;
+        Pattern headingPattern = Pattern.compile("^#{1,4}\\\\s+(.+)$");
+        Pattern bulletPattern = Pattern.compile("^[-*•]\\\\s+(.+)$");
+
         for (String raw : cleaned.split("\\\\r?\\\\n")) {
             String line = raw.trim();
             if (line.isEmpty()) continue;
-            if (line.startsWith("#")) {
-                String lowerHeading = line.toLowerCase();
-                skipSection = lowerHeading.contains("informasi rilis") || lowerHeading.contains("metadata");
+
+            Matcher headingMatcher = headingPattern.matcher(line);
+            if (headingMatcher.matches()) {
+                currentSection = mapHeadingToCategory(headingMatcher.group(1));
                 continue;
             }
-            if (skipSection) continue;
-            if (line.startsWith("- ") || line.startsWith("* ") || line.startsWith("• ")) {
-                String item = line.substring(2).replaceAll("\\\\*\\\\*(.+?)\\\\*\\\\*", "$1").trim();
-                if (!item.isEmpty() && !items.contains(item)) {
-                    items.add(item);
-                    if (items.size() >= 3) break;
+
+            if ("ignore".equals(currentSection)) continue;
+
+            Matcher bulletMatcher = bulletPattern.matcher(line);
+            String rawContent = bulletMatcher.matches() ? bulletMatcher.group(1) : line;
+            String content = rawContent.replaceAll("\\\\*\\\\*(.+?)\\\\*\\\\*", "$1").trim();
+
+            if (content.isEmpty() || isBoilerplateLine(content)) continue;
+            if (!bulletMatcher.matches() && currentSection == null && hasHeadings) continue;
+
+            String targetCategory = currentSection != null ? currentSection : classifyBulletText(content);
+            List<String> list = buckets.get(targetCategory);
+            if (list != null && !list.contains(content)) {
+                list.add(content);
+            }
+        }
+
+        List<String> securityList = buckets.get("keamanan");
+        if ("release".equalsIgnoreCase(signed) && securityList != null && securityList.isEmpty()) {
+            securityList.add("Rilis ditandatangani dengan Release Keystore resmi agar pembaruan menjaga data tersimpan.");
+        }
+
+        for (String cat : CATEGORY_ORDER) {
+            List<String> items = buckets.get(cat);
+            if (items == null || items.isEmpty()) continue;
+            String label = getCategoryLabel(cat);
+            int perCategoryCount = 0;
+            for (String item : items) {
+                if (result.highlights.size() < 2) {
+                    result.highlights.add(item);
+                }
+                if (perCategoryCount < 2 && result.taggedLines.size() < 5) {
+                    result.taggedLines.add("• [" + label + "] " + item);
+                    perCategoryCount++;
                 }
             }
         }
-        return items;
+
+        return result;
     }
 
     public static void checkAndNotify(Context context, boolean bypassCooldown) {
@@ -340,6 +436,7 @@ public final class ApkUpdateChecker {
 
                 long remoteCode = 0L;
                 String versionName = "";
+                String signed = "";
 
                 Matcher markerMatcher = Pattern
                     .compile("<!--\\\\s*emoeslife-release:(\\\\{.*?\\\\})\\\\s*-->", Pattern.DOTALL)
@@ -348,6 +445,7 @@ public final class ApkUpdateChecker {
                     JSONObject marker = new JSONObject(markerMatcher.group(1));
                     remoteCode = marker.optLong("versionCode", 0L);
                     versionName = marker.optString("versionName", "");
+                    signed = marker.optString("signed", "");
                 }
 
                 if (remoteCode <= 0L && !releaseName.isEmpty()) {
@@ -372,7 +470,8 @@ public final class ApkUpdateChecker {
                     return;
                 }
 
-                showUpdateNotification(context, remoteCode, versionName, extractHighlights(body));
+                ParsedChangelog changelog = parseChangelog(body, signed);
+                showUpdateNotification(context, remoteCode, versionName, changelog);
                 prefs.edit().putLong(KEY_NOTIFIED_VERSION, remoteCode).apply();
                 return;
             } catch (Exception ignored) {
@@ -385,7 +484,7 @@ public final class ApkUpdateChecker {
         Context context,
         long versionCode,
         String versionName,
-        List<String> highlights
+        ParsedChangelog changelog
     ) {
         NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm == null) return;
@@ -402,24 +501,23 @@ public final class ApkUpdateChecker {
         }
 
         String summary;
-        if (!highlights.isEmpty()) {
-            int limit = Math.min(2, highlights.size());
+        if (!changelog.highlights.isEmpty()) {
             StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < limit; i++) {
+            for (int i = 0; i < changelog.highlights.size(); i++) {
                 if (i > 0) sb.append(" • ");
-                sb.append(highlights.get(i));
+                sb.append(changelog.highlights.get(i));
             }
-            sb.append(" — Ketuk untuk memperbarui.");
+            sb.append(" — Ketuk untuk melihat detail & memperbarui.");
             summary = sb.toString();
         } else {
             summary = "Versi terbaru v" + versionName + " tersedia. Ketuk untuk mengunduh pembaruan.";
         }
 
         StringBuilder bigText = new StringBuilder();
-        if (!highlights.isEmpty()) {
-            for (String item : highlights) {
+        if (!changelog.taggedLines.isEmpty()) {
+            for (String item : changelog.taggedLines) {
                 if (bigText.length() > 0) bigText.append('\\n');
-                bigText.append("• ").append(item);
+                bigText.append(item);
             }
         } else {
             bigText.append(summary);
@@ -441,13 +539,30 @@ public final class ApkUpdateChecker {
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
-        int smallIcon = context.getApplicationInfo().icon;
+        int smallIcon = context.getResources().getIdentifier(
+            "ic_stat_emoeslife",
+            "drawable",
+            context.getPackageName()
+        );
+        if (smallIcon == 0) {
+            smallIcon = context.getApplicationInfo().icon;
+        }
+
+        String versionSubText = "Versi v" + versionName;
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(smallIcon)
+            .setColor(NOTIFICATION_ACCENT_COLOR)
             .setContentTitle("Pembaruan e-Moeslife v" + versionName)
             .setContentText(summary)
-            .setStyle(new NotificationCompat.BigTextStyle().bigText(bigText.toString()))
+            .setSubText(versionSubText)
+            .setStyle(
+                new NotificationCompat.BigTextStyle()
+                    .bigText(bigText.toString())
+                    .setSummaryText(versionSubText)
+            )
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setOnlyAlertOnce(true)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent);
 
