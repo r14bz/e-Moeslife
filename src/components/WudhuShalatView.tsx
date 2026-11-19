@@ -13,7 +13,6 @@ import {
   SHALAT_RUKUN,
   SHALAT_STEPS,
   WUDHU_BATAL,
-  WUDHU_OVERVIEW_IMAGE,
   WUDHU_RUKUN,
   WUDHU_STEPS,
   type GuideStep,
@@ -72,7 +71,7 @@ export const WudhuShalatView: React.FC<WudhuShalatViewProps> = ({
               Panduan Wudhu &amp; Shalat
             </h1>
             <p className="mt-0.5 text-xs text-[#5e6a62] sm:text-sm dark:text-slate-300">
-              Tata cara lengkap dengan bacaan Arab, transliterasi Latin, arti bahasa Indonesia, dan ilustrasi gerakan.
+              Tata cara lengkap dengan bacaan Arab, transliterasi Latin, dan arti bahasa Indonesia.
             </p>
           </div>
         </div>
@@ -114,23 +113,9 @@ export const WudhuShalatView: React.FC<WudhuShalatViewProps> = ({
         </div>
       </div>
 
-      {/* Wudhu Overview Visual + Rukun & Batal Cards */}
+      {/* Wudhu Rukun & Batal Cards */}
       {tab === "wudhu" && (
         <section className="space-y-4">
-          <div className="overflow-hidden rounded-2xl border border-[#e2e8e4] bg-white shadow-xs dark:border-slate-800 dark:bg-[#111A27]">
-            <div className="w-full bg-white p-2 sm:p-4">
-              <img
-                src={WUDHU_OVERVIEW_IMAGE.src}
-                alt={WUDHU_OVERVIEW_IMAGE.alt}
-                referrerPolicy="no-referrer"
-                className="mx-auto block h-auto max-h-[460px] w-full object-contain"
-              />
-            </div>
-            <div className="border-t border-[#e8eeea] px-4 py-3 text-xs text-[#5e6a62] dark:border-slate-800 dark:text-slate-300">
-              {WUDHU_OVERVIEW_IMAGE.caption}
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="rounded-2xl border border-[#e2e8e4] bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-[#111A27]">
               <h2 className="flex items-center gap-2 text-sm font-semibold text-[#103d2c] dark:text-white">
@@ -283,22 +268,6 @@ export const WudhuShalatView: React.FC<WudhuShalatViewProps> = ({
               id={step.id}
               className="scroll-mt-20 overflow-hidden rounded-2xl border border-[#e2e8e4] bg-white shadow-xs dark:border-slate-800 dark:bg-[#111A27]"
             >
-              {step.image && (
-                <div className="border-b border-[#e8eeea] bg-white dark:border-slate-800 dark:bg-[#0D1520]">
-                  <div className="w-full bg-white p-2 sm:p-4">
-                    <img
-                      src={step.image.src}
-                      alt={step.image.alt}
-                      referrerPolicy="no-referrer"
-                      className="mx-auto block h-auto max-h-[420px] w-full object-contain"
-                    />
-                  </div>
-                  <p className="border-t border-[#e8eeea] bg-[#f6f9f7] px-4 py-2 text-[11px] font-medium text-[#5e6a62] dark:border-slate-800 dark:bg-[#0D1520] dark:text-slate-400">
-                    {step.image.caption}
-                  </p>
-                </div>
-              )}
-
               <div className="p-4 sm:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex min-w-0 flex-1 items-start gap-3">

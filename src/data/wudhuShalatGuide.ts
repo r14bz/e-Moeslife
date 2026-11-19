@@ -1,9 +1,3 @@
-import wudhuLangkahImg from "../assets/images/wudhu_langkah_guide_1794978244999.jpg";
-import shalatTakbirQiyamImg from "../assets/images/shalat_takbir_qiyam_1794978246391.jpg";
-import shalatRukuItidalImg from "../assets/images/shalat_ruku_itidal_1794978247256.jpg";
-import shalatSujudDudukImg from "../assets/images/shalat_sujud_duduk_1794978248666.jpg";
-import shalatTasyahhudSalamImg from "../assets/images/shalat_tasyahhud_salam_1795075700000.jpg";
-
 export interface GuideStep {
   id: string;
   number: string;
@@ -15,11 +9,6 @@ export interface GuideStep {
   latin?: string;
   translation?: string;
   note?: string;
-  image?: {
-    src: string;
-    alt: string;
-    caption: string;
-  };
 }
 
 export interface ShalatIntention {
@@ -46,12 +35,6 @@ export const WUDHU_BATAL: ReadonlyArray<string> = [
   "Bersentuhan kulit antara laki-laki dan perempuan dewasa bukan mahram tanpa penghalang (menurut mazhab Syafi'i).",
   "Menyentuh kemaluan atau dubur dengan telapak tangan atau jari bagian dalam tanpa alas.",
 ];
-
-export const WUDHU_OVERVIEW_IMAGE = {
-  src: wudhuLangkahImg,
-  alt: "Ilustrasi rangkaian langkah tata cara berwudhu",
-  caption: "Panduan visual urutan gerakan wudhu mulai dari membasuh tangan hingga membasuh kaki.",
-};
 
 export const WUDHU_STEPS: GuideStep[] = [
   {
@@ -202,11 +185,6 @@ export const SHALAT_STEPS: GuideStep[] = [
     arabic: "اَللّٰهُ أَكْبَرُ",
     latin: "Allāhu Akbar.",
     translation: "Allah Mahabesar.",
-    image: {
-      src: shalatTakbirQiyamImg,
-      alt: "Ilustrasi posisi takbiratul ihram dan berdiri bersedekap",
-      caption: "Posisi takbiratul ihram (kiri) dan berdiri bersedekap dengan khusyuk (kanan).",
-    },
   },
   {
     id: "shalat-2",
@@ -246,11 +224,6 @@ export const SHALAT_STEPS: GuideStep[] = [
     arabic: "سُبْحَانَ رَبِّيَ الْعَظِيْمِ وَبِحَمْدِهِ (٣×)",
     latin: "Subḥāna rabbiyal-'aẓīmi wa biḥamdih (3×).",
     translation: "Mahasuci Tuhanku Yang Maha Agung dan segala puji bagi-Nya.",
-    image: {
-      src: shalatRukuItidalImg,
-      alt: "Ilustrasi gerakan ruku dan i'tidal dalam shalat",
-      caption: "Punggung rata saat ruku' dengan memegang lutut (kiri), lalu bangkit berdiri tegak i'tidal (kanan).",
-    },
   },
   {
     id: "shalat-5",
@@ -265,11 +238,27 @@ export const SHALAT_STEPS: GuideStep[] = [
       "Sami'allāhu liman ḥamidah. Rabbanā lakal-ḥamdu mil'us-samāwāti wa mil'ul-arḍi wa mil'u mā syi'ta min syai'in ba'du.",
     translation:
       "Allah Maha Mendengar orang yang memuji-Nya. Wahai Tuhan kami, bagi-Mu segala puji sepenuh langit, sepenuh bumi, dan sepenuh segala sesuatu yang Engkau kehendaki sesudahnya.",
-    note: "Pada rakaat terakhir Shalat Subuh (menurut mazhab Syafi'i), dianjurkan membaca Doa Qunut sebelum turun bersujud.",
+    note: "Pada rakaat kedua Shalat Subuh (menurut mazhab Syafi'i), dilanjutkan membaca Doa Qunut sebelum turun bersujud.",
+  },
+  {
+    id: "shalat-qunut",
+    number: "06",
+    title: "Doa Qunut (Shalat Subuh)",
+    badge: "Sunnah Ab'ad (Subuh)",
+    summary:
+      "Dibaca pada rakaat kedua Shalat Subuh setelah bangkit dari ruku' (i'tidal) sebelum turun sujud, seraya mengangkat kedua telapak tangan menghadap ke atas.",
+    movement: "Berdiri tegak i'tidal sambil mengangkat kedua telapak tangan sejajar dada atau bahu menghadap ke atas, tanpa mengusap wajah setelah selesai berdoa.",
+    arabic:
+      "اَللّٰهُمَّ اهْدِنِيْ فِيْمَنْ هَدَيْتَ، وَعَافِنِيْ فِيْمَنْ عَافَيْتَ، وَتَوَلَّنِيْ فِيْمَنْ تَوَلَّيْتَ، وَبَارِكْ لِيْ فِيْمَا أَعْطَيْتَ، وَقِنِيْ شَرَّ مَا قَضَيْتَ، فَإِنَّكَ تَقْضِيْ وَلَا يُقْضٰى عَلَيْكَ، وَإِنَّهُ لَا يَذِلُّ مَنْ وَالَيْتَ، وَلَا يَعِزُّ مَنْ عَادَيْتَ، تَبَارَكْتَ رَبَّنَا وَتَعَالَيْتَ، فَلَكَ الْحَمْدُ عَلٰى مَا قَضَيْتَ، أَسْتَغْفِرُكَ وَأَتُوْبُ إِلَيْكَ، وَصَلَّى اللّٰهُ عَلٰى سَيِّدِنَا مُحَمَّدٍ النَّبِيِّ الْأُمِّيِّ وَعَلٰى آلِهِ وَصَحْبِهِ وَسَلَّمَ",
+    latin:
+      "Allāhummahdinī fīman hadait, wa 'āfinī fīman 'āfait, wa tawallanī fīman tawallait, wa bārik lī fīmā a'ṭait, wa qinī syarra mā qaḍait, fa innaka taqḍī wa lā yuqḍā 'alaik, wa innahū lā yażillu man wālait, wa lā ya'izzu man 'ādait, tabārakta rabbanā wa ta'ālait, falakal-ḥamdu 'alā mā qaḍait, astaghfiruka wa atūbu ilaik, wa ṣallallāhu 'alā sayyidinā Muḥammadinin-nabiyyil-ummiyyi wa 'alā ālihī wa ṣaḥbihī wa sallam.",
+    translation:
+      "Ya Allah, berilah aku petunjuk bersama orang-orang yang telah Engkau beri petunjuk; berilah aku kesehatan bersama orang-orang yang telah Engkau beri kesehatan; lindungilah aku bersama orang-orang yang telah Engkau lindungi; berkahilah bagiku apa-apa yang telah Engkau karuniakan; dan jauhkanlah aku dari keburukan apa yang telah Engkau tetapkan. Sungguh Engkau yang memutuskan dan tidak ada yang dapat memutuskan atas-Mu; sesungguhnya tidak akan hina orang yang Engkau pimpin dan tidak akan mulia orang yang Engkau musuhi. Mahaberkah Engkau wahai Tuhan kami dan Mahatinggi Engkau. Maka bagi-Mu segala puji atas apa yang telah Engkau tetapkan; aku memohon ampun dan bertaubat kepada-Mu. Semoga Allah melimpahkan rahmat dan salam kepada junjungan kami Nabi Muhammad, nabi yang ummi, beserta keluarga dan para sahabatnya.",
+    note: "Jika shalat berjamaah sebagai imam, lafaz tunggal ('nī' / 'lī') dibaca jamak ('ihdinā, 'āfinā, tawallanā, bārik lanā, qinā'), dan makmum mengaminkannya.",
   },
   {
     id: "shalat-6",
-    number: "06",
+    number: "07",
     title: "Sujud Pertama & Kedua",
     badge: "Rukun 7",
     summary:
@@ -278,15 +267,10 @@ export const SHALAT_STEPS: GuideStep[] = [
     arabic: "سُبْحَانَ رَبِّيَ الْأَعْلٰى وَبِحَمْدِهِ (٣×)",
     latin: "Subḥāna rabbiyal-a'lā wa biḥamdih (3×).",
     translation: "Mahasuci Tuhanku Yang Maha Tinggi dan segala puji bagi-Nya.",
-    image: {
-      src: shalatSujudDudukImg,
-      alt: "Ilustrasi sujud dan duduk di antara dua sujud",
-      caption: "Posisi sujud dengan tujuh anggota menempel (kiri) dan duduk iftirasy di antara dua sujud (kanan).",
-    },
   },
   {
     id: "shalat-7",
-    number: "07",
+    number: "08",
     title: "Duduk di Antara Dua Sujud",
     badge: "Rukun 8",
     summary:
@@ -300,7 +284,7 @@ export const SHALAT_STEPS: GuideStep[] = [
   },
   {
     id: "shalat-8",
-    number: "08",
+    number: "09",
     title: "Tasyahhud Awal (Rakaat Kedua Shalat 3/4 Rakaat)",
     badge: "Sunnah Ab'ad",
     summary:
@@ -314,7 +298,7 @@ export const SHALAT_STEPS: GuideStep[] = [
   },
   {
     id: "shalat-9",
-    number: "09",
+    number: "10",
     title: "Tasyahhud Akhir & Shalawat Ibrahimiyah",
     badge: "Rukun 9–11",
     summary:
@@ -326,15 +310,10 @@ export const SHALAT_STEPS: GuideStep[] = [
     translation:
       "Ya Allah, limpahkanlah rahmat kepada junjungan kami Nabi Muhammad dan keluarganya sebagaimana Engkau limpahkan rahmat kepada Nabi Ibrahim dan keluarganya. Dan berkahilah Nabi Muhammad dan keluarganya sebagaimana Engkau berkahi Nabi Ibrahim dan keluarganya di seluruh alam. Sungguh Engkau Maha Terpuji lagi Maha Mulia.",
     note: "Sebelum salam, sangat dianjurkan membaca doa perlindungan dari siksa kubur, neraka, fitnah hidup dan mati, serta fitnah Dajjal.",
-    image: {
-      src: shalatTasyahhudSalamImg,
-      alt: "Ilustrasi duduk tasyahhud akhir dan menoleh salam",
-      caption: "Duduk tawarruk saat tasyahhud akhir (kiri) dan menoleh ke kanan/kiri saat mengucapkan salam (kanan).",
-    },
   },
   {
     id: "shalat-10",
-    number: "10",
+    number: "11",
     title: "Salam ke Kanan & ke Kiri",
     badge: "Rukun 12–13",
     summary:
