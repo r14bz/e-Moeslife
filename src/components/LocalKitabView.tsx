@@ -1,28 +1,22 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  List,
-  Maximize2,
-  Minimize2,
-  Search,
-  X,
-} from "lucide-react";
-import type { LocalBookMeta, NormalizedKitabChapter } from "../types/emoeslife";
+import { ArrowLeft, Maximize2, Minimize2, Search, X } from "lucide-react";
+import type {
+  LocalBookMeta,
+  NormalizedKitabChapter,
+  StructuredBlock,
+} from "../types/emoeslife";
 import {
   ARABIC_REGEX,
-  type ChapterQueueItem,
-  type KitabChapterViewMode,
-  VIEW_LABELS,
+  BATCH_BUDGET_CHARS,
+  KITAB_ARABIC_TITLES,
+  type PairedParagraph,
   arrayAt,
-  buildChapterQueue,
+  chunkText,
+  isBasmalah,
   normalizeChapter,
+  pairParagraphs,
   parseStructuredSafinah,
-  planBatch,
-  readKitabViewPrefs,
-  resolveView,
-  writeKitabViewPref,
+  splitParagraphs,
 } from "../utils/kitabEngine";
 import { readKitabLastChapter, writeKitabLastChapter } from "../services/preferences";
 import { FooterDisclaimer } from "./FooterDisclaimer";
@@ -36,11 +30,15 @@ interface LocalKitabViewProps {
 }
 
 const SUBHEADING_LINE_RE =
-  /^(?:MUQODDIMAH|Muqoddimah|Terjemah:?|Artinya:?|Catatan\s*:?|Derajat Hadits:?|Penjelasan:?|Hadits ke[- ]?\d+|HADITS KE[- ]?\d+|Al-Hikam Pasal \d+|RISALAH \d+|Fasal \d+[^\n]{0,60}|BAB [IVXLC\d]+[^\n]{0,60}|[A-Z][A-Z0-9\s,'"-]{3,50})$/;
+  /^(?:MUQODDIMAH|Muqoddimah|Terjemah:?|Artinya:?|Catatan\s*:?|Pelajaran\s*:?|Syarah:?|Derajat Hadits:?|Penjelasan:?|Hadits ke[- ]?\d+|HADITS KE[- ]?\d+|Al-Hikam Pasal \d+|RISALAH \d+|Fasal \d+[^\n]{0,60}|BAB [IVXLC\d]+[^\n]{0,60}|[A-Z][A-Z0-9\s,'"-]{3,50})$/;
 
-const BADGE_PREFIX_RE = /^(?:No\.\s*Hadist:\s*\d+\.|\d+\.\d+\/\d+\.|\d{1,3}\.|\[Fasal\])\s*/i;
+const BADGE_PREFIX_RE = /^(?:No\.\s*Hadist:\s*\d+\.|\d+\.\d+\/\d+\.|\d{1,4}\.|\[Fasal\])\s*/i;
 
-const ArabicBlock: React.FC<{ value: string; className?: string }> = ({ value, className = "" }) => {
+const ArabicTextBlock: React.FC<{
+  value: string;
+  badge?: string | number;
+  className?: string;
+}> = ({ value, badge, className = "" }) => {
   const lines = useMemo(
     () =>
       String(value || "")
@@ -54,7 +52,7 @@ const ArabicBlock: React.FC<{ value: string; className?: string }> = ({ value, c
 
   if (hasPoeticSplit) {
     return (
-      <div dir="rtl" lang="ar" className={`space-y-2.5 ${className}`}>
+      <div dir="rtl" lang="ar" className={`space-y-2 ${className}`}>
         {lines.map((line, idx) => {
           const cleanLine = line.replace(/^\d+\.\s+/, "");
           if (/\s[*#]\s/.test(cleanLine)) {
@@ -63,20 +61,69 @@ const ArabicBlock: React.FC<{ value: string; className?: string }> = ({ value, c
             return (
               <div
                 key={idx}
-                className="grid grid-cols-1 gap-x-6 gap-y-1 rounded-xl bg-[#ffffff]/70 px-3 py-2 sm:grid-cols-2 dark:bg-[#152030]/60"
+                style={{
+                  backgroundColor: "var(--tashrif-row-alt)",
+                  border: "1px solid var(--tashrif-border-cell)",
+                }}
+                className="grid grid-cols-1 gap-x-5 gap-y-1 rounded-lg px-3 py-2 sm:grid-cols-2"
               >
-                <p className="arabic-reader-text text-right text-[#1c2b23] dark:text-[#EDF2F7]">
+                <p
+                  style={{
+                    color: "var(--tashrif-ink)",
+                    fontSize: "var(--arabic-reader-size)",
+                    lineHeight: "1.95",
+                  }}
+                  className="font-arabic text-right"
+                >
+                  {idx === 0 && badge !== undefined && (
+                    <span
+                      style={{
+                        backgroundColor: "var(--tashrif-wazan-bg)",
+                        border: "1px solid var(--tashrif-border-cell)",
+                        color: "var(--tashrif-accent)",
+                      }}
+                      className="ml-2 inline-block rounded px-1.5 py-0.5 align-middle font-mono-tabular text-[11px] font-bold"
+                    >
+                      {badge}
+                    </span>
+                  )}
                   {first.trim()}
                 </p>
-                <p className="arabic-reader-text text-right text-[#1c2b23] sm:text-left dark:text-[#EDF2F7]">
-                  <span className="ml-2 text-xs text-[#9c7d3c] sm:hidden dark:text-[#E2B354]">✦</span>
+                <p
+                  style={{
+                    color: "var(--tashrif-ink)",
+                    fontSize: "var(--arabic-reader-size)",
+                    lineHeight: "1.95",
+                  }}
+                  className="font-arabic text-right sm:text-left"
+                >
                   {second}
                 </p>
               </div>
             );
           }
           return (
-            <p key={idx} className="arabic-reader-text text-right text-[#1c2b23] dark:text-[#EDF2F7]">
+            <p
+              key={idx}
+              style={{
+                color: "var(--tashrif-ink)",
+                fontSize: "var(--arabic-reader-size)",
+                lineHeight: "2.05",
+              }}
+              className="font-arabic text-right break-words"
+            >
+              {idx === 0 && badge !== undefined && (
+                <span
+                  style={{
+                    backgroundColor: "var(--tashrif-wazan-bg)",
+                    border: "1px solid var(--tashrif-border-cell)",
+                    color: "var(--tashrif-accent)",
+                  }}
+                  className="ml-2 inline-block rounded px-1.5 py-0.5 align-middle font-mono-tabular text-[11px] font-bold"
+                >
+                  {badge}
+                </span>
+              )}
               {cleanLine}
             </p>
           );
@@ -89,14 +136,34 @@ const ArabicBlock: React.FC<{ value: string; className?: string }> = ({ value, c
     <p
       lang="ar"
       dir="rtl"
-      className={`arabic-reader-text whitespace-pre-wrap text-right text-[#1c2b23] dark:text-[#EDF2F7] ${className}`}
+      style={{
+        color: "var(--tashrif-ink)",
+        fontSize: "var(--arabic-reader-size)",
+        lineHeight: "2.05",
+      }}
+      className={`font-arabic whitespace-pre-wrap text-right break-words ${className}`}
     >
+      {badge !== undefined && (
+        <span
+          style={{
+            backgroundColor: "var(--tashrif-wazan-bg)",
+            border: "1px solid var(--tashrif-border-cell)",
+            color: "var(--tashrif-accent)",
+          }}
+          className="ml-2 inline-block rounded px-1.5 py-0.5 align-middle font-mono-tabular text-[11px] font-bold"
+        >
+          {badge}
+        </span>
+      )}
       {value}
     </p>
   );
 };
 
-const MixedTranslation: React.FC<{ value: string }> = ({ value }) => {
+const MixedTranslation: React.FC<{ value: string; prefixBadge?: string | number }> = ({
+  value,
+  prefixBadge,
+}) => {
   const paragraphs = useMemo(
     () =>
       String(value || "")
@@ -107,18 +174,19 @@ const MixedTranslation: React.FC<{ value: string }> = ({ value }) => {
   );
 
   return (
-    <>
+    <div className="space-y-2.5">
       {paragraphs.map((paragraph, idx) => {
         const arabicOnly = ARABIC_REGEX.test(paragraph) && !/[A-Za-z]/.test(paragraph);
         if (arabicOnly) {
-          return <ArabicBlock key={idx} value={paragraph} className="my-3" />;
+          return <ArabicTextBlock key={idx} value={paragraph} className="my-1.5" />;
         }
 
         if (SUBHEADING_LINE_RE.test(paragraph) && paragraph.length <= 80) {
           return (
             <p
               key={idx}
-              className="mt-4 mb-1.5 text-xs font-bold tracking-wider text-[#134a35] uppercase dark:text-[#E2B354]"
+              style={{ color: "var(--tashrif-accent)" }}
+              className="pt-1 text-[11px] font-bold tracking-wider uppercase"
             >
               {paragraph}
             </p>
@@ -133,9 +201,25 @@ const MixedTranslation: React.FC<{ value: string }> = ({ value }) => {
             <p
               key={idx}
               dir="auto"
-              className="prose-reader-text my-3 whitespace-pre-wrap text-[#2e3e34] dark:text-slate-300"
+              style={{ color: "var(--tashrif-text)" }}
+              className="prose-reader-text whitespace-pre-wrap leading-relaxed"
             >
-              <span className="font-mono-tabular mr-2 inline-block rounded-md bg-[#e6efe9] px-1.5 py-0.5 text-[11px] font-semibold text-[#134a35] dark:bg-[#192940] dark:text-[#E2B354]">
+              {idx === 0 && prefixBadge !== undefined && (
+                <span
+                  style={{ color: "var(--tashrif-accent)" }}
+                  className="mr-1.5 font-mono-tabular font-bold"
+                >
+                  [{prefixBadge}]
+                </span>
+              )}
+              <span
+                style={{
+                  backgroundColor: "var(--tashrif-paper)",
+                  border: "1px solid var(--tashrif-border-cell)",
+                  color: "var(--tashrif-accent)",
+                }}
+                className="font-mono-tabular mr-2 inline-block rounded px-1.5 py-0.5 text-[11px] font-bold"
+              >
                 {badge}
               </span>
               {body}
@@ -147,58 +231,107 @@ const MixedTranslation: React.FC<{ value: string }> = ({ value }) => {
           <p
             key={idx}
             dir="auto"
-            className="prose-reader-text my-3 whitespace-pre-wrap text-[#2e3e34] dark:text-slate-300"
+            style={{ color: "var(--tashrif-text)" }}
+            className="prose-reader-text whitespace-pre-wrap leading-relaxed"
           >
+            {idx === 0 && prefixBadge !== undefined && (
+              <span
+                style={{ color: "var(--tashrif-accent)" }}
+                className="mr-1.5 font-mono-tabular font-bold"
+              >
+                [{prefixBadge}]
+              </span>
+            )}
             {paragraph}
           </p>
         );
       })}
-    </>
-  );
-};
-
-const PairCard: React.FC<{
-  item: Extract<ChapterQueueItem, { kind: "pair" }>;
-  forceOpenAll: boolean | null;
-}> = ({ item, forceOpenAll }) => {
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    if (forceOpenAll !== null) setOpen(forceOpenAll);
-  }, [forceOpenAll]);
-
-  if (item.heading) {
-    return (
-      <div className="border-b border-[#e8eeea] py-4 dark:border-slate-800">
-        <p className="text-center text-sm font-bold tracking-wide text-[#103d2c] sm:text-base dark:text-[#E2B354]">
-          {item.translation}
-        </p>
-        {item.arabic && <ArabicBlock value={item.arabic} className="mt-3" />}
-      </div>
-    );
-  }
-
-  return (
-    <div className="border-b border-[#e8eeea] py-4 dark:border-slate-800">
-      <ArabicBlock value={item.arabic} />
-      <div className="mt-2.5">
-        <button
-          type="button"
-          aria-expanded={open}
-          onClick={() => setOpen((prev) => !prev)}
-          className="inline-flex min-h-[38px] items-center rounded-xl border border-[#dce4df] bg-[#f4f7f5] px-3.5 text-xs font-semibold text-[#174231] transition-colors hover:bg-[#e6ede9] dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200 dark:hover:bg-[#1E2C40]"
-        >
-          {open ? "Sembunyikan terjemah" : "Lihat terjemah"}
-        </button>
-      </div>
-      {open && (
-        <div className="mt-3 rounded-xl bg-[#ffffff] px-4 py-3 dark:bg-[#162131]">
-          <MixedTranslation value={item.translation} />
-        </div>
-      )}
     </div>
   );
 };
+
+const StructuredBlockRenderer: React.FC<{ block: StructuredBlock }> = ({ block }) => {
+  if (block.type === "translation-label") {
+    return (
+      <p
+        style={{ color: "var(--tashrif-accent)" }}
+        className="pt-1 text-[11px] font-bold tracking-wider uppercase"
+      >
+        {block.text}
+      </p>
+    );
+  }
+  if (block.type === "arabic") {
+    const trimmed = block.text.trim();
+    if (/^(?:فَصْلٌ|خَاتِمَةٌ)$/.test(trimmed)) {
+      return (
+        <div dir="rtl" lang="ar" className="py-1 text-center">
+          <span
+            style={{
+              backgroundColor: "var(--tashrif-wazan-bg)",
+              border: "1px solid var(--tashrif-border-cell)",
+              color: "var(--tashrif-accent)",
+            }}
+            className="font-arabic inline-block rounded-lg px-3 py-0.5 text-base font-bold"
+          >
+            {trimmed}
+          </span>
+        </div>
+      );
+    }
+    return <ArabicTextBlock value={block.text} />;
+  }
+  if (block.type === "translation") {
+    return (
+      <p
+        dir="ltr"
+        style={{ color: "var(--tashrif-text)" }}
+        className="prose-reader-text whitespace-pre-wrap leading-relaxed"
+      >
+        {block.text}
+      </p>
+    );
+  }
+  const segments = block.text.split(
+    /([\u0600-\u06FF][\u0600-\u06FF\s\u064B-\u065F\u0670\u0610-\u061A\u06D6-\u06ED]*[\u0600-\u06FF\u064B-\u065F\u0670]?)/g
+  );
+  return (
+    <p
+      dir="auto"
+      style={{ color: "var(--tashrif-text)" }}
+      className="prose-reader-text whitespace-pre-wrap leading-relaxed"
+    >
+      {segments.map((seg, sIdx) =>
+        ARABIC_REGEX.test(seg) ? (
+          <span
+            key={sIdx}
+            lang="ar"
+            dir="rtl"
+            style={{ color: "var(--tashrif-accent)" }}
+            className="font-arabic mx-0.5 inline-block text-[1.15em] leading-relaxed font-semibold"
+          >
+            {seg}
+          </span>
+        ) : (
+          <React.Fragment key={sIdx}>{seg}</React.Fragment>
+        )
+      )}
+    </p>
+  );
+};
+
+function planPairedBatch(items: PairedParagraph[], start = 0, budget = BATCH_BUDGET_CHARS): number {
+  let count = 0;
+  let used = 0;
+  while (start + count < items.length) {
+    const item = items[start + count];
+    const size = item.arabic.length + 140;
+    if (count > 0 && used + size > budget) break;
+    used += size;
+    count += 1;
+  }
+  return count;
+}
 
 export const LocalKitabView: React.FC<LocalKitabViewProps> = ({
   book,
@@ -209,15 +342,14 @@ export const LocalKitabView: React.FC<LocalKitabViewProps> = ({
 }) => {
   const [chapters, setChapters] = useState<NormalizedKitabChapter[]>([]);
   const [activeIndex, setActiveIndex] = useState<number>(0);
-  const [turnDir, setTurnDir] = useState<"next" | "prev" | "fade">("fade");
   const [resumedFromSaved, setResumedFromSaved] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const [chapterQuery, setChapterQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [viewMode, setViewMode] = useState<KitabChapterViewMode>("both");
-  const [foldOpenAll, setFoldOpenAll] = useState<boolean | null>(null);
+  const [openAllArti, setOpenAllArti] = useState(false);
+  const [openItemIds, setOpenItemIds] = useState<Record<number, boolean>>({});
   const [renderedCount, setRenderedCount] = useState(0);
   const sentinelRef = useRef<HTMLParagraphElement | null>(null);
 
@@ -226,8 +358,9 @@ export const LocalKitabView: React.FC<LocalKitabViewProps> = ({
     setLoading(true);
     setError("");
     setChapterQuery("");
+    setShowSearch(false);
     setResumedFromSaved(false);
-    setTurnDir("fade");
+    setOpenItemIds({});
 
     fetch(`/data/${book.file}`)
       .then(async (res) => {
@@ -270,41 +403,67 @@ export const LocalKitabView: React.FC<LocalKitabViewProps> = ({
 
   const activeChapter = chapters[activeIndex] || null;
 
-  const resolvedView = useMemo(() => {
-    if (!activeChapter || book.format === "structured") {
-      return { options: [] as KitabChapterViewMode[], view: "both" as KitabChapterViewMode };
-    }
-    return resolveView(activeChapter, readKitabViewPrefs());
-  }, [activeChapter, book.format, viewMode]);
+  const pairedItems = useMemo(() => {
+    if (!activeChapter) return null;
+    return pairParagraphs(activeChapter, book.slug);
+  }, [activeChapter, book.slug]);
 
-  const fullQueue = useMemo(() => {
-    if (!activeChapter || book.format === "structured") return [];
-    const targetView = resolvedView.view === "classic" ? "both" : resolvedView.view;
-    return buildChapterQueue(activeChapter, targetView);
-  }, [activeChapter, book.format, resolvedView.view]);
+  // Separate Safinah blocks when not 1-to-1 paired
+  const structuredParts = useMemo(() => {
+    if (!activeChapter?.blocks?.length || pairedItems) return null;
+    const blocks = activeChapter.blocks;
+    const labelIdx = blocks.findIndex((b) => b.type === "translation-label");
+    if (labelIdx >= 0) {
+      return {
+        before: blocks.slice(0, labelIdx),
+        after: blocks.slice(labelIdx + 1),
+      };
+    }
+    return { before: blocks, after: [] as StructuredBlock[] };
+  }, [activeChapter, pairedItems]);
+
+  const arabicParagraphs = useMemo(
+    () => (activeChapter && !pairedItems && !activeChapter.blocks?.length ? splitParagraphs(activeChapter.arabic) : []),
+    [activeChapter, pairedItems]
+  );
+
+  const isOnlyBasmalah = useMemo(
+    () => arabicParagraphs.length === 1 && isBasmalah(arabicParagraphs[0]),
+    [arabicParagraphs]
+  );
+
+  const translationChunks = useMemo(() => {
+    if (!activeChapter || pairedItems || activeChapter.blocks?.length) return [];
+    return chunkText(activeChapter.translation, 5000);
+  }, [activeChapter, pairedItems]);
+
+  const hasFoldableContent = useMemo(() => {
+    if (!activeChapter) return false;
+    if (pairedItems && pairedItems.some((p) => !p.heading)) return true;
+    if (structuredParts && structuredParts.before.length > 0 && structuredParts.after.length > 0) return true;
+    if (!isOnlyBasmalah && arabicParagraphs.length > 0 && translationChunks.length > 0) return true;
+    return false;
+  }, [activeChapter, pairedItems, structuredParts, isOnlyBasmalah, arabicParagraphs.length, translationChunks.length]);
 
   useEffect(() => {
     if (!activeChapter) return;
-    window.scrollTo({ top: 0, behavior: "auto" });
-    setFoldOpenAll(null);
-    setViewMode(resolvedView.view);
-    if (fullQueue.length > 0) {
-      setRenderedCount(planBatch(fullQueue));
+    setOpenItemIds({});
+    if (pairedItems) {
+      setRenderedCount(planPairedBatch(pairedItems, 0));
     } else {
       setRenderedCount(0);
     }
-  }, [activeIndex, resolvedView.view, fullQueue.length]);
+  }, [activeIndex, activeChapter, pairedItems]);
 
   useEffect(() => {
-    if (!activeChapter || renderedCount >= fullQueue.length) return;
+    if (!pairedItems || renderedCount >= pairedItems.length) return;
     const node = sentinelRef.current;
     if (!node) return;
 
     const loadMore = () => {
       setRenderedCount((prev) => {
-        if (prev >= fullQueue.length) return prev;
-        const remaining = fullQueue.slice(prev);
-        return Math.min(fullQueue.length, prev + planBatch(remaining));
+        if (prev >= pairedItems.length) return prev;
+        return Math.min(pairedItems.length, prev + planPairedBatch(pairedItems, prev));
       });
     };
 
@@ -313,468 +472,600 @@ export const LocalKitabView: React.FC<LocalKitabViewProps> = ({
         (entries) => {
           if (entries.some((entry) => entry.isIntersecting)) loadMore();
         },
-        { rootMargin: "1200px 0px" }
+        { rootMargin: "1000px 0px" }
       );
       observer.observe(node);
       return () => observer.disconnect();
     }
 
     const onScroll = () => {
-      if (node.getBoundingClientRect().top < window.innerHeight + 1200) loadMore();
+      if (node.getBoundingClientRect().top < window.innerHeight + 1000) loadMore();
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [activeChapter, renderedCount, fullQueue]);
+  }, [pairedItems, renderedCount]);
 
-  const filteredChapterEntries = useMemo(() => {
+  const filteredChapterOptions = useMemo(() => {
     const q = chapterQuery.trim().toLocaleLowerCase("id");
     return chapters
       .map((ch, idx) => ({ ch, idx }))
       .filter(
-        ({ ch }) =>
+        ({ ch, idx }) =>
+          idx === activeIndex ||
           !q ||
           ch.title.toLocaleLowerCase("id").includes(q) ||
-          (ch.chapterTitle || "").toLocaleLowerCase("id").includes(q)
+          (ch.chapterTitle || "").toLocaleLowerCase("id").includes(q) ||
+          String(idx + 1) === q
       );
-  }, [chapters, chapterQuery]);
-
-  const handleSelectViewOption = (option: KitabChapterViewMode) => {
-    if (option === resolvedView.view) return;
-    writeKitabViewPref(resolvedView.options.includes("fold") ? "paired" : "unpaired", option);
-    setViewMode(option);
-  };
+  }, [chapters, chapterQuery, activeIndex]);
 
   const selectChapter = (idx: number) => {
-    setTurnDir(idx > activeIndex ? "next" : idx < activeIndex ? "prev" : "fade");
+    if (idx < 0 || idx >= chapters.length) return;
     setActiveIndex(idx);
     setResumedFromSaved(false);
+    setOpenItemIds({});
     writeKitabLastChapter(book.slug, idx);
-    setDrawerOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const visibleQueue = fullQueue.slice(0, renderedCount);
+  const toggleSingleItem = (idx: number) => {
+    setOpenItemIds((prev) => ({
+      ...prev,
+      [idx]: !(prev[idx] ?? openAllArti),
+    }));
+  };
+
+  const handleToggleAll = () => {
+    setOpenAllArti((prev) => !prev);
+    setOpenItemIds({});
+  };
+
+  const visiblePairs = pairedItems ? pairedItems.slice(0, renderedCount) : [];
+  const totalNonHeadingPoints = useMemo(
+    () => (pairedItems ? pairedItems.filter((p) => !p.heading).length : 0),
+    [pairedItems]
+  );
+
+  // Precompute 1-based point numbers excluding headings
+  const pointNumbers = useMemo(() => {
+    if (!pairedItems) return [];
+    let counter = 0;
+    return pairedItems.map((item) => {
+      if (item.heading) return 0;
+      counter += 1;
+      return counter;
+    });
+  }, [pairedItems]);
+
+  const arabicKitabTitle = KITAB_ARABIC_TITLES[book.slug] || book.title;
 
   return (
-    <div
-      className={`mx-auto max-w-6xl ${
-        focusMode ? "px-2.5 pt-2.5 pb-8 sm:px-6 sm:pt-4" : "px-4 pt-4 pb-12 sm:px-6"
-      }`}
-    >
-      {/* Top Action Bar */}
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2.5 sm:mb-4">
-        {focusMode ? (
-          <p className="min-w-0 truncate text-xs font-semibold text-[#5e6a62] dark:text-slate-400">
-            Mode Fokus · {book.title}
+    <div style={{ backgroundColor: "var(--tashrif-bg)", minHeight: "100vh" }}>
+      {/* Top Action Bar (seragam dengan Jurumiyah, Imrithi, Alfiyah, Tashrif) */}
+      <div className="mx-auto flex max-w-2xl items-center justify-between gap-2 px-3 pt-2.5 pb-1">
+        <button
+          type="button"
+          onClick={onBackToLibrary}
+          className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-[#dce4df] bg-white px-3 text-xs font-semibold text-[#174231] shadow-xs transition-colors hover:bg-[#f4f7f5] dark:border-slate-800 dark:bg-[#111A27] dark:text-slate-200 dark:hover:bg-[#172334]"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          <span>Perpustakaan</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={onToggleFocus}
+          aria-pressed={focusMode}
+          className={`inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition-colors ${
+            focusMode
+              ? "border-[#134a35] bg-[#134a35] text-white dark:border-[#E2B354] dark:bg-[#E2B354] dark:text-[#0B111A]"
+              : "border-[#dce4df] bg-white text-[#174231] hover:bg-[#f4f7f5] dark:border-slate-800 dark:bg-[#111A27] dark:text-slate-200"
+          }`}
+        >
+          {focusMode ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+          <span>{focusMode ? "Keluar Fokus" : "Mode Fokus"}</span>
+        </button>
+      </div>
+
+      <div
+        style={{
+          padding: "0.75rem",
+          backgroundColor: "var(--tashrif-bg)",
+          color: "var(--tashrif-text)",
+        }}
+        className="mx-auto max-w-2xl"
+      >
+        {/* 1. Banner Header Hijau Zamrud */}
+        <div
+          style={{
+            padding: "0.95rem 0.75rem",
+            marginBottom: "0.75rem",
+            backgroundColor: "var(--tashrif-panel-bg)",
+            border: "1px solid var(--tashrif-panel-border)",
+            borderRadius: "0.75rem",
+          }}
+          className="text-center shadow-xs"
+        >
+          <h1
+            dir="rtl"
+            lang="ar"
+            style={{
+              color: "var(--tashrif-panel-bright)",
+              lineHeight: "1.8",
+              marginBottom: "0.15rem",
+            }}
+            className="font-arabic text-2xl font-bold"
+          >
+            {arabicKitabTitle}
+          </h1>
+          <p style={{ color: "var(--tashrif-panel-sub)" }} className="text-xs font-semibold">
+            {book.title} · {book.category}
           </p>
-        ) : (
-          <div className="flex items-center gap-2">
+        </div>
+
+        {/* 2. Panel Kontrol Dropdown Bab & Tombol Buka Arti */}
+        {!loading && !error && chapters.length > 0 && (
+          <div
+            style={{
+              padding: "0.75rem",
+              marginBottom: "0.85rem",
+              backgroundColor: "var(--tashrif-paper)",
+              border: "1px solid var(--tashrif-border-cell)",
+              borderRadius: "0.75rem",
+            }}
+            className="shadow-xs"
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <select
+                aria-label={`Pilih Bab ${book.title}`}
+                value={activeIndex}
+                onChange={(e) => selectChapter(Number(e.target.value))}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  padding: "0.55rem 0.65rem",
+                  borderRadius: "0.5rem",
+                  border: "1.5px solid var(--tashrif-border-strong)",
+                  backgroundColor: "var(--tashrif-control-bg)",
+                  color: "var(--tashrif-text)",
+                  fontSize: "0.8rem",
+                  fontWeight: 700,
+                }}
+              >
+                {filteredChapterOptions.map(({ ch, idx }) => (
+                  <option key={idx} value={idx}>
+                    {book.format === "structured" && ch.chapterNumber
+                      ? `${ch.chapterNumber} · ${ch.title}`
+                      : `${idx + 1}. ${ch.title}`}
+                  </option>
+                ))}
+              </select>
+
+              {chapters.length > 15 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSearch((prev) => {
+                      if (prev) setChapterQuery("");
+                      return !prev;
+                    });
+                  }}
+                  aria-label="Cari judul bab"
+                  title="Cari judul bab"
+                  style={{
+                    border: "1px solid var(--tashrif-border-cell)",
+                    backgroundColor: showSearch ? "var(--tashrif-wazan-bg)" : "var(--tashrif-control-bg)",
+                    color: "var(--tashrif-text)",
+                    borderRadius: "0.5rem",
+                  }}
+                  className="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center"
+                >
+                  {showSearch ? <X className="h-4 w-4" /> : <Search className="h-4 w-4" />}
+                </button>
+              )}
+
+              {hasFoldableContent && (
+                <button
+                  type="button"
+                  onClick={handleToggleAll}
+                  style={{
+                    whiteSpace: "nowrap",
+                    padding: "0.58rem 0.9rem",
+                    backgroundColor: "var(--tashrif-btn-bg)",
+                    color: "var(--tashrif-btn-text)",
+                    borderRadius: "0.5rem",
+                    cursor: "pointer",
+                  }}
+                  className="shrink-0 text-xs font-bold"
+                >
+                  {openAllArti ? "Tutup Arti" : "Buka Arti"}
+                </button>
+              )}
+            </div>
+
+            {showSearch && (
+              <div className="mt-2">
+                <input
+                  type="search"
+                  value={chapterQuery}
+                  onChange={(e) => setChapterQuery(e.target.value)}
+                  placeholder="Ketik judul atau nomor bab untuk menyaring daftar…"
+                  aria-label="Saring daftar bab"
+                  style={{
+                    border: "1px solid var(--tashrif-border-cell)",
+                    backgroundColor: "var(--tashrif-control-bg)",
+                    color: "var(--tashrif-text)",
+                    borderRadius: "0.5rem",
+                  }}
+                  className="w-full px-3 py-1.5 text-xs outline-none"
+                />
+              </div>
+            )}
+
+            <p
+              style={{
+                marginTop: "0.5rem",
+                paddingLeft: "0.15rem",
+                color: "var(--tashrif-muted)",
+              }}
+              className="text-[11px]"
+            >
+              {hasFoldableContent
+                ? "Ketuk poin matan Arab untuk membuka atau menutup arti"
+                : `Menampilkan naskah bagian ${activeIndex + 1} dari ${chapters.length}`}
+            </p>
+          </div>
+        )}
+
+        {/* Loading / Error State */}
+        {loading && (
+          <div
+            style={{
+              backgroundColor: "var(--tashrif-paper)",
+              border: "4px double var(--tashrif-border-strong)",
+              borderRadius: "0.75rem",
+              color: "var(--tashrif-muted)",
+            }}
+            className="mb-4 px-4 py-12 text-center text-xs font-medium"
+          >
+            Memuat naskah kitab…
+          </div>
+        )}
+
+        {error && (
+          <div
+            style={{
+              backgroundColor: "var(--tashrif-paper)",
+              border: "4px double var(--tashrif-border-strong)",
+              borderRadius: "0.75rem",
+            }}
+            className="mb-4 px-4 py-10 text-center text-xs font-semibold text-red-600 dark:text-red-400"
+          >
+            {error}
+          </div>
+        )}
+
+        {/* 3. Bingkai Utama Kitab Kuning Klasik (Double Border) */}
+        {!loading && !error && activeChapter && (
+          <div
+            style={{
+              marginBottom: "0.95rem",
+              backgroundColor: "var(--tashrif-paper)",
+              border: "4px double var(--tashrif-border-strong)",
+              borderRadius: "0.75rem",
+            }}
+            className="overflow-hidden shadow-xs"
+          >
+            {/* Header Bab */}
+            <div
+              style={{
+                borderBottom: "1px solid var(--tashrif-border-cell)",
+                backgroundColor: "var(--tashrif-wazan-bg)",
+                padding: "0.9rem 0.75rem",
+              }}
+              className="text-center"
+            >
+              <span
+                style={{
+                  color: "var(--tashrif-accent)",
+                  letterSpacing: "0.06em",
+                  marginBottom: "0.3rem",
+                }}
+                className="block font-mono-tabular text-[11px] font-bold uppercase"
+              >
+                {book.format === "structured" && activeChapter.chapterTitle
+                  ? activeChapter.chapterTitle
+                  : `BAB ${activeIndex + 1} / ${chapters.length}`}
+                {totalNonHeadingPoints > 0 ? ` • ${totalNonHeadingPoints} POIN` : ""}
+                {resumedFromSaved ? " • LANJUTAN TERAKHIR" : ""}
+              </span>
+              <h2
+                style={{
+                  color: "var(--tashrif-ink)",
+                  marginBottom: "0.15rem",
+                }}
+                className="font-display text-lg font-bold sm:text-xl"
+              >
+                {activeChapter.title}
+              </h2>
+            </div>
+
+            {/* Isi: Mode 1 — Paired Items (Jurumiyah-style interactive matan) */}
+            {pairedItems && (
+              <div>
+                {visiblePairs.map((item, idx) => {
+                  if (item.heading) {
+                    return (
+                      <div
+                        key={idx}
+                        style={{
+                          borderBottom: "1px solid var(--tashrif-border-cell)",
+                          backgroundColor: "var(--tashrif-row-alt)",
+                        }}
+                        className="px-3.5 py-2.5 text-center"
+                      >
+                        {item.arabic && (
+                          <p
+                            dir="rtl"
+                            lang="ar"
+                            style={{ color: "var(--tashrif-accent)", lineHeight: "1.9" }}
+                            className="font-arabic text-base font-bold sm:text-lg"
+                          >
+                            {item.arabic}
+                          </p>
+                        )}
+                        {item.translation && (
+                          <p
+                            style={{ color: "var(--tashrif-muted)" }}
+                            className="mt-0.5 text-[11px] font-bold tracking-wide uppercase"
+                          >
+                            {item.translation}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  const isOpen = openItemIds[idx] ?? openAllArti;
+                  const pointNo = pointNumbers[idx] || idx + 1;
+
+                  return (
+                    <div
+                      key={idx}
+                      style={{ borderBottom: "1px solid var(--tashrif-border-cell)" }}
+                      className="last:border-b-0"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleSingleItem(idx)}
+                        aria-expanded={isOpen}
+                        dir="rtl"
+                        style={{
+                          width: "100%",
+                          textAlign: "right",
+                          background: "transparent",
+                          border: "none",
+                        }}
+                        className="block w-full cursor-pointer px-3.5 py-3 transition-colors hover:bg-emerald-900/5 dark:hover:bg-amber-400/5"
+                      >
+                        <ArabicTextBlock value={item.arabic} badge={pointNo} />
+                      </button>
+
+                      {isOpen && (
+                        <div
+                          style={{
+                            borderTop: "1px dashed var(--tashrif-group-break)",
+                            backgroundColor: "var(--tashrif-wazan-bg)",
+                            color: "var(--tashrif-text)",
+                          }}
+                          className="px-3.5 py-2.5 text-xs leading-relaxed sm:text-[13px]"
+                        >
+                          <MixedTranslation value={item.translation} prefixBadge={pointNo} />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {renderedCount < pairedItems.length && (
+                  <p
+                    ref={sentinelRef}
+                    style={{ color: "var(--tashrif-muted)" }}
+                    className="py-4 text-center text-xs"
+                  >
+                    Gulir untuk memuat lanjutan bab…
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Isi: Mode 2 — Safinah Unpaired Blocks (e.g. Tasydid Al-Fatihah / Laa Ilaaha Illallah) */}
+            {!pairedItems && structuredParts && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => toggleSingleItem(0)}
+                  aria-expanded={openItemIds[0] ?? openAllArti}
+                  style={{
+                    width: "100%",
+                    textAlign: "right",
+                    background: "transparent",
+                    border: "none",
+                  }}
+                  className="block w-full cursor-pointer space-y-2.5 px-3.5 py-3 transition-colors hover:bg-emerald-900/5 dark:hover:bg-amber-400/5"
+                >
+                  {structuredParts.before.map((block, bIdx) => (
+                    <StructuredBlockRenderer key={bIdx} block={block} />
+                  ))}
+                </button>
+
+                {structuredParts.after.length > 0 && (openItemIds[0] ?? openAllArti) && (
+                  <div
+                    style={{
+                      borderTop: "1px dashed var(--tashrif-group-break)",
+                      backgroundColor: "var(--tashrif-wazan-bg)",
+                      color: "var(--tashrif-text)",
+                    }}
+                    className="space-y-2.5 px-3.5 py-3 text-xs leading-relaxed sm:text-[13px]"
+                  >
+                    {structuredParts.after.map((block, bIdx) => (
+                      <StructuredBlockRenderer key={bIdx} block={block} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Isi: Mode 3 — Unpaired Arabic + Translation OR Translation-Only */}
+            {!pairedItems && !structuredParts && (
+              <div>
+                {arabicParagraphs.length > 0 && !isOnlyBasmalah && (
+                  <button
+                    type="button"
+                    onClick={() => toggleSingleItem(0)}
+                    aria-expanded={openItemIds[0] ?? openAllArti}
+                    dir="rtl"
+                    style={{
+                      width: "100%",
+                      textAlign: "right",
+                      background: "transparent",
+                      border: "none",
+                    }}
+                    className="block w-full cursor-pointer space-y-3 px-3.5 py-3.5 transition-colors hover:bg-emerald-900/5 dark:hover:bg-amber-400/5"
+                  >
+                    {arabicParagraphs.map((para, pIdx) => (
+                      <ArabicTextBlock
+                        key={pIdx}
+                        value={para}
+                        badge={arabicParagraphs.length > 1 ? pIdx + 1 : undefined}
+                      />
+                    ))}
+                  </button>
+                )}
+
+                {isOnlyBasmalah && (
+                  <div
+                    style={{ borderBottom: "1px solid var(--tashrif-border-cell)" }}
+                    className="px-3.5 py-3 text-center"
+                  >
+                    <p
+                      dir="rtl"
+                      lang="ar"
+                      style={{
+                        color: "var(--tashrif-ink)",
+                        fontSize: "var(--arabic-reader-size)",
+                        lineHeight: "2.0",
+                      }}
+                      className="font-arabic font-semibold"
+                    >
+                      {arabicParagraphs[0]}
+                    </p>
+                  </div>
+                )}
+
+                {translationChunks.length > 0 &&
+                  (isOnlyBasmalah ||
+                    arabicParagraphs.length === 0 ||
+                    (openItemIds[0] ?? openAllArti)) && (
+                    <div
+                      style={
+                        !isOnlyBasmalah && arabicParagraphs.length > 0
+                          ? {
+                              borderTop: "1px dashed var(--tashrif-group-break)",
+                              backgroundColor: "var(--tashrif-wazan-bg)",
+                              color: "var(--tashrif-text)",
+                            }
+                          : { color: "var(--tashrif-text)" }
+                      }
+                      className="space-y-3 px-3.5 py-3.5 text-xs leading-relaxed sm:text-[13px]"
+                    >
+                      {translationChunks.map((chunk, cIdx) => (
+                        <MixedTranslation key={cIdx} value={chunk} />
+                      ))}
+                    </div>
+                  )}
+
+                {activeChapter.latin && (
+                  <div
+                    style={{
+                      borderTop: "1px dashed var(--tashrif-border-cell)",
+                      color: "var(--tashrif-muted)",
+                    }}
+                    className="px-3.5 py-3 text-xs italic whitespace-pre-wrap"
+                  >
+                    {activeChapter.latin}
+                  </div>
+                )}
+
+                {!arabicParagraphs.length && !translationChunks.length && !activeChapter.latin && (
+                  <p
+                    style={{ color: "var(--tashrif-muted)" }}
+                    className="px-4 py-8 text-center text-xs"
+                  >
+                    Bagian ini tidak memiliki field teks yang dikenali.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 4. Navigasi Sebelumnya / Selanjutnya di Bawah */}
+        {!loading && !error && chapters.length > 0 && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr auto 1fr",
+              gap: "0.5rem",
+            }}
+            className="mb-4 items-center"
+          >
             <button
               type="button"
-              onClick={onBackToLibrary}
-              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-[#dce4df] bg-[#ffffff] px-3 text-xs font-semibold text-[#174231] hover:bg-[#edf2ef] dark:border-slate-800 dark:bg-[#111A27] dark:text-slate-200"
+              onClick={() => selectChapter(activeIndex - 1)}
+              disabled={activeIndex <= 0}
+              style={{
+                opacity: activeIndex <= 0 ? 0.45 : 1,
+                cursor: activeIndex <= 0 ? "not-allowed" : "pointer",
+                border: "1px solid var(--tashrif-border-cell)",
+                backgroundColor: "var(--tashrif-paper)",
+                color: "var(--tashrif-text)",
+                borderRadius: "0.5rem",
+              }}
+              className="px-3 py-2.5 text-xs font-bold"
             >
-              <ArrowLeft className="h-4 w-4" />
-              <span>Perpustakaan</span>
+              ← Sebelumnya
             </button>
+
+            <span
+              style={{ color: "var(--tashrif-muted)", padding: "0 0.5rem" }}
+              className="font-mono-tabular text-xs font-bold"
+            >
+              {activeIndex + 1} / {chapters.length}
+            </span>
 
             <button
               type="button"
-              onClick={() => setDrawerOpen(true)}
-              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-[#dce4df] bg-[#ffffff] px-3 text-xs font-semibold text-[#174231] lg:hidden dark:border-slate-800 dark:bg-[#111A27] dark:text-slate-200"
+              onClick={() => selectChapter(activeIndex + 1)}
+              disabled={activeIndex >= chapters.length - 1}
+              style={{
+                opacity: activeIndex >= chapters.length - 1 ? 0.45 : 1,
+                cursor: activeIndex >= chapters.length - 1 ? "not-allowed" : "pointer",
+                backgroundColor: "var(--tashrif-btn-bg)",
+                color: "var(--tashrif-btn-text)",
+                borderRadius: "0.5rem",
+              }}
+              className="px-3 py-2.5 text-xs font-bold"
             >
-              <List className="h-4 w-4" />
-              <span>Daftar Bab ({chapters.length})</span>
+              Selanjutnya →
             </button>
           </div>
         )}
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onToggleFocus}
-            title={focusMode ? "Keluar mode fokus" : "Mode fokus membaca"}
-            className={`inline-flex items-center gap-1.5 rounded-xl font-semibold transition-colors ${
-              focusMode
-                ? "min-h-[36px] border border-[#dce4df] bg-[#ffffff] px-3 text-xs text-[#174231] hover:bg-[#edf2ef] dark:border-slate-700 dark:bg-[#111A27] dark:text-[#E2B354]"
-                : "min-h-[40px] bg-[#134a35] px-3 text-xs text-[#ffffff] hover:bg-[#0e3928] dark:bg-[#E2B354] dark:text-[#0B111A]"
-            }`}
-          >
-            {focusMode ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-            <span className={focusMode ? "inline" : "hidden sm:inline"}>
-              {focusMode ? "Keluar Fokus" : "Mode Fokus"}
-            </span>
-          </button>
-        </div>
-      </div>
-
-      {/* Split-Pane Workspace: Chapter Directory + Manuscript Reader */}
-      <div
-        className={`grid grid-cols-1 gap-6 ${
-          focusMode ? "" : "lg:grid-cols-[290px_minmax(0,1fr)] lg:items-start"
-        }`}
-      >
-        {drawerOpen && (
-          <div
-            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs lg:hidden"
-            onClick={() => setDrawerOpen(false)}
-            aria-hidden="true"
-          />
-        )}
-
-        {/* Chapter Sidebar / Drawer */}
-        {!focusMode && (
-          <aside
-            className={`fixed inset-y-0 left-0 z-50 flex w-80 flex-col border-r border-[#e2e8e4] bg-[#ffffff] p-4 transition-transform duration-200 lg:sticky lg:top-20 lg:z-10 lg:max-h-[calc(100vh-100px)] lg:w-auto lg:translate-x-0 lg:rounded-2xl lg:border ${
-              drawerOpen ? "translate-x-0" : "-translate-x-full"
-            } dark:border-slate-800 dark:bg-[#111A27]`}
-          >
-            <div className="flex items-start justify-between gap-2 border-b border-[#e8eeea] pb-3 dark:border-slate-800">
-              <div>
-                <p className="text-[11px] font-semibold tracking-wider text-[#9c7d3c] uppercase dark:text-[#E2B354]">
-                  {book.category}
-                </p>
-                <h2 className="font-display mt-0.5 text-base font-semibold text-[#103d2c] dark:text-white">
-                  {book.title}
-                </h2>
-                <p className="text-xs text-[#7c745f] dark:text-slate-400">{chapters.length} bagian</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setDrawerOpen(false)}
-                aria-label="Tutup daftar bab"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#dce4df] text-[#174231] lg:hidden dark:border-slate-700 dark:text-slate-300"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <label className="relative mt-3 flex items-center">
-              <Search className="pointer-events-none absolute left-3 h-3.5 w-3.5 text-[#7c745f] dark:text-slate-400" />
-              <input
-                type="search"
-                value={chapterQuery}
-                onChange={(e) => setChapterQuery(e.target.value)}
-                placeholder="Cari bab…"
-                aria-label="Cari bab kitab"
-                className="min-h-[38px] w-full rounded-xl border border-[#dce4df] bg-white pr-3 pl-8 text-xs outline-none focus:border-[#134a35] dark:border-slate-700 dark:bg-[#162131] dark:focus:border-[#E2B354]"
-              />
-            </label>
-
-            <div className="mt-3 flex-1 space-y-1 overflow-y-auto pr-1">
-              {filteredChapterEntries.map(({ ch, idx }) => {
-                const showBabHeading =
-                  book.format === "structured" &&
-                  (idx === 0 || chapters[idx - 1]?.chapterTitle !== ch.chapterTitle);
-                const isActive = idx === activeIndex;
-                return (
-                  <React.Fragment key={idx}>
-                    {showBabHeading && (
-                      <p className="mt-3 mb-1 px-2 text-[11px] font-bold tracking-wide text-[#9c7d3c] uppercase dark:text-[#E2B354]">
-                        {ch.chapterTitle}
-                      </p>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => selectChapter(idx)}
-                      className={`flex min-h-[38px] w-full items-start gap-2 rounded-xl px-3 py-2 text-left text-xs transition-colors ${
-                        isActive
-                          ? "bg-[#134a35] font-semibold text-[#ffffff] dark:bg-[#1D3557]"
-                          : "text-[#354c3e] hover:bg-[#edf2ef] dark:text-slate-300 dark:hover:bg-[#172334]"
-                      }`}
-                    >
-                      <span className="font-mono-tabular shrink-0 opacity-70">
-                        {String(idx + 1).padStart(2, "0")}.
-                      </span>
-                      <span className="line-clamp-2">{ch.title}</span>
-                    </button>
-                  </React.Fragment>
-                );
-              })}
-            </div>
-          </aside>
-        )}
-
-        {/* Active Manuscript Reading Canvas */}
-        <section className={`min-w-0 ${focusMode ? "mx-auto w-full max-w-4xl" : ""}`}>
-          <article
-            key={`${book.slug}-${activeIndex}`}
-            className={`rounded-2xl border border-[#e2e8e4] bg-[#ffffff] shadow-xs dark:border-slate-800 dark:bg-[#111A27] ${
-              focusMode ? "p-4 sm:p-8" : "p-5 sm:p-7"
-            } ${
-              turnDir === "next"
-                ? "page-enter-next"
-                : turnDir === "prev"
-                ? "page-enter-prev"
-                : "page-enter-fade"
-            }`}
-          >
-            {loading && <p className="py-12 text-center text-sm text-[#766f5d] dark:text-slate-400">Memuat naskah lokal…</p>}
-            {error && <p className="py-12 text-center text-sm text-red-700 dark:text-red-400">{error}</p>}
-
-            {!loading && !error && activeChapter && (
-              <>
-                <div className="border-b border-[#e8eeea] pb-4 dark:border-slate-800">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-[#7c745f] dark:text-slate-400">
-                        <span>{book.title}</span>
-                        <span aria-hidden="true">·</span>
-                        <span>
-                          Bagian {activeIndex + 1} dari {chapters.length}
-                        </span>
-                        {resumedFromSaved && (
-                          <>
-                            <span aria-hidden="true">·</span>
-                            <span className="font-semibold text-[#134a35] dark:text-[#E2B354]">
-                              Melanjutkan bab terakhir
-                            </span>
-                          </>
-                        )}
-                        {book.format === "structured" && activeChapter.chapterTitle && (
-                          <>
-                            <span aria-hidden="true">·</span>
-                            <span>{activeChapter.chapterTitle}</span>
-                          </>
-                        )}
-                      </div>
-
-                      <h1 className="font-display mt-1.5 text-xl font-semibold text-[#103d2c] sm:text-2xl dark:text-white">
-                        {activeChapter.title}
-                      </h1>
-                    </div>
-
-                    <div className="flex shrink-0 items-center gap-1">
-                      <button
-                        type="button"
-                        disabled={activeIndex === 0}
-                        onClick={() => selectChapter(activeIndex - 1)}
-                        aria-label={book.format === "structured" ? "Bagian sebelumnya" : "Bab sebelumnya"}
-                        title={book.format === "structured" ? "Bagian sebelumnya" : "Bab sebelumnya"}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#dce4df] bg-[#f4f7f5] text-[#174231] transition-colors hover:bg-[#e6ede9] disabled:opacity-35 dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        disabled={activeIndex >= chapters.length - 1}
-                        onClick={() => selectChapter(activeIndex + 1)}
-                        aria-label={book.format === "structured" ? "Bagian selanjutnya" : "Bab selanjutnya"}
-                        title={book.format === "structured" ? "Bagian selanjutnya" : "Bab selanjutnya"}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#134a35] text-[#ffffff] transition-colors hover:bg-[#0e3928] disabled:opacity-35 dark:bg-[#E2B354] dark:text-[#0B111A]"
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {resolvedView.options.length > 0 && (
-                    <div className="mt-3.5 flex flex-wrap items-center gap-2">
-                      {resolvedView.options.map((option) => {
-                        const active = option === resolvedView.view;
-                        return (
-                          <button
-                            key={option}
-                            type="button"
-                            aria-pressed={active}
-                            onClick={() => handleSelectViewOption(option)}
-                            className={`min-h-[38px] rounded-xl px-3 text-xs font-semibold transition-colors ${
-                              active
-                                ? "bg-[#134a35] text-[#ffffff] dark:bg-[#E2B354] dark:text-[#0B111A]"
-                                : "border border-[#dce4df] bg-[#f4f7f5] text-[#174231] hover:bg-[#e6ede9] dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200"
-                            }`}
-                          >
-                            {VIEW_LABELS[option]}
-                          </button>
-                        );
-                      })}
-
-                      {resolvedView.view === "fold" && (
-                        <button
-                          type="button"
-                          onClick={() => setFoldOpenAll((prev) => !(prev ?? false))}
-                          className="ml-auto min-h-[38px] rounded-xl border border-[#dce4df] bg-[#f4f7f5] px-3 text-xs font-semibold text-[#174231] dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200"
-                        >
-                          {foldOpenAll ? "Tutup semua" : "Buka semua"}
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {book.format === "structured" ? (
-                  <div className="mt-5 space-y-3">
-                    {(activeChapter.blocks || []).map((block, bIdx) => {
-                      if (block.type === "translation-label") {
-                        return (
-                          <p
-                            key={bIdx}
-                            className="mt-5 border-t border-[#e8eeea] pt-4 text-xs font-bold tracking-wider text-[#9c7d3c] uppercase dark:border-slate-800 dark:text-[#E2B354]"
-                          >
-                            {block.text}
-                          </p>
-                        );
-                      }
-                      if (block.type === "arabic") {
-                        const trimmed = block.text.trim();
-                        const isSectionMarker = /^(?:فَصْلٌ|خَاتِمَةٌ)$/.test(trimmed);
-                        if (isSectionMarker) {
-                          return (
-                            <div
-                              key={bIdx}
-                              dir="rtl"
-                              lang="ar"
-                              className={`flex justify-end ${
-                                bIdx > 0 ? "mt-5 border-t border-[#e8eeea] pt-4 dark:border-slate-800" : ""
-                              }`}
-                            >
-                              <span className="font-arabic inline-block rounded-lg border border-[#e3d9c3] bg-[#ffffff] px-3 py-0.5 text-lg font-bold text-[#134a35] dark:border-slate-700 dark:bg-[#162131] dark:text-[#E2B354]">
-                                {trimmed}
-                              </span>
-                            </div>
-                          );
-                        }
-                        return (
-                          <p
-                            key={bIdx}
-                            dir="rtl"
-                            lang="ar"
-                            className="arabic-reader-text whitespace-pre-wrap text-right text-[#1c2b23] dark:text-[#EDF2F7]"
-                          >
-                            {block.text}
-                          </p>
-                        );
-                      }
-                      if (block.type === "translation") {
-                        return (
-                          <p
-                            key={bIdx}
-                            dir="ltr"
-                            className="prose-reader-text whitespace-pre-wrap text-[#2e3e34] italic dark:text-slate-300"
-                          >
-                            {block.text}
-                          </p>
-                        );
-                      }
-                      const segments = block.text.split(/([\u0600-\u06FF][\u0600-\u06FF\s\u064B-\u065F\u0670\u0610-\u061A\u06D6-\u06ED]*[\u0600-\u06FF\u064B-\u065F\u0670]?)/g);
-                      return (
-                        <p
-                          key={bIdx}
-                          dir="auto"
-                          className="prose-reader-text whitespace-pre-wrap text-[#2e3e34] dark:text-slate-300"
-                        >
-                          {segments.map((seg, sIdx) =>
-                            ARABIC_REGEX.test(seg) ? (
-                              <span
-                                key={sIdx}
-                                lang="ar"
-                                dir="rtl"
-                                className="font-arabic mx-0.5 inline-block text-[1.15em] leading-relaxed text-[#134a35] dark:text-[#E2B354]"
-                              >
-                                {seg}
-                              </span>
-                            ) : (
-                              <React.Fragment key={sIdx}>{seg}</React.Fragment>
-                            )
-                          )}
-                        </p>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="mt-5">
-                    {visibleQueue.map((item, qIdx) => {
-                      if (item.kind === "pair") {
-                        return <PairCard key={qIdx} item={item} forceOpenAll={foldOpenAll} />;
-                      }
-                      if (item.kind === "translation") {
-                        return <MixedTranslation key={qIdx} value={item.chunk} />;
-                      }
-                      if (item.kind === "arabic") {
-                        return (
-                          <ArabicBlock
-                            key={qIdx}
-                            value={item.chunk}
-                            className={`${!item.first ? "mt-0" : "mt-3"} ${!item.last ? "mb-0" : "mb-5"}`}
-                          />
-                        );
-                      }
-                      return (
-                        <p
-                          key={qIdx}
-                          dir="ltr"
-                          className={`latin-reader-text text-[#7a6d56] italic dark:text-slate-400 whitespace-pre-wrap ${!item.first ? "mt-0" : "mt-3"} ${!item.last ? "mb-0" : "mb-5"}`}
-                        >
-                          {item.chunk}
-                        </p>
-                      );
-                    })}
-
-                    {renderedCount < fullQueue.length && (
-                      <p ref={sentinelRef} className="pt-4 text-center text-xs text-[#7c745f] dark:text-slate-400">
-                        Gulir untuk memuat lanjutan bab…
-                      </p>
-                    )}
-
-                    {!activeChapter.arabic && !activeChapter.translation && !activeChapter.latin && (
-                      <p className="py-6 text-sm text-[#7c745f] dark:text-slate-400">
-                        Bagian ini tidak memiliki field teks yang dikenali. Naskah JSON asli tetap dipertahankan.
-                      </p>
-                    )}
-                  </div>
-                )}
-
-              </>
-            )}
-          </article>
-
-          {!loading && !error && activeChapter && (
-            <nav
-              aria-label="Navigasi antar halaman kitab"
-              className="sticky bottom-3 z-20 mt-4 flex items-center justify-between gap-2 rounded-2xl border border-[#dce4df]/90 bg-[#ffffff]/95 p-2 shadow-lg backdrop-blur-md dark:border-slate-700/90 dark:bg-[#111A27]/95"
-            >
-              <button
-                type="button"
-                disabled={activeIndex === 0}
-                onClick={() => selectChapter(activeIndex - 1)}
-                className="inline-flex min-h-[42px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border border-[#dce4df] bg-[#ffffff] px-3 text-xs font-semibold text-[#174231] transition-colors hover:bg-[#edf2ef] disabled:opacity-40 dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200 dark:hover:bg-[#1E2C40]"
-              >
-                <ChevronLeft className="h-4 w-4 shrink-0" />
-                <span className="truncate">
-                  {book.format === "structured" ? "Sebelumnya" : "Bab Sebelumnya"}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                disabled={focusMode}
-                onClick={() => {
-                  if (focusMode || window.matchMedia("(min-width: 1024px)").matches) return;
-                  setDrawerOpen(true);
-                }}
-                aria-label="Daftar bab kitab"
-                className="font-mono-tabular inline-flex min-h-[42px] shrink-0 items-center justify-center rounded-xl px-2.5 text-xs font-semibold text-[#6f6652] transition-colors hover:bg-[#edf2ef] disabled:hover:bg-transparent lg:cursor-default lg:hover:bg-transparent dark:text-slate-300 dark:hover:bg-[#162131] dark:disabled:hover:bg-transparent dark:lg:hover:bg-transparent"
-              >
-                {activeIndex + 1} / {chapters.length}
-              </button>
-
-              <button
-                type="button"
-                disabled={activeIndex >= chapters.length - 1}
-                onClick={() => selectChapter(activeIndex + 1)}
-                className="inline-flex min-h-[42px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#134a35] px-3 text-xs font-semibold text-[#ffffff] transition-colors hover:bg-[#0e3928] disabled:opacity-40 dark:bg-[#E2B354] dark:text-[#0B111A]"
-              >
-                <span className="truncate">
-                  {book.format === "structured" ? "Selanjutnya" : "Bab Selanjutnya"}
-                </span>
-                <ChevronRight className="h-4 w-4 shrink-0" />
-              </button>
-            </nav>
-          )}
-
-          {!focusMode && <FooterDisclaimer variant="compact" />}
-        </section>
+        <FooterDisclaimer variant="compact" />
       </div>
     </div>
   );
 };
+
+export default LocalKitabView;

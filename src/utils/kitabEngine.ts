@@ -127,6 +127,27 @@ export function chunkText(text: string, target = CHUNK_TARGET_CHARS): string[] {
   });
 }
 
+export const KITAB_ARABIC_TITLES: Record<string, string> = {
+  "safinah-reading-library": "سَفِيْنَةُ النَّجَاةِ",
+  "sullamut-taufiq": "سُلَّمُ التَّوْفِيْقِ",
+  taklim: "تَعْلِيْمُ الْمُتَعَلِّمِ",
+  nashoihul: "نَصَائِحُ الْعِبَادِ",
+  arbain: "الْأَرْبَعُوْنَ النَّوَوِيَّةُ",
+  bidayatul: "بِدَايَةُ الْهِدَايَةِ",
+  qarib: "فَتْحُ الْقَرِيْبِ",
+  bulughul: "بُلُوْغُ الْمَرَامِ",
+  riyadhus: "رِيَاضُ الصَّالِحِيْنَ",
+  izar: "فَتْحُ الْإِزَارِ",
+  uyun: "قُرَّةُ الْعُيُوْنِ",
+  uqudulujain: "عُقُوْدُ اللُّجَيْنِ",
+  alhikam: "اَلْحِكَمُ الْعَطَائِيَّةُ",
+  futuhul: "فُتُوْحُ الْغَيْبِ",
+  jalalain: "تَفْسِيْرُ الْجَلَالَيْنِ",
+  muwatta: "مُوَطَّأُ الْإِمَامِ مَالِكٍ",
+  muslim: "صَحِيْحُ مُسْلِمٍ",
+  bukhari: "صَحِيْحُ الْبُخَارِيِّ",
+};
+
 const sanitizeText = (text: string): string =>
   String(text || "")
     .replace(/^\uFEFF/, "")
@@ -139,6 +160,9 @@ export const splitParagraphs = (text: string): string[] =>
     .map((paragraph) => paragraph.trim())
     .filter(Boolean);
 
+const stripHaraka = (text: string): string =>
+  text.replace(/[\u064B-\u065F\u0670\u0640]/g, "").trim();
+
 const leadingNumber = (paragraph: string): number | null => {
   const match = paragraph.match(/^\s*(?:No\.\s*Hadist:\s*)?(\d+)(?:\.\d+\/\d+)?[.)]\s/i);
   return match ? Number(match[1]) : null;
@@ -149,10 +173,12 @@ const isIntroHeader = (paragraph: string): boolean => {
   return paragraph.length <= 120 && !/[.!?]$/.test(paragraph.trim());
 };
 
-const isBasmalah = (paragraph: string): boolean =>
-  /^بسم\s+الله\s+الرحمن\s+الرحيم$/.test(
-    paragraph.replace(/[\u064B-\u065F\u0670]/g, "").trim()
-  );
+export const isBasmalah = (paragraph: string): boolean =>
+  /^بسم\s+الله\s+الرحمن\s+الرحيم$/.test(stripHaraka(paragraph));
+
+const isArabicSectionMarker = (paragraph: string): boolean =>
+  /^(?:فَصْلٌ|خَاتِمَةٌ|فصل|خاتمة)$/.test(paragraph.trim()) ||
+  /^(?:فصل|خاتمة)$/.test(stripHaraka(paragraph));
 
 export interface PairedParagraph {
   arabic: string;
@@ -160,10 +186,97 @@ export interface PairedParagraph {
   heading: boolean;
 }
 
-export function pairParagraphs(chapter: NormalizedKitabChapter): PairedParagraph[] | null {
+export function pairSafinahBlocks(blocks: StructuredBlock[]): PairedParagraph[] | null {
+  if (!Array.isArray(blocks) || !blocks.length) return null;
+  const labelIndex = blocks.findIndex((b) => b.type === "translation-label");
+  if (labelIndex < 0) return null;
+
+  const before = blocks.slice(0, labelIndex);
+  const after = blocks.slice(labelIndex + 1);
+  if (
+    before.some((b) => b.type !== "arabic") ||
+    after.some((b) => b.type !== "translation")
+  ) {
+    return null;
+  }
+
+  const out: PairedParagraph[] = [];
+  const contentArabic: Array<{ text: string; insertHeadingBefore?: string }> = [];
+  let pendingMarker: string | undefined;
+
+  for (const block of before) {
+    const text = block.text.trim();
+    if (!text) continue;
+    if (isArabicSectionMarker(text)) {
+      pendingMarker = text;
+    } else {
+      contentArabic.push({ text, insertHeadingBefore: pendingMarker });
+      pendingMarker = undefined;
+    }
+  }
+
+  if (!contentArabic.length || contentArabic.length !== after.length) {
+    return null;
+  }
+
+  for (let i = 0; i < contentArabic.length; i += 1) {
+    const arItem = contentArabic[i];
+    if (arItem.insertHeadingBefore) {
+      out.push({
+        arabic: arItem.insertHeadingBefore,
+        translation: "",
+        heading: true,
+      });
+    }
+    out.push({
+      arabic: arItem.text,
+      translation: after[i].text.trim(),
+      heading: false,
+    });
+  }
+  return out;
+}
+
+export function pairParagraphs(
+  chapter: NormalizedKitabChapter,
+  bookSlug?: string
+): PairedParagraph[] | null {
+  if (chapter.blocks?.length) {
+    return pairSafinahBlocks(chapter.blocks);
+  }
   if (chapter.latin) return null;
   const arabic = splitParagraphs(chapter.arabic);
   const translation = splitParagraphs(chapter.translation);
+  if (!arabic.length || !translation.length) return null;
+
+  if (bookSlug === "arbain") {
+    const cleanedTrans =
+      /^Hadits ke\s*\d+/i.test(translation[0]) && translation.length > 1
+        ? translation.slice(1)
+        : translation;
+    return [
+      {
+        arabic: arabic.join("\n\n"),
+        translation: cleanedTrans.join("\n\n"),
+        heading: false,
+      },
+    ];
+  }
+
+  if (bookSlug === "alhikam" && !isBasmalah(arabic.join(" "))) {
+    const cleanedTrans =
+      /^Al-Hikam Pasal\s*\d+/i.test(translation[0]) && translation.length > 1
+        ? translation.slice(1)
+        : translation;
+    return [
+      {
+        arabic: arabic.join("\n\n"),
+        translation: cleanedTrans.join("\n\n"),
+        heading: false,
+      },
+    ];
+  }
+
   if (arabic.length < 2 || translation.length < 2) return null;
 
   // Peel up to 3 short non-numbered header paragraphs at the top of translation (e.g., "Hadits Shahih Muslim", "Kitab Iman", Surah name)
@@ -240,6 +353,25 @@ export function pairParagraphs(chapter: NormalizedKitabChapter): PairedParagraph
     }
   }
 
+  // Case 4: Equal-length paragraph pairing for structured prose kitabs (e.g. Sullamut Taufiq)
+  if (
+    bookSlug === "sullamut-taufiq" &&
+    arabic.length === translation.length &&
+    !isBasmalah(arabic[0])
+  ) {
+    return arabic.map((paragraph, index) => {
+      const plain = stripHaraka(paragraph);
+      const isHeading =
+        paragraph.length <= 90 &&
+        /^(?:باب|فصل|خاتمة|قاعدة)\b/.test(plain);
+      return {
+        arabic: paragraph,
+        translation: translation[index],
+        heading: isHeading,
+      };
+    });
+  }
+
   return null;
 }
 
@@ -255,9 +387,10 @@ export const VIEW_LABELS: Record<KitabChapterViewMode, string> = {
 
 export function resolveView(
   chapter: NormalizedKitabChapter,
-  prefs: KitabViewPreferences = {}
+  prefs: KitabViewPreferences = {},
+  bookSlug?: string
 ): { options: KitabChapterViewMode[]; view: KitabChapterViewMode } {
-  if (pairParagraphs(chapter)) {
+  if (pairParagraphs(chapter, bookSlug)) {
     return {
       options: ["fold", "classic"],
       view: prefs.paired === "classic" ? "classic" : "fold",
@@ -290,8 +423,12 @@ export type ChapterQueueItem =
       last: boolean;
     };
 
-export function buildChapterQueue(chapter: NormalizedKitabChapter, view: KitabChapterViewMode = "both"): ChapterQueueItem[] {
-  const pairs = view === "fold" ? pairParagraphs(chapter) : null;
+export function buildChapterQueue(
+  chapter: NormalizedKitabChapter,
+  view: KitabChapterViewMode = "both",
+  bookSlug?: string
+): ChapterQueueItem[] {
+  const pairs = view === "fold" ? pairParagraphs(chapter, bookSlug) : null;
   if (pairs) {
     return pairs.map((pair, index) => ({
       kind: "pair",
