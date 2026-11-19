@@ -1,6 +1,7 @@
 import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { requestStartupPermissionsOnLaunch } from "./locationService";
+import { markNativeVersionNotified } from "./apkInstaller";
 
 export const RELEASES_TAG_API_URL =
   "https://api.github.com/repos/r14bz/e-Moeslife/releases/tags/v2.0-android";
@@ -342,6 +343,7 @@ export async function notifyApkUpdateAvailable(release: ApkReleaseInfo): Promise
     });
 
     localStorage.setItem(NOTIFIED_VERSION_STORAGE_KEY, String(release.versionCode));
+    void markNativeVersionNotified(release.versionCode);
   } catch {
     // Silent fallback if notification scheduling fails
   }

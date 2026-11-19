@@ -1,7 +1,6 @@
 import { Capacitor } from "@capacitor/core";
 import { Geolocation } from "@capacitor/geolocation";
 import { LocalNotifications } from "@capacitor/local-notifications";
-import { isPrayerNotificationsEnabled } from "./prayerNotifications";
 
 export interface GeoCoords {
   latitude: number;
@@ -41,15 +40,13 @@ export function requestStartupPermissionsOnLaunch(): Promise<void> {
       // Location services may be off or restricted; UI shows clear manual fallback.
     }
 
-    if (isPrayerNotificationsEnabled()) {
-      try {
-        const notifStatus = await LocalNotifications.checkPermissions();
-        if (notifStatus.display !== "granted" && notifStatus.display !== "denied") {
-          await LocalNotifications.requestPermissions();
-        }
-      } catch {
-        // Notification prompt skipped if unavailable on OS version
+    try {
+      const notifStatus = await LocalNotifications.checkPermissions();
+      if (notifStatus.display !== "granted" && notifStatus.display !== "denied") {
+        await LocalNotifications.requestPermissions();
       }
+    } catch {
+      // Notification prompt skipped if unavailable on OS version
     }
 
     if (typeof window !== "undefined") {

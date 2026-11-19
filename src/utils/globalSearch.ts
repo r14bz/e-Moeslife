@@ -2,6 +2,8 @@ import type { ClassicSection } from "../data/sections";
 import { CURATED_DAILY_PRAYERS } from "../data/dailyPrayers";
 import { KITAB_TASHRIF_DATA } from "../data/kitabTashrifData";
 import { TASHRIF_LUGHAWI_DATA } from "../data/tashrifLughawiData";
+import { ALFIYAH_DATA } from "../data/alfiyah";
+import { allImrithiBaits, imrithiBabs } from "../data/imrithi";
 import { SHALAT_INTENTIONS, SHALAT_STEPS, WUDHU_STEPS } from "../data/wudhuShalatGuide";
 import type { EQuranDoaItem, EQuranSurahSummary, LocalBookMeta } from "../types/emoeslife";
 import { arrayAt, normalizeChapter, parseStructuredSafinah } from "./kitabEngine";
@@ -106,6 +108,43 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
       };
     });
     const indexed = [...istilahiChapters, ...lughawiChapters];
+    kitabChapterCache[book.slug] = indexed;
+    return indexed;
+  }
+
+  if (book.format === "alfiyah") {
+    const indexed: IndexedChapter[] = ALFIYAH_DATA.flatMap((juz) =>
+      juz.babList.map((bab) => {
+        const baitsText = bab.baitList
+          .map((bait) => `${bait.shadr} ${bait.ajuz} ${bait.terjemahan}`)
+          .join(" ");
+        const title = `${bab.judulIndo}`;
+        const displayText = `${juz.judul} · ${bab.judulArab} · ${baitsText}`;
+        return {
+          title,
+          displayText,
+          searchText: `${title} ${juz.judul} ${bab.judulArab} ${baitsText}`.toLocaleLowerCase("id"),
+        };
+      })
+    );
+    kitabChapterCache[book.slug] = indexed;
+    return indexed;
+  }
+
+  if (book.format === "imrithi") {
+    const indexed: IndexedChapter[] = imrithiBabs.map((bab) => {
+      const baitsText = allImrithiBaits
+        .filter((bait) => bait.babId === bab.id)
+        .map((bait) => `${bait.shadr} ${bait.ajuz} ${bait.terjemah} ${bait.catatan || ""}`)
+        .join(" ");
+      const title = `${bab.urutan}. ${bab.judulIndo}`;
+      const displayText = `${bab.judulArab} · ${baitsText}`;
+      return {
+        title,
+        displayText,
+        searchText: `${title} ${bab.judulArab} ${baitsText}`.toLocaleLowerCase("id"),
+      };
+    });
     kitabChapterCache[book.slug] = indexed;
     return indexed;
   }

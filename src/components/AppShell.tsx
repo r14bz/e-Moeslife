@@ -48,6 +48,8 @@ function isDedicatedReader(route: AppRoute): boolean {
     route.view === "classic" ||
     route.view === "local-kitab" ||
     route.view === "tashrif-kitab" ||
+    route.view === "alfiyah-kitab" ||
+    route.view === "imrithi-kitab" ||
     route.view === "api-kitab" ||
     (route.view === "quran-studio" && Boolean(route.surahNumber))
   );
@@ -130,6 +132,8 @@ export const AppShell: React.FC<AppShellProps> = ({
     "kitab-hub": "Perpustakaan Kitab Kuning",
     "local-kitab": "Pembaca Kitab Kuning",
     "tashrif-kitab": "Al-Amtsilah at-Tashrifiyah",
+    "alfiyah-kitab": "Alfiyah Ibnu Malik",
+    "imrithi-kitab": "Nadhom Imriti",
     "api-kitab": "Pembaca Kitab Kuning",
     "nearby-mosques": "Masjid & Mushala Terdekat",
     download: "Unduh & Pasang Aplikasi (PWA)",

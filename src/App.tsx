@@ -23,13 +23,18 @@ import { QuranStudioView } from "./components/QuranStudioView";
 import { KitabHubView } from "./components/KitabHubView";
 import { LocalKitabView } from "./components/LocalKitabView";
 import { TashrifKitabPage } from "./components/TashrifKitabPage";
+import { AlfiyahKitabPage } from "./components/AlfiyahKitabPage";
+import { ImrithiKitabPage } from "./components/ImrithiKitabPage";
 import { ApiKitabView } from "./components/ApiKitabView";
 import { NearbyMosquesView } from "./components/NearbyMosquesView";
 import { DownloadView } from "./components/DownloadView";
 import { WudhuShalatView } from "./components/WudhuShalatView";
 import { ApkUpdatePrompt } from "./components/ApkUpdatePrompt";
 import { KITAB_TASHRIF_DATA } from "./data/kitabTashrifData";
+import { ALFIYAH_DATA } from "./data/alfiyah";
+import { imrithiBabs } from "./data/imrithi";
 import { LocalNotifications } from "@capacitor/local-notifications";
+import { consumePendingNativeUpdateOpen } from "./services/apkInstaller";
 import {
   checkForApkUpdate,
   dismissApkVersion,
@@ -93,11 +98,11 @@ export function App() {
     let active = true;
     let checking = false;
 
-    const runAutoUpdateCheck = () => {
+    const runAutoUpdateCheck = (forcePrompt = false) => {
       if (checking) return;
       if (typeof navigator !== "undefined" && !navigator.onLine) return;
       checking = true;
-      checkForApkUpdate()
+      checkForApkUpdate(forcePrompt ? { force: true } : undefined)
         .then(({ updateAvailable }) => {
           if (!active || !updateAvailable) return;
           setApkUpdateRelease(updateAvailable);
@@ -111,8 +116,26 @@ export function App() {
         });
     };
 
-    runAutoUpdateCheck();
-    window.addEventListener("online", runAutoUpdateCheck);
+    const syncAndCheckUpdate = () => {
+      void consumePendingNativeUpdateOpen()
+        .catch(() => false)
+        .then((pending) => {
+          if (!active) return;
+          runAutoUpdateCheck(Boolean(pending));
+        });
+    };
+
+    const onVisibilityOrFocus = () => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+      syncAndCheckUpdate();
+    };
+
+    const onOnline = () => syncAndCheckUpdate();
+
+    syncAndCheckUpdate();
+    window.addEventListener("online", onOnline);
+    window.addEventListener("focus", onVisibilityOrFocus);
+    document.addEventListener("visibilitychange", onVisibilityOrFocus);
 
     let removeNotifListener: (() => Promise<void>) | null = null;
     LocalNotifications.addListener("localNotificationActionPerformed", (action) => {
@@ -136,7 +159,9 @@ export function App() {
 
     return () => {
       active = false;
-      window.removeEventListener("online", runAutoUpdateCheck);
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("focus", onVisibilityOrFocus);
+      document.removeEventListener("visibilitychange", onVisibilityOrFocus);
       if (removeNotifListener) {
         void removeNotifListener();
       }
@@ -225,6 +250,8 @@ export function App() {
       nextRoute.view !== "classic" &&
       nextRoute.view !== "local-kitab" &&
       nextRoute.view !== "tashrif-kitab" &&
+      nextRoute.view !== "alfiyah-kitab" &&
+      nextRoute.view !== "imrithi-kitab" &&
       nextRoute.view !== "api-kitab"
     ) {
       setFocusMode(false);
@@ -278,6 +305,31 @@ export function App() {
             ? "lughawi"
             : "istilahi";
         navigate({ view: "tashrif-kitab", tab });
+        return;
+      }
+      if (book.format === "alfiyah") {
+        let juz = 1;
+        let babIndex = 0;
+        if (typeof chapterIndex === "number" && chapterIndex >= 0) {
+          let offset = chapterIndex;
+          for (const item of ALFIYAH_DATA) {
+            if (offset < item.babList.length) {
+              juz = item.juz;
+              babIndex = offset;
+              break;
+            }
+            offset -= item.babList.length;
+          }
+        }
+        navigate({ view: "alfiyah-kitab", juz, babIndex });
+        return;
+      }
+      if (book.format === "imrithi") {
+        const babId =
+          typeof chapterIndex === "number" && imrithiBabs[chapterIndex]
+            ? imrithiBabs[chapterIndex].id
+            : undefined;
+        navigate({ view: "imrithi-kitab", babId });
         return;
       }
       if (book.source === "local") {
@@ -402,6 +454,25 @@ export function App() {
       {route.view === "tashrif-kitab" && (
         <TashrifKitabPage
           initialTab={route.tab}
+          focusMode={focusMode}
+          onToggleFocus={() => setFocusMode((f) => !f)}
+          onBackToLibrary={() => navigate({ view: "kitab-hub" })}
+        />
+      )}
+
+      {route.view === "alfiyah-kitab" && (
+        <AlfiyahKitabPage
+          initialJuz={route.juz}
+          initialBabIndex={route.babIndex}
+          focusMode={focusMode}
+          onToggleFocus={() => setFocusMode((f) => !f)}
+          onBackToLibrary={() => navigate({ view: "kitab-hub" })}
+        />
+      )}
+
+      {route.view === "imrithi-kitab" && (
+        <ImrithiKitabPage
+          initialBabId={route.babId}
           focusMode={focusMode}
           onToggleFocus={() => setFocusMode((f) => !f)}
           onBackToLibrary={() => navigate({ view: "kitab-hub" })}

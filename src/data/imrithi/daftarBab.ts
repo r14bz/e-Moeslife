@@ -1,0 +1,25 @@
+import type { ImrithiBab } from '../../types/imrithi';
+
+export const imrithiBabs: ImrithiBab[] = [
+  { id: 'muqaddimah', urutan: 1, judulArab: 'الْمُقَدِّمَةُ', judulIndo: 'Muqaddimah', rentangBait: [1, 19] },
+  { id: 'bab-kalam', urutan: 2, judulArab: 'بَابُ الْكَلَامِ', judulIndo: 'Bab Kalam', rentangBait: [20, 26] },
+  { id: 'bab-irob', urutan: 3, judulArab: 'بَابُ الْإِعْرَابِ', judulIndo: 'Bab I’rob', rentangBait: [27, 31] },
+  { id: 'alamat-rofa', urutan: 4, judulArab: 'بَابُ عَلَامَاتِ الرَّفْعِ', judulIndo: 'Tanda-Tanda Rofa’', rentangBait: [32, 40] },
+  { id: 'alamat-nashob', urutan: 5, judulArab: 'بَابُ عَلَامَاتِ النَّصْبِ', judulIndo: 'Tanda-Tanda Nashob', rentangBait: [41, 45] },
+  { id: 'alamat-khofadz', urutan: 6, judulArab: 'بَابُ عَلَامَاتِ الْخَفْضِ', judulIndo: 'Tanda-Tanda Khofadz (Jer)', rentangBait: [46, 49] },
+  { id: 'alamat-jazm', urutan: 7, judulArab: 'بَابُ عَلَامَاتِ الْجَزْمِ', judulIndo: 'Tanda-Tanda Jazm', rentangBait: [50, 54] },
+  { id: 'fashl-murobat', urutan: 8, judulArab: 'فَصْلٌ فِي الْمُعْرَبَاتِ', judulIndo: 'Fasal Mu’robat', rentangBait: [55, 71] },
+  { id: 'nakirah-marifat', urutan: 9, judulArab: 'بَابُ النَّكِرَةِ وَالْمَعْرِفَةِ', judulIndo: 'Nakirah dan Ma’rifat', rentangBait: [72, 83] },
+  { id: 'bab-afal', urutan: 10, judulArab: 'بَابُ الْأَفْعَالِ', judulIndo: 'Bab Af’al (Kata Kerja)', rentangBait: [84, 90] },
+  { id: 'irob-fil', urutan: 11, judulArab: 'بَابُ إِعْرَابِ الْفِعْلِ', judulIndo: 'I’rob Fi’il (Nawashib & Jawazim)', rentangBait: [91, 99] },
+  { id: 'marfuat-fail', urutan: 12, judulArab: 'بَابُ مَرْفُوعَاتِ الْأَسْمَاءِ وَالْفَاعِلِ', judulIndo: 'Marfu’at & Fa’il', rentangBait: [100, 108] },
+  { id: 'naibul-fail', urutan: 13, judulArab: 'بَابُ نَائِبِ الْفَاعِلِ', judulIndo: 'Na’ibul Fa’il', rentangBait: [109, 115] },
+  { id: 'mubtada-khabar', urutan: 14, judulArab: 'بَابُ الْمُبْتَدَأِ وَالْخَبَرِ', judulIndo: 'Mubtada’ dan Khabar', rentangBait: [116, 127] },
+  { id: 'kana-inna-zhanna', urutan: 15, judulArab: 'بَابُ كَانَ وَإِنَّ وَظَنَّ', judulIndo: 'Amil Nawasikh (Kana, Inna, Zhanna)', rentangBait: [128, 142] },
+  { id: 'tawabi-naat', urutan: 16, judulArab: 'بَابُ النَّعْتِ', judulIndo: 'Na’at (Sifat)', rentangBait: [143, 151] },
+  { id: 'athaf-taukid-badal', urutan: 17, judulArab: 'بَابُ الْعَطْفِ وَالتَّوْكِيْدِ وَالْبَدَلِ', judulIndo: 'Athaf, Taukid, dan Badal', rentangBait: [152, 170] },
+  { id: 'manshubat-maful', urutan: 18, judulArab: 'بَابُ مَنْصُوبَاتِ الْأَسْمَاءِ', judulIndo: 'Manshubat & Macam Maf’ul', rentangBait: [171, 194] },
+  { id: 'hal-tamyiz-istitsna', urutan: 19, judulArab: 'بَابُ الْحَالِ وَالتَّمْيِيزِ وَالِاسْتِثْنَاءِ', judulIndo: 'Hal, Tamyiz, dan Istitsna', rentangBait: [195, 216] },
+  { id: 'la-munada', urutan: 20, judulArab: 'بَابُ لَا وَالْمُنَادَى', judulIndo: 'La Nafiyah & Munada', rentangBait: [217, 229] },
+  { id: 'makhfudhat-khatimah', urutan: 21, judulArab: 'بَابُ مَخْفُوضَاتِ الْأَسْمَاءِ وَالْخَاتِمَةُ', judulIndo: 'Makhfudhat (Idhofah) & Penutup', rentangBait: [230, 245] },
+];

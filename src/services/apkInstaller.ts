@@ -22,6 +22,8 @@ interface NativeApkInstallerPlugin {
   canRequestPackageInstalls(): Promise<{ granted: boolean }>;
   downloadAndInstall(options: { url: string }): Promise<ApkInstallResult>;
   installCachedApk(): Promise<ApkInstallResult>;
+  markVersionNotified(options: { versionCode: number }): Promise<void>;
+  consumePendingUpdateOpen(): Promise<{ pending: boolean }>;
   addListener(
     eventName: "downloadProgress",
     listenerFunc: (event: ApkDownloadProgressEvent) => void
@@ -57,4 +59,23 @@ export async function downloadAndInstallApk(
 
 export async function installCachedApk(): Promise<ApkInstallResult> {
   return ApkInstaller.installCachedApk();
+}
+
+export async function markNativeVersionNotified(versionCode: number): Promise<void> {
+  if (!isInAppApkInstallerAvailable() || versionCode <= 0) return;
+  try {
+    await ApkInstaller.markVersionNotified({ versionCode });
+  } catch {
+    // Ignore if older native binary does not expose method
+  }
+}
+
+export async function consumePendingNativeUpdateOpen(): Promise<boolean> {
+  if (!isInAppApkInstallerAvailable()) return false;
+  try {
+    const res = await ApkInstaller.consumePendingUpdateOpen();
+    return Boolean(res?.pending);
+  } catch {
+    return false;
+  }
 }

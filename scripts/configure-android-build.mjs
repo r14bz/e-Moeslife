@@ -66,7 +66,11 @@ const manifestPath = path.join(
 
 if (fs.existsSync(manifestPath)) {
   let manifest = fs.readFileSync(manifestPath, "utf8");
+  let manifestChanged = false;
   const requiredEntries = [
+    '<uses-permission android:name="android.permission.INTERNET" />',
+    '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />',
+    '<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />',
     '<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />',
     '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />',
     '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',
@@ -86,8 +90,32 @@ if (fs.existsSync(manifestPath)) {
       "</manifest>",
       `    ${missing.join("\n    ")}\n</manifest>`
     );
-    fs.writeFileSync(manifestPath, manifest, "utf8");
+    manifestChanged = true;
     console.log(`Added ${missing.length} AndroidManifest permissions/features.`);
+  }
+
+  const appComponents = [];
+  if (!manifest.includes("ApkUpdateJobService")) {
+    appComponents.push(
+      `        <service\n            android:name=".ApkUpdateJobService"\n            android:permission="android.permission.BIND_JOB_SERVICE"\n            android:exported="false" />`
+    );
+  }
+  if (!manifest.includes("ApkUpdateReceiver")) {
+    appComponents.push(
+      `        <receiver\n            android:name=".ApkUpdateReceiver"\n            android:enabled="true"\n            android:exported="false">\n            <intent-filter>\n                <action android:name="android.intent.action.BOOT_COMPLETED" />\n                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />\n                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />\n                <action android:name="com.emoeslife.app.ACTION_CHECK_APK_UPDATE" />\n            </intent-filter>\n        </receiver>`
+    );
+  }
+  if (appComponents.length > 0 && manifest.includes("</application>")) {
+    manifest = manifest.replace(
+      "</application>",
+      `${appComponents.join("\n")}\n    </application>`
+    );
+    manifestChanged = true;
+    console.log("Registered ApkUpdateJobService and ApkUpdateReceiver in AndroidManifest.xml.");
+  }
+
+  if (manifestChanged) {
+    fs.writeFileSync(manifestPath, manifest, "utf8");
   }
 }
 
@@ -104,6 +132,489 @@ const javaAppDir = path.join(
 );
 
 if (fs.existsSync(javaAppDir)) {
+  const updateCheckerJava = `package com.emoeslife.app;
+
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.os.Build;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.json.JSONObject;
+
+public final class ApkUpdateChecker {
+
+    private static final String PREFS_NAME = "emoeslife_apk_updater";
+    private static final String KEY_NOTIFIED_VERSION = "notified_version_code";
+    private static final String KEY_LAST_CHECK_MS = "last_check_ms";
+    private static final String KEY_PENDING_OPEN = "pending_open_apk_update";
+    private static final String CHANNEL_ID = "pembaruan-aplikasi";
+    private static final int NOTIFICATION_ID = 519901;
+    private static final long MIN_CHECK_COOLDOWN_MS = 10L * 60L * 1000L;
+
+    private static final String[] ENDPOINTS = new String[] {
+        "https://api.github.com/repos/r14bz/e-Moeslife/releases/tags/v2.0-android",
+        "https://api.github.com/repos/r14bz/e-Moeslife/releases/latest"
+    };
+
+    private ApkUpdateChecker() {}
+
+    public static void markVersionNotified(Context context, long versionCode) {
+        if (context == null || versionCode <= 0L) return;
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        long current = prefs.getLong(KEY_NOTIFIED_VERSION, 0L);
+        if (versionCode > current) {
+            prefs.edit().putLong(KEY_NOTIFIED_VERSION, versionCode).apply();
+        }
+    }
+
+    public static void setPendingOpenUpdate(Context context, boolean pending) {
+        if (context == null) return;
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_PENDING_OPEN, pending)
+            .apply();
+    }
+
+    public static boolean consumePendingOpenUpdate(Context context) {
+        if (context == null) return false;
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        boolean pending = prefs.getBoolean(KEY_PENDING_OPEN, false);
+        if (pending) {
+            prefs.edit().putBoolean(KEY_PENDING_OPEN, false).apply();
+        }
+        return pending;
+    }
+
+    private static boolean isNetworkConnected(Context context) {
+        try {
+            ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm == null) return true;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                Network network = cm.getActiveNetwork();
+                if (network == null) return false;
+                NetworkCapabilities caps = cm.getNetworkCapabilities(network);
+                return caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+            }
+            return true;
+        } catch (Exception ignored) {
+            return true;
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    private static long getInstalledVersionCode(Context context) {
+        try {
+            PackageInfo pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                return pInfo.getLongVersionCode();
+            }
+            return pInfo.versionCode;
+        } catch (Exception ignored) {
+            return 0L;
+        }
+    }
+
+    private static boolean canPostNotifications(Context context) {
+        if (Build.VERSION.SDK_INT >= 33) {
+            if (ContextCompat.checkSelfPermission(context, "android.permission.POST_NOTIFICATIONS")
+                != PackageManager.PERMISSION_GRANTED) {
+                return false;
+            }
+        }
+        return NotificationManagerCompat.from(context).areNotificationsEnabled();
+    }
+
+    private static String fetchJsonString(String endpoint) {
+        HttpURLConnection conn = null;
+        try {
+            URL url = new URL(endpoint);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(15000);
+            conn.setReadTimeout(20000);
+            conn.setRequestProperty("Accept", "application/vnd.github+json");
+            conn.setRequestProperty("User-Agent", "e-Moeslife-Android-Updater");
+            int code = conn.getResponseCode();
+            if (code < 200 || code >= 300) {
+                return null;
+            }
+            StringBuilder sb = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8)
+            )) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line).append('\\n');
+                }
+            }
+            return sb.toString();
+        } catch (Exception ignored) {
+            return null;
+        } finally {
+            if (conn != null) {
+                conn.disconnect();
+            }
+        }
+    }
+
+    private static List<String> extractHighlights(String body) {
+        List<String> items = new ArrayList<>();
+        if (body == null || body.isEmpty()) return items;
+        String cleaned = body.replaceAll("(?s)<!--\\\\s*emoeslife-release:.*?-->", "");
+        boolean skipSection = false;
+        for (String raw : cleaned.split("\\\\r?\\\\n")) {
+            String line = raw.trim();
+            if (line.isEmpty()) continue;
+            if (line.startsWith("#")) {
+                String lowerHeading = line.toLowerCase();
+                skipSection = lowerHeading.contains("informasi rilis") || lowerHeading.contains("metadata");
+                continue;
+            }
+            if (skipSection) continue;
+            if (line.startsWith("- ") || line.startsWith("* ") || line.startsWith("• ")) {
+                String item = line.substring(2).replaceAll("\\\\*\\\\*(.+?)\\\\*\\\\*", "$1").trim();
+                if (!item.isEmpty() && !items.contains(item)) {
+                    items.add(item);
+                    if (items.size() >= 3) break;
+                }
+            }
+        }
+        return items;
+    }
+
+    public static void checkAndNotify(Context context, boolean bypassCooldown) {
+        if (context == null || !isNetworkConnected(context)) return;
+
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        long now = System.currentTimeMillis();
+        long lastCheck = prefs.getLong(KEY_LAST_CHECK_MS, 0L);
+        if (!bypassCooldown && (now - lastCheck) < MIN_CHECK_COOLDOWN_MS) {
+            return;
+        }
+        prefs.edit().putLong(KEY_LAST_CHECK_MS, now).apply();
+
+        long installedCode = getInstalledVersionCode(context);
+        if (installedCode <= 0L) return;
+
+        for (String endpoint : ENDPOINTS) {
+            String rawJson = fetchJsonString(endpoint);
+            if (rawJson == null || rawJson.isEmpty()) continue;
+
+            try {
+                JSONObject json = new JSONObject(rawJson);
+                String body = json.optString("body", "");
+                String releaseName = json.optString("name", "");
+
+                long remoteCode = 0L;
+                String versionName = "";
+
+                Matcher markerMatcher = Pattern
+                    .compile("<!--\\\\s*emoeslife-release:(\\\\{.*?\\\\})\\\\s*-->", Pattern.DOTALL)
+                    .matcher(body);
+                if (markerMatcher.find()) {
+                    JSONObject marker = new JSONObject(markerMatcher.group(1));
+                    remoteCode = marker.optLong("versionCode", 0L);
+                    versionName = marker.optString("versionName", "");
+                }
+
+                if (remoteCode <= 0L && !releaseName.isEmpty()) {
+                    Matcher titleMatcher = Pattern.compile("v(\\\\d+\\\\.\\\\d+\\\\.(\\\\d+))", Pattern.CASE_INSENSITIVE).matcher(releaseName);
+                    if (titleMatcher.find()) {
+                        versionName = titleMatcher.group(1);
+                        remoteCode = Long.parseLong(titleMatcher.group(2));
+                    }
+                }
+
+                if (remoteCode <= 0L) continue;
+                if (versionName.isEmpty()) {
+                    versionName = "2.0." + remoteCode;
+                }
+
+                long lastNotified = prefs.getLong(KEY_NOTIFIED_VERSION, 0L);
+                if (remoteCode <= installedCode || remoteCode <= lastNotified) {
+                    return;
+                }
+
+                if (!canPostNotifications(context)) {
+                    return;
+                }
+
+                showUpdateNotification(context, remoteCode, versionName, extractHighlights(body));
+                prefs.edit().putLong(KEY_NOTIFIED_VERSION, remoteCode).apply();
+                return;
+            } catch (Exception ignored) {
+                // Try next endpoint
+            }
+        }
+    }
+
+    private static void showUpdateNotification(
+        Context context,
+        long versionCode,
+        String versionName,
+        List<String> highlights
+    ) {
+        NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm == null) return;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                CHANNEL_ID,
+                "Pembaruan Aplikasi",
+                NotificationManager.IMPORTANCE_HIGH
+            );
+            channel.setDescription("Pemberitahuan otomatis saat versi terbaru e-Moeslife tersedia");
+            channel.enableVibration(true);
+            nm.createNotificationChannel(channel);
+        }
+
+        String summary;
+        if (!highlights.isEmpty()) {
+            int limit = Math.min(2, highlights.size());
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < limit; i++) {
+                if (i > 0) sb.append(" • ");
+                sb.append(highlights.get(i));
+            }
+            sb.append(" — Ketuk untuk memperbarui.");
+            summary = sb.toString();
+        } else {
+            summary = "Versi terbaru v" + versionName + " tersedia. Ketuk untuk mengunduh pembaruan.";
+        }
+
+        StringBuilder bigText = new StringBuilder();
+        if (!highlights.isEmpty()) {
+            for (String item : highlights) {
+                if (bigText.length() > 0) bigText.append('\\n');
+                bigText.append("• ").append(item);
+            }
+        } else {
+            bigText.append(summary);
+        }
+
+        Intent launchIntent = new Intent(context, MainActivity.class);
+        launchIntent.putExtra("open_apk_update", true);
+        launchIntent.putExtra("version_code", versionCode);
+        launchIntent.setFlags(
+            Intent.FLAG_ACTIVITY_NEW_TASK |
+            Intent.FLAG_ACTIVITY_CLEAR_TOP |
+            Intent.FLAG_ACTIVITY_SINGLE_TOP
+        );
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+            context,
+            NOTIFICATION_ID,
+            launchIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        int smallIcon = context.getApplicationInfo().icon;
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(smallIcon)
+            .setContentTitle("Pembaruan e-Moeslife v" + versionName)
+            .setContentText(summary)
+            .setStyle(new NotificationCompat.BigTextStyle().bigText(bigText.toString()))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent);
+
+        nm.notify(NOTIFICATION_ID, builder.build());
+    }
+}
+`;
+  fs.writeFileSync(path.join(javaAppDir, "ApkUpdateChecker.java"), updateCheckerJava, "utf8");
+
+  const updateSchedulerJava = `package com.emoeslife.app;
+
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.app.job.JobInfo;
+import android.app.job.JobScheduler;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Build;
+import android.os.SystemClock;
+
+public final class ApkUpdateScheduler {
+
+    public static final String ACTION_CHECK_APK_UPDATE = "com.emoeslife.app.ACTION_CHECK_APK_UPDATE";
+    private static final int JOB_ID = 519910;
+    private static final int ALARM_REQUEST_CODE = 519911;
+    private static final long JOB_INTERVAL_MS = 15L * 60L * 1000L;
+    private static final long ALARM_INTERVAL_MS = 20L * 60L * 1000L;
+
+    private ApkUpdateScheduler() {}
+
+    public static void ensureScheduled(Context context) {
+        if (context == null) return;
+        schedulePeriodicJob(context);
+        ensureBackupAlarmScheduled(context);
+    }
+
+    private static void schedulePeriodicJob(Context context) {
+        try {
+            JobScheduler js = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
+            if (js == null) return;
+            if (js.getPendingJob(JOB_ID) != null) return;
+
+            ComponentName serviceComponent = new ComponentName(context, ApkUpdateJobService.class);
+            JobInfo.Builder builder = new JobInfo.Builder(JOB_ID, serviceComponent)
+                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+                .setPersisted(true);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                builder.setPeriodic(JOB_INTERVAL_MS, 5L * 60L * 1000L);
+            } else {
+                builder.setPeriodic(JOB_INTERVAL_MS);
+            }
+            js.schedule(builder.build());
+        } catch (Exception ignored) {
+            // Ignore JobScheduler restrictions on older/custom ROMs; backup alarm still runs
+        }
+    }
+
+    private static void ensureBackupAlarmScheduled(Context context) {
+        try {
+            Intent intent = new Intent(context, ApkUpdateReceiver.class);
+            intent.setAction(ACTION_CHECK_APK_UPDATE);
+            PendingIntent existing = PendingIntent.getBroadcast(
+                context,
+                ALARM_REQUEST_CODE,
+                intent,
+                PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE
+            );
+            if (existing == null) {
+                scheduleNextAlarm(context);
+            }
+        } catch (Exception ignored) {
+            // Ignore
+        }
+    }
+
+    public static void scheduleNextAlarm(Context context) {
+        if (context == null) return;
+        try {
+            AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            if (am == null) return;
+
+            Intent intent = new Intent(context, ApkUpdateReceiver.class);
+            intent.setAction(ACTION_CHECK_APK_UPDATE);
+            PendingIntent pi = PendingIntent.getBroadcast(
+                context,
+                ALARM_REQUEST_CODE,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+
+            long triggerAt = SystemClock.elapsedRealtime() + ALARM_INTERVAL_MS;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                am.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAt, pi);
+            } else {
+                am.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAt, pi);
+            }
+        } catch (Exception ignored) {
+            // Ignore
+        }
+    }
+}
+`;
+  fs.writeFileSync(path.join(javaAppDir, "ApkUpdateScheduler.java"), updateSchedulerJava, "utf8");
+
+  const updateJobServiceJava = `package com.emoeslife.app;
+
+import android.app.job.JobParameters;
+import android.app.job.JobService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class ApkUpdateJobService extends JobService {
+
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+
+    @Override
+    public boolean onStartJob(JobParameters params) {
+        executor.execute(() -> {
+            try {
+                ApkUpdateChecker.checkAndNotify(getApplicationContext(), false);
+            } finally {
+                jobFinished(params, false);
+            }
+        });
+        return true;
+    }
+
+    @Override
+    public boolean onStopJob(JobParameters params) {
+        return true;
+    }
+
+    @Override
+    public void onDestroy() {
+        executor.shutdownNow();
+        super.onDestroy();
+    }
+}
+`;
+  fs.writeFileSync(path.join(javaAppDir, "ApkUpdateJobService.java"), updateJobServiceJava, "utf8");
+
+  const updateReceiverJava = `package com.emoeslife.app;
+
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class ApkUpdateReceiver extends BroadcastReceiver {
+
+    private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
+
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        final Context appContext = context.getApplicationContext();
+        final String action = intent != null ? intent.getAction() : "";
+
+        ApkUpdateScheduler.ensureScheduled(appContext);
+        if (ApkUpdateScheduler.ACTION_CHECK_APK_UPDATE.equals(action)) {
+            ApkUpdateScheduler.scheduleNextAlarm(appContext);
+        }
+
+        final PendingResult pendingResult = goAsync();
+        final boolean bypassCooldown = Intent.ACTION_BOOT_COMPLETED.equals(action)
+            || Intent.ACTION_MY_PACKAGE_REPLACED.equals(action);
+
+        EXECUTOR.execute(() -> {
+            try {
+                ApkUpdateChecker.checkAndNotify(appContext, bypassCooldown);
+            } finally {
+                pendingResult.finish();
+            }
+        });
+    }
+}
+`;
+  fs.writeFileSync(path.join(javaAppDir, "ApkUpdateReceiver.java"), updateReceiverJava, "utf8");
+
   const pluginJava = `package com.emoeslife.app;
 
 import android.content.Intent;
@@ -230,6 +741,23 @@ public class ApkInstallerPlugin extends Plugin {
     public void canRequestPackageInstalls(PluginCall call) {
         JSObject ret = new JSObject();
         ret.put("granted", canInstallPackages());
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void markVersionNotified(PluginCall call) {
+        Integer code = call.getInt("versionCode", 0);
+        if (code != null && code > 0) {
+            ApkUpdateChecker.markVersionNotified(getContext(), code.longValue());
+        }
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void consumePendingUpdateOpen(PluginCall call) {
+        boolean pending = ApkUpdateChecker.consumePendingOpenUpdate(getContext());
+        JSObject ret = new JSObject();
+        ret.put("pending", pending);
         call.resolve(ret);
     }
 
@@ -375,18 +903,34 @@ public class ApkInstallerPlugin extends Plugin {
 
   const mainActivityJava = `package com.emoeslife.app;
 
+import android.content.Intent;
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+    private void handleUpdateIntent(Intent intent) {
+        if (intent != null && intent.getBooleanExtra("open_apk_update", false)) {
+            ApkUpdateChecker.setPendingOpenUpdate(getApplicationContext(), true);
+        }
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(ApkInstallerPlugin.class);
         super.onCreate(savedInstanceState);
+        handleUpdateIntent(getIntent());
+        ApkUpdateScheduler.ensureScheduled(getApplicationContext());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleUpdateIntent(intent);
     }
 }
 `;
   fs.writeFileSync(path.join(javaAppDir, "MainActivity.java"), mainActivityJava, "utf8");
-  console.log("Generated ApkInstallerPlugin.java and registered plugin in MainActivity.java.");
+  console.log("Generated ApkInstallerPlugin, background ApkUpdateChecker/JobService/Receiver, and MainActivity.");
 }
 
