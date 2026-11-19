@@ -55,6 +55,20 @@ if (keystoreRelPath && fs.existsSync(keystoreAbsPath)) {
 
 fs.writeFileSync(appGradlePath, gradle, "utf8");
 
+const rootGradlePath = path.join(rootDir, "android", "build.gradle");
+if (fs.existsSync(rootGradlePath)) {
+  let rootGradle = fs.readFileSync(rootGradlePath, "utf8");
+  const mirrorUrl = "https://maven-central.storage-download.googleapis.com/maven2";
+  if (!rootGradle.includes(mirrorUrl)) {
+    rootGradle = rootGradle.replace(
+      /mavenCentral\(\)/g,
+      `mavenCentral()\n        maven { url "${mirrorUrl}" }`
+    );
+    fs.writeFileSync(rootGradlePath, rootGradle, "utf8");
+    console.log("Added Maven Central mirror fallback to android/build.gradle.");
+  }
+}
+
 const manifestPath = path.join(
   rootDir,
   "android",

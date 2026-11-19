@@ -33,6 +33,16 @@ jobs:
           distribution: "temurin"
           java-version: "21"
 
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('package.json', 'bun.lock') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
       - name: Configure pre-installed Android SDK
         run: |
           SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
@@ -95,11 +105,27 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
+          TASK="assembleDebug"
           if [ "$APK_SIGN_MODE" = "release" ]; then
-            ./gradlew assembleRelease --no-daemon
-          else
-            ./gradlew assembleDebug --no-daemon
+            TASK="assembleRelease"
           fi
+          for attempt in 1 2 3; do
+            echo "Running ./gradlew $TASK (attempt $attempt/3)..."
+            if [ "$attempt" -eq 1 ]; then
+              if ./gradlew "$TASK" --no-daemon; then
+                exit 0
+              fi
+            else
+              if ./gradlew "$TASK" --no-daemon --refresh-dependencies; then
+                exit 0
+              fi
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "Gradle build attempt $attempt failed, retrying in 10s..."
+              sleep 10
+            fi
+          done
+          exit 1
 
       - name: Prepare e-moeslife.apk artifact
         run: |
