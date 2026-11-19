@@ -2,7 +2,7 @@ import wudhuLangkahImg from "../assets/images/wudhu_langkah_guide_1794978244999.
 import shalatTakbirQiyamImg from "../assets/images/shalat_takbir_qiyam_1794978246391.jpg";
 import shalatRukuItidalImg from "../assets/images/shalat_ruku_itidal_1794978247256.jpg";
 import shalatSujudDudukImg from "../assets/images/shalat_sujud_duduk_1794978248666.jpg";
-import shalatTasyahhudSalamImg from "../assets/images/shalat_tasyahhud_salam_1794978249736.jpg";
+import shalatTasyahhudSalamImg from "../assets/images/shalat_tasyahhud_salam_1795075700000.jpg";
 
 export interface GuideStep {
   id: string;

@@ -118,12 +118,12 @@ export const WudhuShalatView: React.FC<WudhuShalatViewProps> = ({
       {tab === "wudhu" && (
         <section className="space-y-4">
           <div className="overflow-hidden rounded-2xl border border-[#e2e8e4] bg-white shadow-xs dark:border-slate-800 dark:bg-[#111A27]">
-            <div className="aspect-[16/9] w-full overflow-hidden bg-[#f4f7f5] dark:bg-[#0D1520]">
+            <div className="w-full bg-white p-2 sm:p-4">
               <img
                 src={WUDHU_OVERVIEW_IMAGE.src}
                 alt={WUDHU_OVERVIEW_IMAGE.alt}
                 referrerPolicy="no-referrer"
-                className="h-full w-full object-cover"
+                className="mx-auto block h-auto max-h-[460px] w-full object-contain"
               />
             </div>
             <div className="border-t border-[#e8eeea] px-4 py-3 text-xs text-[#5e6a62] dark:border-slate-800 dark:text-slate-300">
@@ -284,16 +284,16 @@ export const WudhuShalatView: React.FC<WudhuShalatViewProps> = ({
               className="scroll-mt-20 overflow-hidden rounded-2xl border border-[#e2e8e4] bg-white shadow-xs dark:border-slate-800 dark:bg-[#111A27]"
             >
               {step.image && (
-                <div className="border-b border-[#e8eeea] bg-[#f6f9f7] dark:border-slate-800 dark:bg-[#0D1520]">
-                  <div className="aspect-[16/9] w-full overflow-hidden">
+                <div className="border-b border-[#e8eeea] bg-white dark:border-slate-800 dark:bg-[#0D1520]">
+                  <div className="w-full bg-white p-2 sm:p-4">
                     <img
                       src={step.image.src}
                       alt={step.image.alt}
                       referrerPolicy="no-referrer"
-                      className="h-full w-full object-cover"
+                      className="mx-auto block h-auto max-h-[420px] w-full object-contain"
                     />
                   </div>
-                  <p className="px-4 py-2 text-[11px] font-medium text-[#5e6a62] dark:text-slate-400">
+                  <p className="border-t border-[#e8eeea] bg-[#f6f9f7] px-4 py-2 text-[11px] font-medium text-[#5e6a62] dark:border-slate-800 dark:bg-[#0D1520] dark:text-slate-400">
                     {step.image.caption}
                   </p>
                 </div>
