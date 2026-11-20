@@ -614,9 +614,10 @@ export const PrayerBanner: React.FC = () => {
 
         {/* Layer 2 (z-[1]): Mosque illustration in FRONT of the sun/moon */}
         <img
-          src="/assets/mosque-banner.png"
+          src="/assets/mosque-banner.webp"
           alt=""
           aria-hidden="true"
+          decoding="async"
           className={`pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[82%] w-full select-none object-contain object-bottom ${
             isLightSky ? "opacity-50 dark:opacity-30" : "opacity-35 dark:opacity-25"
           }`}

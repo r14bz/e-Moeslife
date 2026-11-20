@@ -221,7 +221,7 @@ export const DownloadView: React.FC<DownloadViewProps> = ({ localBooks, onNaviga
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 opacity-20 mix-blend-luminosity"
           style={{
-            backgroundImage: "url('/assets/mosque-banner.png')",
+            backgroundImage: "url('/assets/mosque-banner.webp')",
             backgroundPosition: "center 60%",
             backgroundSize: "cover",
           }}

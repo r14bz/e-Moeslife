@@ -580,27 +580,27 @@ export const HomeView: React.FC<HomeViewProps> = ({
         <button
           type="button"
           onClick={() => onNavigate({ view: "kitab-hub" })}
-          className="group mt-2.5 flex w-full items-center justify-between gap-3 rounded-2xl border border-[#dce4df] bg-white px-3.5 py-3 text-left shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-[#134a35] hover:bg-[#f8fbf9] sm:px-4 dark:border-slate-800 dark:bg-[#111A27] dark:hover:border-[#E2B354] dark:hover:bg-[#162233]"
+          className="group relative mt-2.5 flex w-full items-center justify-between gap-3 overflow-hidden rounded-2xl border border-[#0f3b2a] bg-gradient-to-r from-[#0f3d2b] via-[#134a35] to-[#1b5e44] px-3.5 py-3 text-left text-white shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md sm:px-4 dark:border-[#2a4562] dark:bg-gradient-to-r dark:from-[#102336] dark:via-[#152d46] dark:to-[#1b3a59]"
         >
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#cde2d7] bg-[#ebf5ef] text-[#134a35] dark:border-[#1f4235] dark:bg-[#142b23] dark:text-[#74d6ab]">
+          <div className="relative flex min-w-0 items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#e6c98e]/30 bg-white/10 text-[#f3d99d] dark:border-[#E2B354]/30 dark:bg-white/5 dark:text-[#E2B354]">
               <Library className="h-4.5 w-4.5" />
             </span>
             <div className="min-w-0">
-              <span className="block text-xs font-semibold text-[#103d2c] sm:text-sm dark:text-white">
+              <span className="block text-xs font-semibold text-white sm:text-sm">
                 Tampilkan semua kitab
               </span>
-              <span className="block truncate text-[11px] text-[#5e6a62] dark:text-slate-400">
+              <span className="block truncate text-[11px] text-[#e3ebe5] dark:text-slate-300">
                 Jelajahi seluruh {allBooks.length} kitab kuning lokal (100% offline)
               </span>
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
-            <span className="hidden text-xs font-semibold text-[#134a35] sm:inline dark:text-[#E2B354]">
+          <div className="relative flex shrink-0 items-center gap-2">
+            <span className="hidden text-xs font-semibold text-[#f3d99d] sm:inline dark:text-[#E2B354]">
               Buka perpustakaan
             </span>
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#eef4f0] text-[#134a35] transition-transform duration-200 group-hover:translate-x-0.5 dark:bg-[#182942] dark:text-[#E2B354]">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-[#f3d99d] transition-transform duration-200 group-hover:translate-x-0.5 dark:bg-white/10 dark:text-[#E2B354]">
               <ArrowRight className="h-3.5 w-3.5" />
             </span>
           </div>

@@ -1,14 +1,32 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
+import fs from "node:fs";
 import path from "path";
-import { defineConfig } from "vite";
+import { fileURLToPath } from "node:url";
+import { defineConfig, type Plugin } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
+
+const rootDir = path.dirname(fileURLToPath(import.meta.url));
+
+function stripAiStudioAttachments(): Plugin {
+  return {
+    name: "strip-aistudio-attachments",
+    apply: "build",
+    closeBundle() {
+      const target = path.join(rootDir, "dist", "assets", "aistudio");
+      if (fs.existsSync(target)) {
+        fs.rmSync(target, { recursive: true, force: true });
+      }
+    },
+  };
+}
 
 export default defineConfig(() => {
   return {
     plugins: [
       react(),
       tailwindcss(),
+      stripAiStudioAttachments(),
       VitePWA({
         registerType: "autoUpdate",
         includeAssets: [
@@ -22,7 +40,7 @@ export default defineConfig(() => {
           "assets/logo-mark.webp",
           "assets/logo-text.webp",
           "assets/collection-icon.webp",
-          "assets/mosque-banner.png",
+          "assets/mosque-banner.webp",
         ],
         manifest: {
           id: "/",
@@ -61,7 +79,7 @@ export default defineConfig(() => {
         workbox: {
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
           globPatterns: ["**/*.{js,css,html,ico,png,webp,svg,woff,woff2}"],
-          globIgnores: ["data/*.json"],
+          globIgnores: ["data/*.json", "assets/aistudio/**"],
           runtimeCaching: [
             {
               urlPattern: /\/data\/.*\.json$/i,
@@ -129,7 +147,26 @@ export default defineConfig(() => {
     ],
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "."),
+        "@": rootDir,
+      },
+    },
+    build: {
+      chunkSizeWarningLimit: 600,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes("node_modules")) return;
+            if (id.includes("/react/") || id.includes("/react-dom/") || id.includes("/scheduler/")) {
+              return "react-vendor";
+            }
+            if (id.includes("/@capacitor/")) {
+              return "capacitor-vendor";
+            }
+            if (id.includes("/lucide-react/")) {
+              return "icons-vendor";
+            }
+          },
+        },
       },
     },
     server: {

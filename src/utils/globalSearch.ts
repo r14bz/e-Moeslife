@@ -1,17 +1,6 @@
 import type { ClassicSection } from "../data/sections";
-import { CURATED_DAILY_PRAYERS } from "../data/dailyPrayers";
-import { KITAB_TASHRIF_DATA } from "../data/kitabTashrifData";
-import { TASHRIF_LUGHAWI_DATA } from "../data/tashrifLughawiData";
-import { ALFIYAH_DATA } from "../data/alfiyah";
-import { allImrithiBaits, imrithiBabs } from "../data/imrithi";
-import { semuaBabJurumiyah } from "../data/jurumiyah";
-import { aqidatulAwamBabs, aqidatulAwamBaits } from "../data/aqidatulAwam";
-import { baiquniyyahBabs, baiquniyyahBaits } from "../data/baiquniyyah";
-import { kitabNashoihulIbad } from "../data/nashoihul-ibad";
-import { semuaBabBukhari } from "../data/bukhari";
-import { semuaBabUqudulujain } from "../data/uqudulujain";
-import { SHALAT_INTENTIONS, SHALAT_STEPS, WUDHU_STEPS } from "../data/wudhuShalatGuide";
 import type { EQuranDoaItem, EQuranSurahSummary, LocalBookMeta } from "../types/emoeslife";
+import type { GuideStep, ShalatIntention } from "../data/wudhuShalatGuide";
 import { arrayAt, normalizeChapter, parseStructuredSafinah } from "./kitabEngine";
 
 export interface KitabSearchMatch {
@@ -73,6 +62,30 @@ const HEAVY_SLUGS = new Set(["bulughul", "muwatta", "jalalain", "muslim", "riyad
 const kitabChapterCache: Record<string, IndexedChapter[]> = {};
 let surahListCache: EQuranSurahSummary[] | null = null;
 let apiDoaCache: EQuranDoaItem[] | null = null;
+let curatedDoaCache: EQuranDoaItem[] | null = null;
+let guideDataCache: {
+  wudhuSteps: GuideStep[];
+  shalatIntentions: ShalatIntention[];
+  shalatSteps: GuideStep[];
+} | null = null;
+
+async function getCuratedPrayers(): Promise<EQuranDoaItem[]> {
+  if (curatedDoaCache) return curatedDoaCache;
+  const { CURATED_DAILY_PRAYERS } = await import("../data/dailyPrayers");
+  curatedDoaCache = CURATED_DAILY_PRAYERS;
+  return curatedDoaCache;
+}
+
+async function getGuideData() {
+  if (guideDataCache) return guideDataCache;
+  const { WUDHU_STEPS, SHALAT_INTENTIONS, SHALAT_STEPS } = await import("../data/wudhuShalatGuide");
+  guideDataCache = {
+    wudhuSteps: WUDHU_STEPS,
+    shalatIntentions: SHALAT_INTENTIONS,
+    shalatSteps: SHALAT_STEPS,
+  };
+  return guideDataCache;
+}
 
 function buildSnippet(text: string, query: string, maxLen = 130): string {
   const clean = text.replace(/\s+/g, " ").trim();
@@ -89,6 +102,10 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
   if (kitabChapterCache[book.slug]) return kitabChapterCache[book.slug];
 
   if (book.format === "tashrif") {
+    const [{ KITAB_TASHRIF_DATA }, { TASHRIF_LUGHAWI_DATA }] = await Promise.all([
+      import("../data/kitabTashrifData"),
+      import("../data/tashrifLughawiData"),
+    ]);
     const istilahiChapters: IndexedChapter[] = KITAB_TASHRIF_DATA.map((bab) => {
       const words = bab.rows
         .flatMap((row) => row.items.map(([arab, arti]) => `${arab} ${arti}`))
@@ -119,6 +136,7 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
   }
 
   if (book.format === "alfiyah") {
+    const { ALFIYAH_DATA } = await import("../data/alfiyah");
     const indexed: IndexedChapter[] = ALFIYAH_DATA.flatMap((juz) =>
       juz.babList.map((bab) => {
         const baitsText = bab.baitList
@@ -138,6 +156,7 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
   }
 
   if (book.format === "imrithi") {
+    const { allImrithiBaits, imrithiBabs } = await import("../data/imrithi");
     const indexed: IndexedChapter[] = imrithiBabs.map((bab) => {
       const baitsText = allImrithiBaits
         .filter((bait) => bait.babId === bab.id)
@@ -156,6 +175,7 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
   }
 
   if (book.format === "jurumiyah") {
+    const { semuaBabJurumiyah } = await import("../data/jurumiyah");
     const indexed: IndexedChapter[] = semuaBabJurumiyah.map((bab) => {
       const matanText = bab.isi
         .map((item) => `${item.arab} ${item.terjemahan} ${item.catatan || ""}`)
@@ -173,6 +193,7 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
   }
 
   if (book.format === "aqidatul-awam") {
+    const { aqidatulAwamBabs, aqidatulAwamBaits } = await import("../data/aqidatulAwam");
     const indexed: IndexedChapter[] = aqidatulAwamBabs.map((bab) => {
       const baitsText = aqidatulAwamBaits
         .filter((bait) => bait.babId === bab.id)
@@ -191,6 +212,7 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
   }
 
   if (book.format === "baiquniyyah") {
+    const { baiquniyyahBabs, baiquniyyahBaits } = await import("../data/baiquniyyah");
     const indexed: IndexedChapter[] = baiquniyyahBabs.map((bab) => {
       const baitsText = baiquniyyahBaits
         .filter((bait) => bait.babId === bab.id)
@@ -209,6 +231,7 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
   }
 
   if (book.format === "nashoihul-ibad") {
+    const { kitabNashoihulIbad } = await import("../data/nashoihul-ibad");
     const indexed: IndexedChapter[] = kitabNashoihulIbad.map((bab) => {
       const maqalahText = bab.daftarMaqalah
         .map((m) => {
@@ -231,6 +254,7 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
   }
 
   if (book.format === "bukhari") {
+    const { semuaBabBukhari } = await import("../data/bukhari");
     const indexed: IndexedChapter[] = semuaBabBukhari.map((bab) => {
       const hadisText = bab.isi
         .map((item) => `${item.sanadRingkas || ""} ${item.arab} ${item.terjemahan} ${item.catatan || ""}`)
@@ -248,6 +272,7 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
   }
 
   if (book.format === "uqudulujain") {
+    const { semuaBabUqudulujain } = await import("../data/uqudulujain");
     const indexed: IndexedChapter[] = semuaBabUqudulujain.map((bab) => {
       const itemsText = bab.isi
         .map((item) => `${item.sanadRingkas || ""} ${item.arab} ${item.terjemahan} ${item.catatan || ""}`)
@@ -312,21 +337,67 @@ async function getSurahList(signal?: AbortSignal): Promise<EQuranSurahSummary[]>
 
 async function getAllDoaItems(signal?: AbortSignal): Promise<EQuranDoaItem[]> {
   if (apiDoaCache) return apiDoaCache;
+  const curated = await getCuratedPrayers();
   try {
     const res = await fetch("https://equran.id/api/doa", { signal });
-    if (!res.ok) return CURATED_DAILY_PRAYERS;
+    if (!res.ok) return curated;
     const json = (await res.json()) as { data?: EQuranDoaItem[] } | EQuranDoaItem[];
     const arr = Array.isArray(json) ? json : Array.isArray(json.data) ? json.data : [];
-    const seen = new Set(CURATED_DAILY_PRAYERS.map((d) => (d.nama || "").toLocaleLowerCase("id")));
+    const seen = new Set(curated.map((d) => (d.nama || "").toLocaleLowerCase("id")));
     const merged = [
-      ...CURATED_DAILY_PRAYERS,
+      ...curated,
       ...arr.filter((item) => item.nama && !seen.has(item.nama.toLocaleLowerCase("id"))),
     ];
     apiDoaCache = merged;
     return merged;
   } catch {
-    return CURATED_DAILY_PRAYERS;
+    return curated;
   }
+}
+
+function searchGuideData(
+  data: {
+    wudhuSteps: GuideStep[];
+    shalatIntentions: ShalatIntention[];
+    shalatSteps: GuideStep[];
+  },
+  q: string
+): GuideSearchMatch[] {
+  const guide: GuideSearchMatch[] = [];
+  for (const step of data.wudhuSteps) {
+    const hay = `${step.title} ${step.badge} ${step.summary} ${step.latin || ""} ${step.translation || ""}`.toLocaleLowerCase("id");
+    if (hay.includes(q)) {
+      guide.push({
+        tab: "wudhu",
+        title: `Wudhu · ${step.title}`,
+        subtitle: step.badge,
+        snippet: buildSnippet(step.translation || step.summary, q),
+      });
+    }
+  }
+  for (const intent of data.shalatIntentions) {
+    const hay = `${intent.name} ${intent.rakaat} ${intent.latin} ${intent.translation}`.toLocaleLowerCase("id");
+    if (hay.includes(q)) {
+      guide.push({
+        tab: "shalat",
+        title: `Niat ${intent.name}`,
+        subtitle: intent.rakaat,
+        snippet: buildSnippet(intent.translation, q),
+      });
+    }
+  }
+  for (const step of data.shalatSteps) {
+    const hay = `${step.title} ${step.badge} ${step.summary} ${step.latin || ""} ${step.translation || ""}`.toLocaleLowerCase("id");
+    if (hay.includes(q)) {
+      guide.push({
+        tab: "shalat",
+        title: `Shalat · ${step.title}`,
+        subtitle: step.badge,
+        snippet: buildSnippet(step.translation || step.summary, q),
+      });
+    }
+  }
+  return guide.slice(0, 5);
 }
 
 export function runInstantGlobalSearch({
@@ -383,42 +454,9 @@ export function runInstantGlobalSearch({
     }
   }
 
-  const guide: GuideSearchMatch[] = [];
-  for (const step of WUDHU_STEPS) {
-    const hay = `${step.title} ${step.badge} ${step.summary} ${step.latin || ""} ${step.translation || ""}`.toLocaleLowerCase("id");
-    if (hay.includes(q)) {
-      guide.push({
-        tab: "wudhu",
-        title: `Wudhu · ${step.title}`,
-        subtitle: step.badge,
-        snippet: buildSnippet(step.translation || step.summary, q),
-      });
-    }
-  }
-  for (const intent of SHALAT_INTENTIONS) {
-    const hay = `${intent.name} ${intent.rakaat} ${intent.latin} ${intent.translation}`.toLocaleLowerCase("id");
-    if (hay.includes(q)) {
-      guide.push({
-        tab: "shalat",
-        title: `Niat ${intent.name}`,
-        subtitle: intent.rakaat,
-        snippet: buildSnippet(intent.translation, q),
-      });
-    }
-  }
-  for (const step of SHALAT_STEPS) {
-    const hay = `${step.title} ${step.badge} ${step.summary} ${step.latin || ""} ${step.translation || ""}`.toLocaleLowerCase("id");
-    if (hay.includes(q)) {
-      guide.push({
-        tab: "shalat",
-        title: `Shalat · ${step.title}`,
-        subtitle: step.badge,
-        snippet: buildSnippet(step.translation || step.summary, q),
-      });
-    }
-  }
+  const guide = guideDataCache ? searchGuideData(guideDataCache, q) : [];
 
-  const doaList = apiDoaCache || CURATED_DAILY_PRAYERS;
+  const doaList = apiDoaCache || curatedDoaCache || [];
   const doa: DoaSearchMatch[] = [];
   for (const item of doaList) {
     const hay = [item.nama, item.grup, item.tentang, item.tr, item.idn, ...(item.tag || [])]
@@ -497,6 +535,7 @@ export async function runDeepGlobalSearch({
 
   let currentQuran = [...base.quran];
   let currentDoa = [...base.doa];
+  let currentGuide = [...base.guide];
 
   const emit = (searching: boolean, searchingHeavy = false) => {
     if (signal.aborted) return;
@@ -504,7 +543,7 @@ export async function runDeepGlobalSearch({
       kitab: Array.from(kitabMatches.values()).slice(0, 16),
       quran: currentQuran.slice(0, 10),
       doa: currentDoa.slice(0, 8),
-      guide: base.guide,
+      guide: currentGuide,
       classic: base.classic,
       heavyBooksSearched: includeHeavyBooks,
       searching,
@@ -513,6 +552,17 @@ export async function runDeepGlobalSearch({
   };
 
   emit(true, includeHeavyBooks);
+
+  const guideTask = (async () => {
+    try {
+      const data = await getGuideData();
+      if (signal.aborted) return;
+      currentGuide = searchGuideData(data, q);
+      emit(true, includeHeavyBooks);
+    } catch {
+      // ignore
+    }
+  })();
 
   // 1. Fetch & search Surah metadata + Indonesian verse translation (if >= 3 chars)
   const quranTask = (async () => {
@@ -644,6 +694,6 @@ export async function runDeepGlobalSearch({
     }
   })();
 
-  await Promise.allSettled([quranTask, doaTask, kitabTask]);
+  await Promise.allSettled([guideTask, quranTask, doaTask, kitabTask]);
   emit(false, false);
 }

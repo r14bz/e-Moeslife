@@ -22,18 +22,18 @@ export interface ShalatIntention {
 
 export const WUDHU_RUKUN: ReadonlyArray<string> = [
   "Niat di dalam hati saat mulai membasuh wajah.",
-  "Membasuh seluruh area wajah (dari tumbuhnya rambut kepala hingga dagu, dan antara kedua telinga).",
-  "Membasuh kedua tangan hingga melewati kedua siku.",
-  "Mengusap sebagian kepala (atau rambut kepala).",
-  "Membasuh kedua kaki hingga melewati kedua mata kaki.",
-  "Tertib (dilakukan berurutan sebagaimana rukun di atas).",
+  "Membasuh seluruh area wajah (dari batas tumbuh rambut kepala hingga dagu, dan antara kedua telinga).",
+  "Membasuh kedua tangan beserta kedua siku.",
+  "Mengusap sebagian kepala (kulit atau rambut kepala).",
+  "Membasuh kedua kaki beserta kedua mata kaki.",
+  "Tertib (dilakukan berurutan sebagaimana urutan di atas).",
 ];
 
 export const WUDHU_BATAL: ReadonlyArray<string> = [
-  "Keluar sesuatu dari qubul atau dubur (kentut, buang air kecil, buang air besar).",
-  "Hilang akal karena tidur nyenyak (kecuali duduk mantap yang tidak bergeser), pingsan, atau mabuk.",
-  "Bersentuhan kulit antara laki-laki dan perempuan dewasa bukan mahram tanpa penghalang (menurut mazhab Syafi'i).",
-  "Menyentuh kemaluan atau dubur dengan telapak tangan atau jari bagian dalam tanpa alas.",
+  "Keluar sesuatu dari salah satu dua jalan (qubul atau dubur) berupa angin/kentut, air kencing, tinja, atau lainnya selain air mani.",
+  "Hilang akal karena tidur atau sebab lain (gila, pingsan, mabuk), kecuali tidur dalam keadaan duduk yang mantap merapatkan tempat duduk ke lantai/tanah.",
+  "Bersentuhan kulit secara langsung antara laki-laki dan perempuan dewasa bukan mahram tanpa ada penghalang (menurut mazhab Syafi'i).",
+  "Menyentuh kemaluan manusia atau lingkar dubur dengan telapak tangan atau bagian dalam jari-jemari tanpa alas.",
 ];
 
 export const WUDHU_STEPS: GuideStep[] = [
@@ -115,19 +115,23 @@ export const WUDHU_STEPS: GuideStep[] = [
 ];
 
 export const SHALAT_RUKUN: ReadonlyArray<string> = [
-  "Niat di dalam hati saat takbiratul ihram.",
+  "Niat di dalam hati bersamaan dengan takbiratul ihram.",
+  "Takbiratul ihram (mengucapkan lafaz \"Allāhu Akbar\").",
   "Berdiri tegak bagi yang mampu pada shalat fardhu.",
-  "Takbiratul ihram (Allāhu Akbar).",
   "Membaca Surah Al-Fatihah pada setiap rakaat.",
-  "Ruku' dengan thuma'ninah.",
-  "I'tidal dengan thuma'ninah.",
-  "Sujud dua kali setiap rakaat dengan thuma'ninah.",
-  "Duduk di antara dua sujud dengan thuma'ninah.",
-  "Duduk tasyahhud akhir.",
-  "Membaca doa tasyahhud akhir.",
+  "Ruku'.",
+  "Thuma'ninah (diam dan tenang sejenak) saat ruku'.",
+  "I'tidal (bangkit berdiri tegak kembali setelah ruku').",
+  "Thuma'ninah (diam dan tenang sejenak) saat i'tidal.",
+  "Bersujud dua kali pada setiap rakaat.",
+  "Thuma'ninah (diam dan tenang sejenak) saat sujud.",
+  "Duduk di antara dua sujud.",
+  "Thuma'ninah (diam dan tenang sejenak) saat duduk di antara dua sujud.",
+  "Membaca tasyahhud akhir.",
+  "Duduk pada waktu tasyahhud akhir.",
   "Membaca shalawat kepada Nabi Muhammad SAW pada tasyahhud akhir.",
   "Mengucapkan salam pertama sambil menoleh ke kanan.",
-  "Tertib (berurutan sesuai urutan rukun).",
+  "Tertib (mengerjakan seluruh rukun secara berurutan).",
 ];
 
 export const SHALAT_INTENTIONS: ShalatIntention[] = [
@@ -217,10 +221,10 @@ export const SHALAT_STEPS: GuideStep[] = [
   {
     id: "shalat-4",
     number: "04",
-    title: "Ruku' dengan Thuma'ninah",
-    badge: "Rukun 5",
+    title: "Ruku' & Thuma'ninah saat Ruku'",
+    badge: "Rukun 5–6",
     summary:
-      "Bungkukkan badan hingga punggung dan kepala rata (sejajar 90 derajat), kedua telapak tangan memegang lutut dengan jari agak direnggangkan. Tunggu sejenak (thuma'ninah) lalu baca tasbih ruku' sebanyak 3 kali.",
+      "Bungkukkan badan hingga punggung dan kepala rata (sejajar 90 derajat), kedua telapak tangan memegang lutut dengan jari agak direnggangkan. Tenang sejenak dengan thuma'ninah (diam sekadar bacaan Subḥānallāh) lalu baca tasbih ruku' sebanyak 3 kali.",
     arabic: "سُبْحَانَ رَبِّيَ الْعَظِيْمِ وَبِحَمْدِهِ (٣×)",
     latin: "Subḥāna rabbiyal-'aẓīmi wa biḥamdih (3×).",
     translation: "Mahasuci Tuhanku Yang Maha Agung dan segala puji bagi-Nya.",
@@ -228,10 +232,10 @@ export const SHALAT_STEPS: GuideStep[] = [
   {
     id: "shalat-5",
     number: "05",
-    title: "I'tidal (Bangkit dari Ruku')",
-    badge: "Rukun 6",
+    title: "I'tidal & Thuma'ninah saat I'tidal",
+    badge: "Rukun 7–8",
     summary:
-      "Bangkit berdiri tegak kembali sambil mengangkat kedua tangan sebagaimana saat takbiratul ihram dan membaca tasmi', lalu membaca tahmid i'tidal dengan tenang.",
+      "Bangkit berdiri tegak kembali setelah ruku' sambil mengangkat kedua tangan sebagaimana takbiratul ihram dan membaca tasmi'. Diam sejenak dengan thuma'ninah lalu membaca tahmid i'tidal.",
     arabic:
       "سَمِعَ اللّٰهُ لِمَنْ حَمِدَهُ. رَبَّنَا لَكَ الْحَمْدُ مِلْءُ السَّمٰوٰتِ وَمِلْءُ الْأَرْضِ وَمِلْءُ مَا شِئْتَ مِنْ شَيْءٍ بَعْدُ",
     latin:
@@ -259,10 +263,10 @@ export const SHALAT_STEPS: GuideStep[] = [
   {
     id: "shalat-6",
     number: "07",
-    title: "Sujud Pertama & Kedua",
-    badge: "Rukun 7",
+    title: "Sujud Pertama & Kedua beserta Thuma'ninah",
+    badge: "Rukun 9–10",
     summary:
-      "Turun bertumpu dengan kedua lutut lalu meletakkan tujuh anggota sujud ke sajadah: dahi dan hidung menempel, kedua telapak tangan sejajar bahu/telinga, kedua lutut, dan ujung jari kedua kaki menghadap kiblat. Baca tasbih sujud 3 kali.",
+      "Turun bertumpu dengan kedua lutut lalu meletakkan tujuh anggota sujud ke sajadah: dahi (terbuka) beserta hidung, kedua telapak tangan sejajar bahu/telinga, kedua lutut, dan ujung jari kedua kaki menghadap kiblat. Tenang sejenak dengan thuma'ninah lalu baca tasbih sujud 3 kali.",
     movement: "Pastikan siku terangkat (tidak menempel ke lantai) dan perut agak renggang dari paha.",
     arabic: "سُبْحَانَ رَبِّيَ الْأَعْلٰى وَبِحَمْدِهِ (٣×)",
     latin: "Subḥāna rabbiyal-a'lā wa biḥamdih (3×).",
@@ -271,10 +275,10 @@ export const SHALAT_STEPS: GuideStep[] = [
   {
     id: "shalat-7",
     number: "08",
-    title: "Duduk di Antara Dua Sujud",
-    badge: "Rukun 8",
+    title: "Duduk di Antara Dua Sujud & Thuma'ninah",
+    badge: "Rukun 11–12",
     summary:
-      "Bangun dari sujud pertama lalu duduk iftirasy (duduk di atas kaki kiri sedangkan telapak kaki kanan ditegakkan). Letakkan kedua telapak tangan di atas paha dekat lutut, lalu baca doa dengan tenang.",
+      "Bangun dari sujud pertama lalu duduk iftirasy (duduk di atas kaki kiri sedangkan telapak kaki kanan ditegakkan). Letakkan kedua telapak tangan di atas paha dekat lutut, diam sejenak dengan thuma'ninah, lalu baca doa dengan tenang.",
     arabic:
       "رَبِّ اغْفِرْ لِيْ وَارْحَمْنِيْ وَاجْبُرْنِيْ وَارْفَعْنِيْ وَارْزُقْنِيْ وَاهْدِنِيْ وَعَافِنِيْ وَاعْفُ عَنِّيْ",
     latin:
@@ -299,25 +303,25 @@ export const SHALAT_STEPS: GuideStep[] = [
   {
     id: "shalat-9",
     number: "10",
-    title: "Tasyahhud Akhir & Shalawat Ibrahimiyah",
-    badge: "Rukun 9–11",
+    title: "Tasyahhud Akhir, Duduk & Shalawat Ibrahimiyah",
+    badge: "Rukun 13–15",
     summary:
-      "Pada rakaat terakhir, duduk tawarruk (pantat kiri menyentuh lantai, kaki kiri dimasukkan di bawah betis kanan, kaki kanan ditegakkan). Baca tasyahhud beserta shalawat Ibrahimiyah lengkap.",
+      "Pada rakaat terakhir, duduk tawarruk (pantat kiri menyentuh lantai, kaki kiri dimasukkan di bawah betis kanan, telapak kaki kanan ditegakkan). Baca kalimat tasyahhud lengkap beserta shalawat kepada Nabi Muhammad SAW (Shalawat Ibrahimiyah).",
     arabic:
-      "اَللّٰهُمَّ صَلِّ عَلٰى سَيِّدِنَا مُحَمَّدٍ وَعَلٰى آلِ سَيِّدِنَا مُحَمَّدٍ كَمَا صَلَّيْتَ عَلٰى سَيِّدِنَا إِبْرَاهِيْمَ وَعَلٰى آلِ سَيِّدِنَا إِبْرَاهِيْمَ، وَبَارِكْ عَلٰى سَيِّدِنَا مُحَمَّدٍ وَعَلٰى آلِ سَيِّدِنَا مُحَمَّدٍ كَمَا بَارَكْتَ عَلٰى سَيِّدِنَا إِبْرَاهِيْمَ وَعَلٰى آلِ سَيِّدِنَا إِبْرَاهِيْمَ فِي الْعٰلَمِيْنَ إِنَّكَ حَمِيْدٌ مَجِيْدٌ",
+      "اَلتَّحِيَّاتُ الْمُبَارَكَاتُ الصَّلَوَاتُ الطَّيِّبَاتُ لِلّٰهِ. اَلسَّلَامُ عَلَيْكَ أَيُّهَا النَّبِيُّ وَرَحْمَةُ اللّٰهِ وَبَرَكَاتُهُ. اَلسَّلَامُ عَلَيْنَا وَعَلٰى عِبَادِ اللّٰهِ الصَّالِحِيْنَ. أَشْهَدُ أَنْ لَا إِلٰهَ إِلَّا اللّٰهُ وَأَشْهَدُ أَنَّ مُحَمَّدًا رَسُوْلُ اللّٰهِ.\n\nاَللّٰهُمَّ صَلِّ عَلٰى سَيِّدِنَا مُحَمَّدٍ وَعَلٰى آلِ سَيِّدِنَا مُحَمَّدٍ كَمَا صَلَّيْتَ عَلٰى سَيِّدِنَا إِبْرَاهِيْمَ وَعَلٰى آلِ سَيِّدِنَا إِبْرَاهِيْمَ، وَبَارِكْ عَلٰى سَيِّدِنَا مُحَمَّدٍ وَعَلٰى آلِ سَيِّدِنَا مُحَمَّدٍ كَمَا بَارَكْتَ عَلٰى سَيِّدِنَا إِبْرَاهِيْمَ وَعَلٰى آلِ سَيِّدِنَا إِبْرَاهِيْمَ فِي الْعٰلَمِيْنَ إِنَّكَ حَمِيْدٌ مَجِيْدٌ",
     latin:
-      "Allāhumma ṣalli 'alā sayyidinā Muḥammad wa 'alā āli sayyidinā Muḥammad kamā ṣallaita 'alā sayyidinā Ibrāhīm wa 'alā āli sayyidinā Ibrāhīm, wa bārik 'alā sayyidinā Muḥammad wa 'alā āli sayyidinā Muḥammad kamā bārakta 'alā sayyidinā Ibrāhīm wa 'alā āli sayyidinā Ibrāhīm fil-'ālamīna innaka ḥamīdum-majīd.",
+      "At-taḥiyyātul-mubārakātuṣ-ṣalawātuṭ-ṭayyibātu lillāh. As-salāmu 'alaika ayyuhan-nabiyyu wa raḥmatullāhi wa barakātuh. As-salāmu 'alainā wa 'alā 'ibādillāhiṣ-ṣāliḥīn. Asyhadu allā ilāha illallāhu wa asyhadu anna Muḥammadar-rasūlullāh. Allāhumma ṣalli 'alā sayyidinā Muḥammad wa 'alā āli sayyidinā Muḥammad kamā ṣallaita 'alā sayyidinā Ibrāhīm wa 'alā āli sayyidinā Ibrāhīm, wa bārik 'alā sayyidinā Muḥammad wa 'alā āli sayyidinā Muḥammad kamā bārakta 'alā sayyidinā Ibrāhīm wa 'alā āli sayyidinā Ibrāhīm fil-'ālamīna innaka ḥamīdum-majīd.",
     translation:
-      "Ya Allah, limpahkanlah rahmat kepada junjungan kami Nabi Muhammad dan keluarganya sebagaimana Engkau limpahkan rahmat kepada Nabi Ibrahim dan keluarganya. Dan berkahilah Nabi Muhammad dan keluarganya sebagaimana Engkau berkahi Nabi Ibrahim dan keluarganya di seluruh alam. Sungguh Engkau Maha Terpuji lagi Maha Mulia.",
-    note: "Sebelum salam, sangat dianjurkan membaca doa perlindungan dari siksa kubur, neraka, fitnah hidup dan mati, serta fitnah Dajjal.",
+      "Segala kehormatan, keberkahan, rahmat, dan kebaikan adalah milik Allah. Semoga keselamatan, rahmat Allah, dan berkah-Nya tercurah kepadamu wahai Nabi. Semoga keselamatan juga tercurah kepada kami dan hamba-hamba Allah yang saleh. Aku bersaksi tiada Tuhan selain Allah, dan aku bersaksi Nabi Muhammad utusan Allah. Ya Allah, limpahkanlah rahmat kepada junjungan kami Nabi Muhammad dan keluarganya sebagaimana Engkau limpahkan rahmat kepada Nabi Ibrahim dan keluarganya, dan berkahilah Nabi Muhammad beserta keluarganya sebagaimana Engkau berkahi Nabi Ibrahim dan keluarganya di seluruh alam. Sungguh Engkau Maha Terpuji lagi Maha Mulia.",
+    note: "Sebelum salam, sangat dianjurkan membaca doa perlindungan dari siksa kubur, azab neraka, fitnah hidup dan mati, serta fitnah Dajjal.",
   },
   {
     id: "shalat-10",
     number: "11",
-    title: "Salam ke Kanan & ke Kiri",
-    badge: "Rukun 12–13",
+    title: "Salam ke Kanan & ke Kiri (Tertib)",
+    badge: "Rukun 16–17",
     summary:
-      "Menoleh ke bahu kanan hingga pipi kanan tampak dari belakang sambil mengucapkan salam pertama (wajib), kemudian menoleh ke bahu kiri sambil mengucapkan salam kedua (sunnah).",
+      "Menoleh ke bahu kanan hingga pipi kanan tampak dari belakang sambil mengucapkan salam pertama (rukun ke-16), kemudian menoleh ke bahu kiri sambil mengucapkan salam kedua (sunnah). Seluruh rangkaian rukun shalat ini wajib dikerjakan secara berurutan/tertib (rukun ke-17).",
     arabic: "اَلسَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللّٰهِ",
     latin: "As-salāmu 'alaikum wa raḥmatullāh.",
     translation: "Semoga keselamatan dan rahmat Allah tercurah atas kalian.",

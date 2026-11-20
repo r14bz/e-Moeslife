@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { buildClassicSections, type ClassicSection } from "./data/sections";
 import type {
   AppRoute,
@@ -17,34 +17,6 @@ import {
 import { LOCAL_BOOKS } from "./utils/kitabEngine";
 import { AppShell } from "./components/AppShell";
 import { HomeView } from "./components/HomeView";
-import { BacaanHubView } from "./components/BacaanHubView";
-import { ClassicReaderView } from "./components/ClassicReaderView";
-import { QuranStudioView } from "./components/QuranStudioView";
-import { KitabHubView } from "./components/KitabHubView";
-import { LocalKitabView } from "./components/LocalKitabView";
-import { TashrifKitabPage } from "./components/TashrifKitabPage";
-import { AlfiyahKitabPage } from "./components/AlfiyahKitabPage";
-import { ImrithiKitabPage } from "./components/ImrithiKitabPage";
-import { JurumiyahKitabPage } from "./components/JurumiyahKitabPage";
-import { AqidatulAwamKitabPage } from "./components/AqidatulAwamKitabPage";
-import { BaiquniyyahKitabPage } from "./components/BaiquniyyahKitabPage";
-import { NashoihulIbadKitabPage } from "./components/NashoihulIbadKitabPage";
-import { BukhariKitabPage } from "./components/BukhariKitabPage";
-import { UqudulujainKitabPage } from "./components/UqudulujainKitabPage";
-import { ApiKitabView } from "./components/ApiKitabView";
-import { NearbyMosquesView } from "./components/NearbyMosquesView";
-import { DownloadView } from "./components/DownloadView";
-import { WudhuShalatView } from "./components/WudhuShalatView";
-import { ApkUpdatePrompt } from "./components/ApkUpdatePrompt";
-import { KITAB_TASHRIF_DATA } from "./data/kitabTashrifData";
-import { ALFIYAH_DATA } from "./data/alfiyah";
-import { imrithiBabs } from "./data/imrithi";
-import { semuaBabJurumiyah } from "./data/jurumiyah";
-import { aqidatulAwamBabs } from "./data/aqidatulAwam";
-import { baiquniyyahBabs } from "./data/baiquniyyah";
-import { kitabNashoihulIbad } from "./data/nashoihul-ibad";
-import { semuaBabBukhari } from "./data/bukhari";
-import { semuaBabUqudulujain } from "./data/uqudulujain";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { consumePendingNativeUpdateOpen } from "./services/apkInstaller";
 import {
@@ -56,6 +28,73 @@ import {
   type ApkReleaseInfo,
 } from "./services/apkUpdater";
 import { requestStartupPermissionsOnLaunch } from "./services/locationService";
+
+const BacaanHubView = lazy(() =>
+  import("./components/BacaanHubView").then((m) => ({ default: m.BacaanHubView }))
+);
+const ClassicReaderView = lazy(() =>
+  import("./components/ClassicReaderView").then((m) => ({ default: m.ClassicReaderView }))
+);
+const QuranStudioView = lazy(() =>
+  import("./components/QuranStudioView").then((m) => ({ default: m.QuranStudioView }))
+);
+const KitabHubView = lazy(() =>
+  import("./components/KitabHubView").then((m) => ({ default: m.KitabHubView }))
+);
+const LocalKitabView = lazy(() =>
+  import("./components/LocalKitabView").then((m) => ({ default: m.LocalKitabView }))
+);
+const TashrifKitabPage = lazy(() =>
+  import("./components/TashrifKitabPage").then((m) => ({ default: m.TashrifKitabPage }))
+);
+const AlfiyahKitabPage = lazy(() =>
+  import("./components/AlfiyahKitabPage").then((m) => ({ default: m.AlfiyahKitabPage }))
+);
+const ImrithiKitabPage = lazy(() =>
+  import("./components/ImrithiKitabPage").then((m) => ({ default: m.ImrithiKitabPage }))
+);
+const JurumiyahKitabPage = lazy(() =>
+  import("./components/JurumiyahKitabPage").then((m) => ({ default: m.JurumiyahKitabPage }))
+);
+const AqidatulAwamKitabPage = lazy(() =>
+  import("./components/AqidatulAwamKitabPage").then((m) => ({ default: m.AqidatulAwamKitabPage }))
+);
+const BaiquniyyahKitabPage = lazy(() =>
+  import("./components/BaiquniyyahKitabPage").then((m) => ({ default: m.BaiquniyyahKitabPage }))
+);
+const NashoihulIbadKitabPage = lazy(() =>
+  import("./components/NashoihulIbadKitabPage").then((m) => ({ default: m.NashoihulIbadKitabPage }))
+);
+const BukhariKitabPage = lazy(() =>
+  import("./components/BukhariKitabPage").then((m) => ({ default: m.BukhariKitabPage }))
+);
+const UqudulujainKitabPage = lazy(() =>
+  import("./components/UqudulujainKitabPage").then((m) => ({ default: m.UqudulujainKitabPage }))
+);
+const ApiKitabView = lazy(() =>
+  import("./components/ApiKitabView").then((m) => ({ default: m.ApiKitabView }))
+);
+const NearbyMosquesView = lazy(() =>
+  import("./components/NearbyMosquesView").then((m) => ({ default: m.NearbyMosquesView }))
+);
+const DownloadView = lazy(() =>
+  import("./components/DownloadView").then((m) => ({ default: m.DownloadView }))
+);
+const WudhuShalatView = lazy(() =>
+  import("./components/WudhuShalatView").then((m) => ({ default: m.WudhuShalatView }))
+);
+const ApkUpdatePrompt = lazy(() =>
+  import("./components/ApkUpdatePrompt").then((m) => ({ default: m.ApkUpdatePrompt }))
+);
+
+const RouteLoadingFallback = () => (
+  <div
+    style={{ color: "var(--tashrif-muted)" }}
+    className="mx-auto flex min-h-[45vh] max-w-2xl items-center justify-center px-4 text-xs font-semibold"
+  >
+    Memuat halaman…
+  </div>
+);
 
 const FONT_SIZES: FontSizeScale[] = ["small", "normal", "large"];
 
@@ -318,12 +357,15 @@ export function App() {
   }, []);
 
   const openBook = useCallback(
-    (book: LocalBookMeta, chapterIndex?: number) => {
+    async (book: LocalBookMeta, chapterIndex?: number) => {
       if (book.format === "tashrif") {
-        const tab =
-          typeof chapterIndex === "number" && chapterIndex >= KITAB_TASHRIF_DATA.length
-            ? "lughawi"
-            : "istilahi";
+        let tab: "istilahi" | "lughawi" = "istilahi";
+        if (typeof chapterIndex === "number") {
+          const { KITAB_TASHRIF_DATA } = await import("./data/kitabTashrifData");
+          if (chapterIndex >= KITAB_TASHRIF_DATA.length) {
+            tab = "lughawi";
+          }
+        }
         navigate({ view: "tashrif-kitab", tab });
         return;
       }
@@ -331,6 +373,7 @@ export function App() {
         let juz = 1;
         let babIndex = 0;
         if (typeof chapterIndex === "number" && chapterIndex >= 0) {
+          const { ALFIYAH_DATA } = await import("./data/alfiyah");
           let offset = chapterIndex;
           for (const item of ALFIYAH_DATA) {
             if (offset < item.babList.length) {
@@ -345,58 +388,65 @@ export function App() {
         return;
       }
       if (book.format === "imrithi") {
-        const babId =
-          typeof chapterIndex === "number" && imrithiBabs[chapterIndex]
-            ? imrithiBabs[chapterIndex].id
-            : undefined;
+        let babId: string | undefined;
+        if (typeof chapterIndex === "number") {
+          const { imrithiBabs } = await import("./data/imrithi");
+          babId = imrithiBabs[chapterIndex]?.id;
+        }
         navigate({ view: "imrithi-kitab", babId });
         return;
       }
       if (book.format === "jurumiyah") {
-        const babId =
-          typeof chapterIndex === "number" && semuaBabJurumiyah[chapterIndex]
-            ? semuaBabJurumiyah[chapterIndex].id
-            : undefined;
+        let babId: number | undefined;
+        if (typeof chapterIndex === "number") {
+          const { semuaBabJurumiyah } = await import("./data/jurumiyah");
+          babId = semuaBabJurumiyah[chapterIndex]?.id;
+        }
         navigate({ view: "jurumiyah-kitab", babId });
         return;
       }
       if (book.format === "aqidatul-awam") {
-        const babId =
-          typeof chapterIndex === "number" && aqidatulAwamBabs[chapterIndex]
-            ? aqidatulAwamBabs[chapterIndex].id
-            : undefined;
+        let babId: string | undefined;
+        if (typeof chapterIndex === "number") {
+          const { aqidatulAwamBabs } = await import("./data/aqidatulAwam");
+          babId = aqidatulAwamBabs[chapterIndex]?.id;
+        }
         navigate({ view: "aqidatul-awam-kitab", babId });
         return;
       }
       if (book.format === "baiquniyyah") {
-        const babId =
-          typeof chapterIndex === "number" && baiquniyyahBabs[chapterIndex]
-            ? baiquniyyahBabs[chapterIndex].id
-            : undefined;
+        let babId: string | undefined;
+        if (typeof chapterIndex === "number") {
+          const { baiquniyyahBabs } = await import("./data/baiquniyyah");
+          babId = baiquniyyahBabs[chapterIndex]?.id;
+        }
         navigate({ view: "baiquniyyah-kitab", babId });
         return;
       }
       if (book.format === "nashoihul-ibad") {
-        const babId =
-          typeof chapterIndex === "number" && kitabNashoihulIbad[chapterIndex]
-            ? kitabNashoihulIbad[chapterIndex].id
-            : undefined;
+        let babId: string | undefined;
+        if (typeof chapterIndex === "number") {
+          const { kitabNashoihulIbad } = await import("./data/nashoihul-ibad");
+          babId = kitabNashoihulIbad[chapterIndex]?.id;
+        }
         navigate({ view: "nashoihul-kitab", babId });
         return;
       }
       if (book.format === "bukhari") {
-        const babId =
-          typeof chapterIndex === "number" && semuaBabBukhari[chapterIndex]
-            ? semuaBabBukhari[chapterIndex].id
-            : undefined;
+        let babId: number | undefined;
+        if (typeof chapterIndex === "number") {
+          const { semuaBabBukhari } = await import("./data/bukhari");
+          babId = semuaBabBukhari[chapterIndex]?.id;
+        }
         navigate({ view: "bukhari-kitab", babId });
         return;
       }
       if (book.format === "uqudulujain") {
-        const babId =
-          typeof chapterIndex === "number" && semuaBabUqudulujain[chapterIndex]
-            ? semuaBabUqudulujain[chapterIndex].id
-            : undefined;
+        let babId: number | undefined;
+        if (typeof chapterIndex === "number") {
+          const { semuaBabUqudulujain } = await import("./data/uqudulujain");
+          babId = semuaBabUqudulujain[chapterIndex]?.id;
+        }
         navigate({ view: "uqudulujain-kitab", babId });
         return;
       }
@@ -443,6 +493,7 @@ export function App() {
         onToggleTheme={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
         onCheckApkUpdate={isNativeAndroidApp() ? handleManualApkUpdateCheck : undefined}
       >
+      <Suspense fallback={<RouteLoadingFallback />}>
       {route.view === "home" && (
         <HomeView
           sections={sections}
@@ -630,18 +681,23 @@ export function App() {
       {route.view === "download" && (
         <DownloadView localBooks={LOCAL_BOOKS} onNavigate={navigate} />
       )}
+      </Suspense>
     </AppShell>
-      <ApkUpdatePrompt
-        release={apkUpdateRelease}
-        statusMessage={apkUpdateStatus}
-        onDismiss={() => {
-          if (apkUpdateRelease) {
-            dismissApkVersion(apkUpdateRelease.versionCode);
-            setApkUpdateRelease(null);
-          }
-          setApkUpdateStatus(null);
-        }}
-      />
+      {(apkUpdateRelease || apkUpdateStatus) && (
+        <Suspense fallback={null}>
+          <ApkUpdatePrompt
+            release={apkUpdateRelease}
+            statusMessage={apkUpdateStatus}
+            onDismiss={() => {
+              if (apkUpdateRelease) {
+                dismissApkVersion(apkUpdateRelease.versionCode);
+                setApkUpdateRelease(null);
+              }
+              setApkUpdateStatus(null);
+            }}
+          />
+        </Suspense>
+      )}
     </>
   );
 }

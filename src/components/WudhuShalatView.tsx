@@ -143,8 +143,8 @@ export const WudhuShalatView: React.FC<WudhuShalatViewProps> = ({
           </h1>
           <p style={{ color: "var(--tashrif-panel-sub)" }} className="mt-0.5 text-xs font-semibold">
             {tab === "wudhu"
-              ? "Panduan Wudhu — Niat, Fardhu, Tata Cara & Doa Sesudah Wudhu"
-              : "Panduan Shalat — Niat 5 Waktu, 13 Rukun, Bacaan Lengkap & Doa Qunut"}
+              ? "Panduan Wudhu — Niat, 6 Fardhu (Safinatun Najah), Tata Cara & Doa"
+              : "Panduan Shalat — Niat 5 Waktu, 17 Rukun (Safinatun Najah), Bacaan & Qunut"}
           </p>
         </div>
 
@@ -241,7 +241,7 @@ export const WudhuShalatView: React.FC<WudhuShalatViewProps> = ({
           </section>
         )}
 
-        {/* Shalat Niat 5 Waktu Selector & 13 Rukun Ringkas */}
+        {/* Shalat Niat 5 Waktu Selector & 17 Rukun Ringkas */}
         {tab === "shalat" && (
           <section className="space-y-4">
             <div
@@ -377,28 +377,40 @@ export const WudhuShalatView: React.FC<WudhuShalatViewProps> = ({
               >
                 <span className="inline-flex items-center gap-2">
                   <CheckCircle2 style={{ color: "var(--tashrif-accent)" }} className="h-4 w-4 shrink-0" />
-                  <span>Ringkasan 13 Rukun Shalat (Ketuk untuk melihat)</span>
+                  <span>Ringkasan 17 Rukun Shalat · Kitab Safinatun Najah (Ketuk untuk melihat)</span>
                 </span>
               </summary>
-              <ol
+              <div
                 style={{
                   borderTop: "1px solid var(--tashrif-border-cell)",
                   color: "var(--tashrif-text)",
                 }}
-                className="grid grid-cols-1 gap-x-6 gap-y-1.5 p-4 text-xs leading-relaxed sm:grid-cols-2"
+                className="p-4"
               >
-                {SHALAT_RUKUN.map((item, idx) => (
-                  <li key={idx} className="flex items-start gap-2">
-                    <span
-                      style={{ color: "var(--tashrif-accent)" }}
-                      className="font-mono-tabular mt-0.5 font-bold"
-                    >
-                      {String(idx + 1).padStart(2, "0")}.
-                    </span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ol>
+                <ol className="grid grid-cols-1 gap-x-6 gap-y-1.5 text-xs leading-relaxed sm:grid-cols-2">
+                  {SHALAT_RUKUN.map((item, idx) => (
+                    <li key={idx} className="flex items-start gap-2">
+                      <span
+                        style={{ color: "var(--tashrif-accent)" }}
+                        className="font-mono-tabular mt-0.5 font-bold"
+                      >
+                        {String(idx + 1).padStart(2, "0")}.
+                      </span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ol>
+                <p
+                  style={{
+                    borderTop: "1px dashed var(--tashrif-group-break)",
+                    color: "var(--tashrif-muted)",
+                  }}
+                  className="mt-3 pt-2.5 text-[11px] leading-relaxed"
+                >
+                  <strong style={{ color: "var(--tashrif-accent)" }}>Catatan Safinatun Najah:</strong>{" "}
+                  Pada mazhab Syafi&apos;i, 4 thuma&apos;ninah (saat ruku&apos;, i&apos;tidal, sujud, dan duduk di antara dua sujud) dihitung sebagai rukun tersendiri sehingga berjumlah <strong>17 rukun</strong>.
+                </p>
+              </div>
             </details>
           </section>
         )}
