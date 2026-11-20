@@ -1,5 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { allImrithiBaits, imrithiBabs } from "../data/imrithi";
+import { ThemedSelect } from "./ThemedSelect";
+import { FloatingPageNav } from "./FloatingPageNav";
 
 interface KitabImrithiReaderProps {
   initialBabId?: string;
@@ -11,6 +13,7 @@ export const KitabImrithiReader: React.FC<KitabImrithiReaderProps> = ({
   const [selectedBabId, setSelectedBabId] = useState<string>(initialBabId);
   const [openAllArti, setOpenAllArti] = useState<boolean>(false);
   const [openBaitIds, setOpenBaitIds] = useState<Record<number, boolean>>({});
+  const readingCardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const valid = imrithiBabs.some((b) => b.id === initialBabId)
@@ -48,11 +51,17 @@ export const KitabImrithiReader: React.FC<KitabImrithiReaderProps> = ({
     }
   };
 
+  const scrollToReadingCard = () => {
+    window.requestAnimationFrame(() => {
+      readingCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
   const goToBabByIndex = (index: number) => {
     if (index >= 0 && index < imrithiBabs.length) {
       setSelectedBabId(imrithiBabs[index].id);
       setOpenBaitIds({});
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      scrollToReadingCard();
     }
   };
 
@@ -107,33 +116,22 @@ export const KitabImrithiReader: React.FC<KitabImrithiReaderProps> = ({
         }}
         className="shadow-xs"
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>
-          <select
-            aria-label="Pilih Bab Nadhom Imrithi"
+        <div className="flex items-center gap-2.5">
+          <ThemedSelect
+            ariaLabel="Pilih Bab Nadhom Imrithi"
+            kickerLabel="Daftar Bab Al-Imrithi"
             value={activeBab?.id || selectedBabId}
-            onChange={(e) => {
-              setSelectedBabId(e.target.value);
+            onChange={(val) => {
+              setSelectedBabId(String(val));
               setOpenBaitIds({});
-              window.scrollTo({ top: 0, behavior: "smooth" });
+              scrollToReadingCard();
             }}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              padding: "0.55rem 0.65rem",
-              borderRadius: "0.5rem",
-              border: "1.5px solid var(--tashrif-border-strong)",
-              backgroundColor: "var(--tashrif-control-bg)",
-              color: "var(--tashrif-text)",
-              fontSize: "0.8rem",
-              fontWeight: 700,
-            }}
-          >
-            {imrithiBabs.map((bab) => (
-              <option key={bab.id} value={bab.id}>
-                {bab.urutan}. {bab.judulIndo}
-              </option>
-            ))}
-          </select>
+            options={imrithiBabs.map((bab) => ({
+              value: bab.id,
+              label: `${bab.urutan}. ${bab.judulIndo}`,
+              sublabel: `Bait ${bab.rentangBait[0]}–${bab.rentangBait[1]}`,
+            }))}
+          />
 
           <button
             type="button"
@@ -167,13 +165,14 @@ export const KitabImrithiReader: React.FC<KitabImrithiReaderProps> = ({
       {/* Bingkai Utama Kitab dengan Double Border */}
       {activeBab && (
         <div
+          ref={readingCardRef}
           style={{
             marginBottom: "0.95rem",
             backgroundColor: "var(--tashrif-paper)",
             border: "4px double var(--tashrif-border-strong)",
             borderRadius: "0.75rem",
           }}
-          className="overflow-hidden shadow-xs"
+          className="scroll-mt-20 overflow-hidden shadow-xs"
         >
           <div
             style={{
@@ -300,56 +299,14 @@ export const KitabImrithiReader: React.FC<KitabImrithiReaderProps> = ({
         </div>
       )}
 
-      {/* Navigasi Sebelumnya / Selanjutnya di Bawah */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr auto 1fr",
-          gap: "0.5rem",
-        }}
-        className="mb-4 items-center"
-      >
-        <button
-          type="button"
-          onClick={() => goToBabByIndex(currentBabIndex - 1)}
-          disabled={currentBabIndex <= 0}
-          style={{
-            opacity: currentBabIndex <= 0 ? 0.45 : 1,
-            cursor: currentBabIndex <= 0 ? "not-allowed" : "pointer",
-            border: "1px solid var(--tashrif-border-cell)",
-            backgroundColor: "var(--tashrif-paper)",
-            color: "var(--tashrif-text)",
-            borderRadius: "0.5rem",
-          }}
-          className="px-3 py-2.5 text-xs font-bold"
-        >
-          ← Sebelumnya
-        </button>
-
-        <span
-          style={{ color: "var(--tashrif-muted)", padding: "0 0.5rem" }}
-          className="font-mono-tabular text-xs font-bold"
-        >
-          {Math.max(1, currentBabIndex + 1)} / {imrithiBabs.length}
-        </span>
-
-        <button
-          type="button"
-          onClick={() => goToBabByIndex(currentBabIndex + 1)}
-          disabled={currentBabIndex >= imrithiBabs.length - 1}
-          style={{
-            opacity: currentBabIndex >= imrithiBabs.length - 1 ? 0.45 : 1,
-            cursor:
-              currentBabIndex >= imrithiBabs.length - 1 ? "not-allowed" : "pointer",
-            backgroundColor: "var(--tashrif-btn-bg)",
-            color: "var(--tashrif-btn-text)",
-            borderRadius: "0.5rem",
-          }}
-          className="px-3 py-2.5 text-xs font-bold"
-        >
-          Selanjutnya →
-        </button>
-      </div>
+      <FloatingPageNav
+        onPrev={() => goToBabByIndex(currentBabIndex - 1)}
+        onNext={() => goToBabByIndex(currentBabIndex + 1)}
+        canPrev={currentBabIndex > 0}
+        canNext={currentBabIndex < imrithiBabs.length - 1}
+        centerText={`${Math.max(1, currentBabIndex + 1)} / ${imrithiBabs.length}`}
+        ariaLabel="Navigasi antar bab Nadhom Al-Imrithi"
+      />
     </div>
   );
 };

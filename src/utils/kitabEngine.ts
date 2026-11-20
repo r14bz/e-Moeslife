@@ -81,13 +81,27 @@ export const LOCAL_BOOKS: LocalBookMeta[] = [
   { file: "riyadhus.json", slug: "riyadhus", title: "Riyadhus Shalihin", category: "Hadis", source: "local" },
   { file: "izar.json", slug: "izar", title: "Fathul Izar", category: "Keluarga", source: "local" },
   { file: "uyun.json", slug: "uyun", title: "Qurrotul Uyun", category: "Keluarga", source: "local" },
-  { file: "uqudulujain.json", slug: "uqudulujain", title: "Uqudulujain", category: "Keluarga", source: "local" },
+  {
+    file: "",
+    slug: "uqudulujain",
+    title: "Uqudulujain",
+    category: "Keluarga",
+    format: "uqudulujain",
+    source: "local",
+  },
   { file: "alhikam.json", slug: "alhikam", title: "Al-Hikam", category: "Tasawuf", source: "local" },
   { file: "futuhul.json", slug: "futuhul", title: "Futuhul Ghaib", category: "Tasawuf", source: "local" },
   { file: "jalalain.json", slug: "jalalain", title: "Tafsir Jalalain", category: "Tafsir", source: "local" },
   { file: "muwatta.json", slug: "muwatta", title: "Muwatta Imam Malik", category: "Hadis", source: "local" },
   { file: "muslim.json", slug: "muslim", title: "Shahih Muslim", category: "Hadis", source: "local" },
-  { file: "bukhari.json", slug: "bukhari", title: "Shahih Bukhari", category: "Hadis", source: "local" },
+  {
+    file: "",
+    slug: "bukhari",
+    title: "Shahih Bukhari",
+    category: "Hadis",
+    format: "bukhari",
+    source: "local",
+  },
 ];
 
 export const normalizeBookName = (value: string): string =>

@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ALFIYAH_DATA } from "../data/alfiyah";
 import { AlfiyahBaitCard } from "./AlfiyahBaitCard";
+import { ThemedSelect } from "./ThemedSelect";
+import { FloatingPageNav } from "./FloatingPageNav";
 
 const LABEL_RENTANG: Record<number, string> = {
   1: "1-250",
@@ -22,6 +24,7 @@ export const KitabAlfiyahReader: React.FC<KitabAlfiyahReaderProps> = ({
   const [selectedBabIndex, setSelectedBabIndex] = useState<number>(initialBabIndex);
   const [showAllTranslation, setShowAllTranslation] = useState<boolean>(false);
   const [openBaitIds, setOpenBaitIds] = useState<Record<number, boolean>>({});
+  const readingCardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const validJuz = ALFIYAH_DATA.some((j) => j.juz === initialJuz) ? initialJuz : 1;
@@ -38,11 +41,17 @@ export const KitabAlfiyahReader: React.FC<KitabAlfiyahReaderProps> = ({
   const babList = currentJuzData.babList;
   const currentBab = babList[selectedBabIndex] || babList[0];
 
+  const scrollToReadingCard = () => {
+    window.requestAnimationFrame(() => {
+      readingCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
   const handleSelectJuz = (juzNumber: number) => {
     setSelectedJuz(juzNumber);
     setSelectedBabIndex(0);
     setOpenBaitIds({});
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollToReadingCard();
   };
 
   const handleToggleSingleBait = (id: number) => {
@@ -71,7 +80,7 @@ export const KitabAlfiyahReader: React.FC<KitabAlfiyahReaderProps> = ({
       }
     }
     setOpenBaitIds({});
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollToReadingCard();
   };
 
   const handleNextBab = () => {
@@ -85,7 +94,7 @@ export const KitabAlfiyahReader: React.FC<KitabAlfiyahReaderProps> = ({
       }
     }
     setOpenBaitIds({});
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollToReadingCard();
   };
 
   const isFirstBabOverall = selectedJuz === 1 && selectedBabIndex === 0;
@@ -184,33 +193,24 @@ export const KitabAlfiyahReader: React.FC<KitabAlfiyahReaderProps> = ({
         }}
         className="shadow-xs"
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>
-          <select
-            aria-label="Pilih Bab Alfiyah"
+        <div className="flex items-center gap-2.5">
+          <ThemedSelect
+            ariaLabel="Pilih Bab Alfiyah"
+            kickerLabel="Daftar Bab Alfiyah"
             value={selectedBabIndex}
-            onChange={(e) => {
-              setSelectedBabIndex(Number(e.target.value));
+            onChange={(val) => {
+              setSelectedBabIndex(Number(val));
               setOpenBaitIds({});
-              window.scrollTo({ top: 0, behavior: "smooth" });
+              scrollToReadingCard();
             }}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              padding: "0.55rem 0.65rem",
-              borderRadius: "0.5rem",
-              border: "1.5px solid var(--tashrif-border-strong)",
-              backgroundColor: "var(--tashrif-control-bg)",
-              color: "var(--tashrif-text)",
-              fontSize: "0.8rem",
-              fontWeight: 700,
-            }}
-          >
-            {babList.map((bab, idx) => (
-              <option key={bab.babId} value={idx}>
-                {idx + 1}. {bab.judulIndo}
-              </option>
-            ))}
-          </select>
+            options={babList.map((bab, idx) => ({
+              value: idx,
+              label: `${idx + 1}. ${bab.judulIndo}`,
+              sublabel: bab.baitList.length > 0
+                ? `Bait ${bab.baitList[0].id}–${bab.baitList[bab.baitList.length - 1].id}`
+                : undefined,
+            }))}
+          />
 
           <button
             type="button"
@@ -244,13 +244,14 @@ export const KitabAlfiyahReader: React.FC<KitabAlfiyahReaderProps> = ({
       {/* Tampilan 1 Bab per Halaman dengan Bingkai Ganda */}
       {currentBab && (
         <div
+          ref={readingCardRef}
           style={{
             marginBottom: "0.95rem",
             backgroundColor: "var(--tashrif-paper)",
             border: "4px double var(--tashrif-border-strong)",
             borderRadius: "0.75rem",
           }}
-          className="overflow-hidden shadow-xs"
+          className="scroll-mt-20 overflow-hidden shadow-xs"
         >
           <div
             style={{
@@ -303,55 +304,14 @@ export const KitabAlfiyahReader: React.FC<KitabAlfiyahReaderProps> = ({
         </div>
       )}
 
-      {/* Tombol Navigasi Bawah (Bab Sebelumnya / Bab Berikutnya) */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr auto 1fr",
-          gap: "0.5rem",
-        }}
-        className="mb-4 items-center"
-      >
-        <button
-          type="button"
-          onClick={handlePrevBab}
-          disabled={isFirstBabOverall}
-          style={{
-            opacity: isFirstBabOverall ? 0.45 : 1,
-            cursor: isFirstBabOverall ? "not-allowed" : "pointer",
-            border: "1px solid var(--tashrif-border-cell)",
-            backgroundColor: "var(--tashrif-paper)",
-            color: "var(--tashrif-text)",
-            borderRadius: "0.5rem",
-          }}
-          className="px-3 py-2.5 text-xs font-bold"
-        >
-          ← Sebelumnya
-        </button>
-
-        <span
-          style={{ color: "var(--tashrif-muted)", padding: "0 0.5rem" }}
-          className="font-mono-tabular text-xs font-bold"
-        >
-          {selectedBabIndex + 1} / {babList.length}
-        </span>
-
-        <button
-          type="button"
-          onClick={handleNextBab}
-          disabled={isLastBabOverall}
-          style={{
-            opacity: isLastBabOverall ? 0.45 : 1,
-            cursor: isLastBabOverall ? "not-allowed" : "pointer",
-            backgroundColor: "var(--tashrif-btn-bg)",
-            color: "var(--tashrif-btn-text)",
-            borderRadius: "0.5rem",
-          }}
-          className="px-3 py-2.5 text-xs font-bold"
-        >
-          Selanjutnya →
-        </button>
-      </div>
+      <FloatingPageNav
+        onPrev={handlePrevBab}
+        onNext={handleNextBab}
+        canPrev={!isFirstBabOverall}
+        canNext={!isLastBabOverall}
+        centerText={`${selectedBabIndex + 1} / ${babList.length}`}
+        ariaLabel="Navigasi antar bab Alfiyah Ibnu Malik"
+      />
     </div>
   );
 };

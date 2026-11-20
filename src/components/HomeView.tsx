@@ -521,7 +521,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   >
                     <Search className="h-3.5 w-3.5" />
                     <span>
-                      Cari juga di Bulughul, Riyadhus Shalihin, Bukhari, Muslim, Muwatta &amp; Jalalain
+                      Cari juga di Bulughul, Riyadhus Shalihin, Muslim, Muwatta &amp; Jalalain
                     </span>
                   </button>
                 </div>

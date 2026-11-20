@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Maximize2, Minimize2, Search, X } from "lucide-react";
 import type {
   LocalBookMeta,
   NormalizedKitabChapter,
@@ -20,6 +19,9 @@ import {
 } from "../utils/kitabEngine";
 import { readKitabLastChapter, writeKitabLastChapter } from "../services/preferences";
 import { FooterDisclaimer } from "./FooterDisclaimer";
+import { KitabTopBar } from "./KitabTopBar";
+import { ThemedSelect } from "./ThemedSelect";
+import { FloatingPageNav } from "./FloatingPageNav";
 
 interface LocalKitabViewProps {
   book: LocalBookMeta;
@@ -27,6 +29,7 @@ interface LocalKitabViewProps {
   focusMode: boolean;
   onToggleFocus: () => void;
   onBackToLibrary: () => void;
+  onGoHome: () => void;
 }
 
 const SUBHEADING_LINE_RE =
@@ -339,12 +342,11 @@ export const LocalKitabView: React.FC<LocalKitabViewProps> = ({
   focusMode,
   onToggleFocus,
   onBackToLibrary,
+  onGoHome,
 }) => {
   const [chapters, setChapters] = useState<NormalizedKitabChapter[]>([]);
   const [activeIndex, setActiveIndex] = useState<number>(0);
   const [resumedFromSaved, setResumedFromSaved] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
-  const [chapterQuery, setChapterQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -352,13 +354,12 @@ export const LocalKitabView: React.FC<LocalKitabViewProps> = ({
   const [openItemIds, setOpenItemIds] = useState<Record<number, boolean>>({});
   const [renderedCount, setRenderedCount] = useState(0);
   const sentinelRef = useRef<HTMLParagraphElement | null>(null);
+  const readingCardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
     setError("");
-    setChapterQuery("");
-    setShowSearch(false);
     setResumedFromSaved(false);
     setOpenItemIds({});
 
@@ -485,27 +486,15 @@ export const LocalKitabView: React.FC<LocalKitabViewProps> = ({
     return () => window.removeEventListener("scroll", onScroll);
   }, [pairedItems, renderedCount]);
 
-  const filteredChapterOptions = useMemo(() => {
-    const q = chapterQuery.trim().toLocaleLowerCase("id");
-    return chapters
-      .map((ch, idx) => ({ ch, idx }))
-      .filter(
-        ({ ch, idx }) =>
-          idx === activeIndex ||
-          !q ||
-          ch.title.toLocaleLowerCase("id").includes(q) ||
-          (ch.chapterTitle || "").toLocaleLowerCase("id").includes(q) ||
-          String(idx + 1) === q
-      );
-  }, [chapters, chapterQuery, activeIndex]);
-
   const selectChapter = (idx: number) => {
     if (idx < 0 || idx >= chapters.length) return;
     setActiveIndex(idx);
     setResumedFromSaved(false);
     setOpenItemIds({});
     writeKitabLastChapter(book.slug, idx);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.requestAnimationFrame(() => {
+      readingCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   };
 
   const toggleSingleItem = (idx: number) => {
@@ -542,30 +531,12 @@ export const LocalKitabView: React.FC<LocalKitabViewProps> = ({
   return (
     <div style={{ backgroundColor: "var(--tashrif-bg)", minHeight: "100vh" }}>
       {/* Top Action Bar (seragam dengan Jurumiyah, Imrithi, Alfiyah, Tashrif) */}
-      <div className="mx-auto flex max-w-2xl items-center justify-between gap-2 px-3 pt-2.5 pb-1">
-        <button
-          type="button"
-          onClick={onBackToLibrary}
-          className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-[#dce4df] bg-white px-3 text-xs font-semibold text-[#174231] shadow-xs transition-colors hover:bg-[#f4f7f5] dark:border-slate-800 dark:bg-[#111A27] dark:text-slate-200 dark:hover:bg-[#172334]"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          <span>Perpustakaan</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={onToggleFocus}
-          aria-pressed={focusMode}
-          className={`inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition-colors ${
-            focusMode
-              ? "border-[#134a35] bg-[#134a35] text-white dark:border-[#E2B354] dark:bg-[#E2B354] dark:text-[#0B111A]"
-              : "border-[#dce4df] bg-white text-[#174231] hover:bg-[#f4f7f5] dark:border-slate-800 dark:bg-[#111A27] dark:text-slate-200"
-          }`}
-        >
-          {focusMode ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-          <span>{focusMode ? "Keluar Fokus" : "Mode Fokus"}</span>
-        </button>
-      </div>
+      <KitabTopBar
+        focusMode={focusMode}
+        onToggleFocus={onToggleFocus}
+        onBackToLibrary={onBackToLibrary}
+        onGoHome={onGoHome}
+      />
 
       <div
         style={{
@@ -615,54 +586,20 @@ export const LocalKitabView: React.FC<LocalKitabViewProps> = ({
             }}
             className="shadow-xs"
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <select
-                aria-label={`Pilih Bab ${book.title}`}
+            <div className="flex items-center gap-2">
+              <ThemedSelect
+                ariaLabel={`Pilih Bab ${book.title}`}
+                kickerLabel={`Daftar Bab ${book.title}`}
                 value={activeIndex}
-                onChange={(e) => selectChapter(Number(e.target.value))}
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  padding: "0.55rem 0.65rem",
-                  borderRadius: "0.5rem",
-                  border: "1.5px solid var(--tashrif-border-strong)",
-                  backgroundColor: "var(--tashrif-control-bg)",
-                  color: "var(--tashrif-text)",
-                  fontSize: "0.8rem",
-                  fontWeight: 700,
-                }}
-              >
-                {filteredChapterOptions.map(({ ch, idx }) => (
-                  <option key={idx} value={idx}>
-                    {book.format === "structured" && ch.chapterNumber
+                onChange={(val) => selectChapter(Number(val))}
+                options={chapters.map((ch, idx) => ({
+                  value: idx,
+                  label:
+                    book.format === "structured" && ch.chapterNumber
                       ? `${ch.chapterNumber} · ${ch.title}`
-                      : `${idx + 1}. ${ch.title}`}
-                  </option>
-                ))}
-              </select>
-
-              {chapters.length > 15 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowSearch((prev) => {
-                      if (prev) setChapterQuery("");
-                      return !prev;
-                    });
-                  }}
-                  aria-label="Cari judul bab"
-                  title="Cari judul bab"
-                  style={{
-                    border: "1px solid var(--tashrif-border-cell)",
-                    backgroundColor: showSearch ? "var(--tashrif-wazan-bg)" : "var(--tashrif-control-bg)",
-                    color: "var(--tashrif-text)",
-                    borderRadius: "0.5rem",
-                  }}
-                  className="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center"
-                >
-                  {showSearch ? <X className="h-4 w-4" /> : <Search className="h-4 w-4" />}
-                </button>
-              )}
+                      : `${idx + 1}. ${ch.title}`,
+                }))}
+              />
 
               {hasFoldableContent && (
                 <button
@@ -682,25 +619,6 @@ export const LocalKitabView: React.FC<LocalKitabViewProps> = ({
                 </button>
               )}
             </div>
-
-            {showSearch && (
-              <div className="mt-2">
-                <input
-                  type="search"
-                  value={chapterQuery}
-                  onChange={(e) => setChapterQuery(e.target.value)}
-                  placeholder="Ketik judul atau nomor bab untuk menyaring daftar…"
-                  aria-label="Saring daftar bab"
-                  style={{
-                    border: "1px solid var(--tashrif-border-cell)",
-                    backgroundColor: "var(--tashrif-control-bg)",
-                    color: "var(--tashrif-text)",
-                    borderRadius: "0.5rem",
-                  }}
-                  className="w-full px-3 py-1.5 text-xs outline-none"
-                />
-              </div>
-            )}
 
             <p
               style={{
@@ -748,13 +666,14 @@ export const LocalKitabView: React.FC<LocalKitabViewProps> = ({
         {/* 3. Bingkai Utama Kitab Kuning Klasik (Double Border) */}
         {!loading && !error && activeChapter && (
           <div
+            ref={readingCardRef}
             style={{
               marginBottom: "0.95rem",
               backgroundColor: "var(--tashrif-paper)",
               border: "4px double var(--tashrif-border-strong)",
               borderRadius: "0.75rem",
             }}
-            className="overflow-hidden shadow-xs"
+            className="scroll-mt-20 overflow-hidden shadow-xs"
           >
             {/* Header Bab */}
             <div
@@ -1010,56 +929,16 @@ export const LocalKitabView: React.FC<LocalKitabViewProps> = ({
           </div>
         )}
 
-        {/* 4. Navigasi Sebelumnya / Selanjutnya di Bawah */}
+        {/* 4. Navigasi Mengambang Sebelumnya / Selanjutnya */}
         {!loading && !error && chapters.length > 0 && (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr auto 1fr",
-              gap: "0.5rem",
-            }}
-            className="mb-4 items-center"
-          >
-            <button
-              type="button"
-              onClick={() => selectChapter(activeIndex - 1)}
-              disabled={activeIndex <= 0}
-              style={{
-                opacity: activeIndex <= 0 ? 0.45 : 1,
-                cursor: activeIndex <= 0 ? "not-allowed" : "pointer",
-                border: "1px solid var(--tashrif-border-cell)",
-                backgroundColor: "var(--tashrif-paper)",
-                color: "var(--tashrif-text)",
-                borderRadius: "0.5rem",
-              }}
-              className="px-3 py-2.5 text-xs font-bold"
-            >
-              ← Sebelumnya
-            </button>
-
-            <span
-              style={{ color: "var(--tashrif-muted)", padding: "0 0.5rem" }}
-              className="font-mono-tabular text-xs font-bold"
-            >
-              {activeIndex + 1} / {chapters.length}
-            </span>
-
-            <button
-              type="button"
-              onClick={() => selectChapter(activeIndex + 1)}
-              disabled={activeIndex >= chapters.length - 1}
-              style={{
-                opacity: activeIndex >= chapters.length - 1 ? 0.45 : 1,
-                cursor: activeIndex >= chapters.length - 1 ? "not-allowed" : "pointer",
-                backgroundColor: "var(--tashrif-btn-bg)",
-                color: "var(--tashrif-btn-text)",
-                borderRadius: "0.5rem",
-              }}
-              className="px-3 py-2.5 text-xs font-bold"
-            >
-              Selanjutnya →
-            </button>
-          </div>
+          <FloatingPageNav
+            onPrev={() => selectChapter(activeIndex - 1)}
+            onNext={() => selectChapter(activeIndex + 1)}
+            canPrev={activeIndex > 0}
+            canNext={activeIndex < chapters.length - 1}
+            centerText={`${activeIndex + 1} / ${chapters.length}`}
+            ariaLabel={`Navigasi antar bab ${book.title}`}
+          />
         )}
 
         <FooterDisclaimer variant="compact" />

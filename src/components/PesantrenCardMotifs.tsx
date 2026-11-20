@@ -110,7 +110,7 @@ export const COLLECTION_VISUALS: Record<CollectionIconId, CollectionVisualStyle>
     icon: <Sparkles className="h-5 w-5" />,
   },
   "wudhu-shalat": {
-    subtitle: "Tata cara, bacaan & gambar",
+    subtitle: "Tata cara, niat & Qunut",
     boxClass:
       "border-[#cce0dd] bg-[#ecf5f4] text-[#184f4a] dark:border-[#1e3e3d] dark:bg-[#122828] dark:text-[#6ecbc3]",
     arrowClass:
@@ -150,7 +150,7 @@ export const COLLECTION_VISUALS: Record<CollectionIconId, CollectionVisualStyle>
     icon: <BookMarked className="h-5 w-5" />,
   },
   kitab: {
-    subtitle: "18 kitab & syarah",
+    subtitle: "24 kitab & syarah",
     boxClass:
       "border-[#0f3b2a] bg-[#134a35] text-[#f3d896] dark:border-[#c99b3c] dark:bg-[#E2B354] dark:text-[#0B111A]",
     arrowClass:

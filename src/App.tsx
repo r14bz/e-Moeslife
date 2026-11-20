@@ -29,6 +29,8 @@ import { JurumiyahKitabPage } from "./components/JurumiyahKitabPage";
 import { AqidatulAwamKitabPage } from "./components/AqidatulAwamKitabPage";
 import { BaiquniyyahKitabPage } from "./components/BaiquniyyahKitabPage";
 import { NashoihulIbadKitabPage } from "./components/NashoihulIbadKitabPage";
+import { BukhariKitabPage } from "./components/BukhariKitabPage";
+import { UqudulujainKitabPage } from "./components/UqudulujainKitabPage";
 import { ApiKitabView } from "./components/ApiKitabView";
 import { NearbyMosquesView } from "./components/NearbyMosquesView";
 import { DownloadView } from "./components/DownloadView";
@@ -41,6 +43,8 @@ import { semuaBabJurumiyah } from "./data/jurumiyah";
 import { aqidatulAwamBabs } from "./data/aqidatulAwam";
 import { baiquniyyahBabs } from "./data/baiquniyyah";
 import { kitabNashoihulIbad } from "./data/nashoihul-ibad";
+import { semuaBabBukhari } from "./data/bukhari";
+import { semuaBabUqudulujain } from "./data/uqudulujain";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { consumePendingNativeUpdateOpen } from "./services/apkInstaller";
 import {
@@ -264,12 +268,16 @@ export function App() {
       nextRoute.view !== "aqidatul-awam-kitab" &&
       nextRoute.view !== "baiquniyyah-kitab" &&
       nextRoute.view !== "nashoihul-kitab" &&
+      nextRoute.view !== "bukhari-kitab" &&
+      nextRoute.view !== "uqudulujain-kitab" &&
       nextRoute.view !== "api-kitab"
     ) {
       setFocusMode(false);
     }
     setRoute(nextRoute);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (!(nextRoute.view === "quran-studio" && nextRoute.surahNumber)) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }, []);
 
   const openCollection = useCallback(
@@ -376,6 +384,22 @@ export function App() {
         navigate({ view: "nashoihul-kitab", babId });
         return;
       }
+      if (book.format === "bukhari") {
+        const babId =
+          typeof chapterIndex === "number" && semuaBabBukhari[chapterIndex]
+            ? semuaBabBukhari[chapterIndex].id
+            : undefined;
+        navigate({ view: "bukhari-kitab", babId });
+        return;
+      }
+      if (book.format === "uqudulujain") {
+        const babId =
+          typeof chapterIndex === "number" && semuaBabUqudulujain[chapterIndex]
+            ? semuaBabUqudulujain[chapterIndex].id
+            : undefined;
+        navigate({ view: "uqudulujain-kitab", babId });
+        return;
+      }
       if (book.source === "local") {
         navigate({ view: "local-kitab", slug: book.slug, chapterIndex });
       } else {
@@ -478,6 +502,7 @@ export function App() {
             navigate({ view: "quran-studio", tab, surahNumber })
           }
           onOpenClassicCollection={openCollection}
+          onBackHome={() => navigate({ view: "home" })}
         />
       )}
 
@@ -492,6 +517,7 @@ export function App() {
           focusMode={focusMode}
           onToggleFocus={() => setFocusMode((f) => !f)}
           onBackToLibrary={() => navigate({ view: "kitab-hub" })}
+          onGoHome={() => navigate({ view: "home" })}
         />
       )}
 
@@ -501,6 +527,7 @@ export function App() {
           focusMode={focusMode}
           onToggleFocus={() => setFocusMode((f) => !f)}
           onBackToLibrary={() => navigate({ view: "kitab-hub" })}
+          onGoHome={() => navigate({ view: "home" })}
         />
       )}
 
@@ -511,6 +538,7 @@ export function App() {
           focusMode={focusMode}
           onToggleFocus={() => setFocusMode((f) => !f)}
           onBackToLibrary={() => navigate({ view: "kitab-hub" })}
+          onGoHome={() => navigate({ view: "home" })}
         />
       )}
 
@@ -520,6 +548,7 @@ export function App() {
           focusMode={focusMode}
           onToggleFocus={() => setFocusMode((f) => !f)}
           onBackToLibrary={() => navigate({ view: "kitab-hub" })}
+          onGoHome={() => navigate({ view: "home" })}
         />
       )}
 
@@ -529,6 +558,7 @@ export function App() {
           focusMode={focusMode}
           onToggleFocus={() => setFocusMode((f) => !f)}
           onBackToLibrary={() => navigate({ view: "kitab-hub" })}
+          onGoHome={() => navigate({ view: "home" })}
         />
       )}
 
@@ -538,6 +568,7 @@ export function App() {
           focusMode={focusMode}
           onToggleFocus={() => setFocusMode((f) => !f)}
           onBackToLibrary={() => navigate({ view: "kitab-hub" })}
+          onGoHome={() => navigate({ view: "home" })}
         />
       )}
 
@@ -547,6 +578,7 @@ export function App() {
           focusMode={focusMode}
           onToggleFocus={() => setFocusMode((f) => !f)}
           onBackToLibrary={() => navigate({ view: "kitab-hub" })}
+          onGoHome={() => navigate({ view: "home" })}
         />
       )}
 
@@ -556,6 +588,27 @@ export function App() {
           focusMode={focusMode}
           onToggleFocus={() => setFocusMode((f) => !f)}
           onBackToLibrary={() => navigate({ view: "kitab-hub" })}
+          onGoHome={() => navigate({ view: "home" })}
+        />
+      )}
+
+      {route.view === "bukhari-kitab" && (
+        <BukhariKitabPage
+          initialBabId={route.babId}
+          focusMode={focusMode}
+          onToggleFocus={() => setFocusMode((f) => !f)}
+          onBackToLibrary={() => navigate({ view: "kitab-hub" })}
+          onGoHome={() => navigate({ view: "home" })}
+        />
+      )}
+
+      {route.view === "uqudulujain-kitab" && (
+        <UqudulujainKitabPage
+          initialBabId={route.babId}
+          focusMode={focusMode}
+          onToggleFocus={() => setFocusMode((f) => !f)}
+          onBackToLibrary={() => navigate({ view: "kitab-hub" })}
+          onGoHome={() => navigate({ view: "home" })}
         />
       )}
 
@@ -566,6 +619,7 @@ export function App() {
           focusMode={focusMode}
           onToggleFocus={() => setFocusMode((f) => !f)}
           onBackToLibrary={() => navigate({ view: "kitab-hub" })}
+          onGoHome={() => navigate({ view: "home" })}
         />
       )}
 

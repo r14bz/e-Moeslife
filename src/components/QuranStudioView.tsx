@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Copy,
+  Home,
   List,
   Maximize2,
   Pause,
@@ -35,6 +36,8 @@ import {
 import { prepareReadingSections } from "../utils/readerEngine";
 import { CURATED_DAILY_PRAYERS } from "../data/dailyPrayers";
 import { FooterDisclaimer } from "./FooterDisclaimer";
+import { ThemedSelect } from "./ThemedSelect";
+import { FloatingPageNav } from "./FloatingPageNav";
 
 const EQURAN_API = "https://equran.id/api";
 
@@ -87,6 +90,7 @@ interface QuranStudioViewProps {
   pageLayout: Record<number, string>;
   onChangeTab: (tab: QuranStudioTab, surahNumber?: number) => void;
   onOpenClassicCollection?: (kind: CollectionKind) => void;
+  onBackHome?: () => void;
 }
 
 export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
@@ -98,6 +102,7 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
   pageLayout,
   onChangeTab,
   onOpenClassicCollection,
+  onBackHome,
 }) => {
   const isSurahMode = activeTab === "quran" || activeTab === "tafsir";
   const isClassicMode = activeTab === "dzikir" || activeTab === "tahlil";
@@ -153,6 +158,8 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
     tab: activeTab,
     surah: selectedSurah,
   });
+  const surahCardRef = useRef<HTMLElement | null>(null);
+  const skipSurahCardScrollRef = useRef<boolean>(false);
 
   const copyText = async (key: string, text: string) => {
     try {
@@ -238,8 +245,13 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
     let active = true;
     setDetailLoading(true);
     setDetailError("");
-    if (!pendingScrollAyatRef.current) {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+    if (pendingScrollAyatRef.current) {
+      skipSurahCardScrollRef.current = true;
+    } else {
+      skipSurahCardScrollRef.current = false;
+      window.requestAnimationFrame(() => {
+        surahCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
     }
 
     if (activeTab === "quran") {
@@ -285,6 +297,17 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
       active = false;
     };
   }, [effectiveSurahNumber, activeTab]);
+
+  useEffect(() => {
+    if (!isSurahMode || !effectiveSurahNumber || detailLoading || detailError) return;
+    if (skipSurahCardScrollRef.current || pendingScrollAyatRef.current) {
+      skipSurahCardScrollRef.current = false;
+      return;
+    }
+    window.requestAnimationFrame(() => {
+      surahCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [isSurahMode, effectiveSurahNumber, activeTab, detailLoading, detailError]);
 
   const filteredSurahs = useMemo(() => {
     const q = surahQuery.trim().toLocaleLowerCase("id");
@@ -475,21 +498,74 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
     writeQuranLastRead(next);
   };
 
+  const studioBannerMeta = useMemo(() => {
+    switch (activeTab) {
+      case "tafsir":
+        return {
+          arabic: "تَفْسِيْرُ الْقُرْآنِ الْكَرِيْمِ",
+          title: "Tafsir Al-Qur'an — Kemenag RI Per Surah & Ayat",
+        };
+      case "doa":
+        return {
+          arabic: "الأَدْعِيَةُ الْيَوْمِيَّةُ",
+          title: "Do'a Harian — Bacaan Arab, Latin & Terjemahan",
+        };
+      case "dzikir":
+        return {
+          arabic: "أَذْكَارُ بَعْدَ الصَّلَاةِ",
+          title: "Dzikir & Wirid Ba'da Shalat",
+        };
+      case "tahlil":
+        return {
+          arabic: "التَّهْلِيْلُ وَالتَّوَسُّلُ",
+          title: "Rangkaian Tahlil, Tawasul & Doa",
+        };
+      default:
+        return {
+          arabic: "الْقُرْآنُ الْكَرِيْمُ",
+          title: "Al-Qur'an & Murattal — 30 Juz & 6 Qari Pilihan",
+        };
+    }
+  }, [activeTab]);
+
   return (
-    <div className="mx-auto max-w-6xl space-y-5 px-4 pt-4 sm:px-6">
-      {/* Studio Header + Segmented Mode Tabs */}
-      <div className="flex flex-col justify-between gap-3 border-b border-[#e2e8e4] pb-4 md:flex-row md:items-end dark:border-slate-800">
-        <div>
-          <p className="text-[11px] font-semibold tracking-wider text-[#9c7d3c] uppercase dark:text-[#E2B354]">
-            Studio Ibadah
-          </p>
-          <h1 className="font-display mt-0.5 text-xl font-semibold text-[#103d2c] sm:text-2xl dark:text-white">
-            Al-Qur’an, Dzikir &amp; Do'a
+    <div
+      style={{
+        backgroundColor: "var(--tashrif-bg)",
+        color: "var(--tashrif-text)",
+        minHeight: "100vh",
+      }}
+    >
+      <div className="mx-auto max-w-6xl space-y-4 px-3.5 pt-3.5 pb-10 sm:px-6">
+        {/* Banner Header Hijau Zamrud (Senada Pembaca Kitab) */}
+        <div
+          style={{
+            backgroundColor: "var(--tashrif-panel-bg)",
+            border: "1px solid var(--tashrif-panel-border)",
+            borderRadius: "0.75rem",
+          }}
+          className="px-3.5 py-4 text-center shadow-xs"
+        >
+          <h1
+            dir="rtl"
+            lang="ar"
+            style={{ color: "var(--tashrif-panel-bright)", lineHeight: "1.8" }}
+            className="font-arabic text-2xl font-bold sm:text-[1.65rem]"
+          >
+            {studioBannerMeta.arabic}
           </h1>
+          <p style={{ color: "var(--tashrif-panel-sub)" }} className="mt-0.5 text-xs font-semibold">
+            {studioBannerMeta.title}
+          </p>
         </div>
 
+        {/* Segmented Mode Tabs */}
         <div
-          className="no-scrollbar flex max-w-full overflow-x-auto rounded-xl border border-[#dce4df] bg-[#ffffff] p-1 dark:border-slate-800 dark:bg-[#111A27]"
+          style={{
+            border: "1px solid var(--tashrif-border-cell)",
+            backgroundColor: "var(--tashrif-paper)",
+          }}
+          className="no-scrollbar flex w-full overflow-x-auto rounded-xl p-1 shadow-xs"
           role="tablist"
           aria-label="Mode Studio Ibadah"
         >
@@ -511,888 +587,1417 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
                 role="tab"
                 aria-selected={active}
                 onClick={() => onChangeTab(tab.id, keepsSurah ? effectiveSurahNumber : undefined)}
-                className={`min-h-[36px] flex-1 rounded-lg px-2.5 text-xs font-semibold whitespace-nowrap transition-colors sm:flex-none sm:px-3.5 ${
+                style={
                   active
-                    ? "bg-[#134a35] text-[#ffffff] dark:bg-[#E2B354] dark:text-[#0B111A]"
-                    : "text-[#354c3e] hover:text-[#103d2c] dark:text-slate-300"
-                }`}
+                    ? {
+                        backgroundColor: "var(--tashrif-btn-bg)",
+                        color: "var(--tashrif-btn-text)",
+                      }
+                    : { color: "var(--tashrif-text)" }
+                }
+                className="min-h-[38px] flex-1 rounded-lg px-2.5 text-xs font-bold whitespace-nowrap transition-colors sm:px-3.5"
               >
                 {tab.label}
               </button>
             );
           })}
         </div>
-      </div>
 
-      {/* Last-read Quran Resume Strip */}
-      {isSurahMode && lastRead && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#e2e8e4] bg-[#ffffff] px-4 py-2.5 dark:border-slate-800 dark:bg-[#111A27]">
-          <div className="flex items-center gap-2 text-xs text-[#1d2c24] dark:text-slate-200">
-            <BookmarkCheck className="h-4 w-4 shrink-0 text-[#134a35] dark:text-[#E2B354]" />
-            <span>
-              Terakhir dibaca: <strong>QS. {lastRead.surahName}</strong> · Ayat {lastRead.ayatNumber}
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              pendingScrollAyatRef.current = lastRead.ayatNumber;
-              onChangeTab("quran", lastRead.surahNumber);
+        {/* Last-read Quran Resume Strip */}
+        {isSurahMode && lastRead && (
+          <div
+            style={{
+              border: "1px solid var(--tashrif-border-cell)",
+              backgroundColor: "var(--tashrif-paper)",
             }}
-            className="min-h-[34px] rounded-lg bg-[#134a35] px-3 text-xs font-semibold text-[#ffffff] hover:bg-[#0e3928] dark:bg-[#E2B354] dark:text-[#0B111A]"
+            className="flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-2.5 shadow-xs"
           >
-            Lanjut ke Ayat {lastRead.ayatNumber}
-          </button>
-        </div>
-      )}
-
-      {/* Do'a Harian Paginated Studio View */}
-      {activeTab === "doa" && (
-        <div className="space-y-3.5">
-          {/* Compact Filter & Directory Trigger Bar */}
-          <div className="flex flex-col gap-2.5 rounded-2xl border border-[#e2e8e4] bg-[#ffffff] p-3 shadow-xs md:flex-row md:items-center md:justify-between dark:border-slate-800 dark:bg-[#111A27]">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <h2 className="font-display text-base font-semibold text-[#103d2c] sm:text-lg dark:text-white">
-                  Do'a Harian
-                </h2>
-                <span className="font-mono-tabular text-[11px] font-semibold text-[#7c745f] dark:text-slate-400">
-                  ({filteredDoa.length})
-                </span>
-                {doaLoading && (
-                  <span className="text-[11px] font-medium text-[#7c745f] dark:text-slate-400">
-                    · Menyelaraskan…
-                  </span>
-                )}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setDoaDrawerOpen(true)}
-                className="inline-flex min-h-[34px] items-center gap-1.5 rounded-xl border border-[#dce4df] bg-[#f4f7f5] px-2.5 text-xs font-semibold text-[#174231] lg:hidden dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200"
-              >
-                <List className="h-3.5 w-3.5" />
-                <span>Daftar Do'a</span>
-              </button>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-
-              <div className="inline-flex rounded-xl border border-[#dce4df] bg-[#f4f7f5] p-0.5 dark:border-slate-700 dark:bg-[#162131]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDoaFilter("all");
-                    setActiveDoaIndex(0);
-                    setDoaTurnDir("fade");
-                  }}
-                  className={`min-h-[34px] rounded-lg px-2.5 text-xs font-semibold ${
-                    doaFilter === "all"
-                      ? "bg-[#134a35] text-[#ffffff] dark:bg-[#E2B354] dark:text-[#0B111A]"
-                      : "text-[#354c3e] dark:text-slate-300"
-                  }`}
-                >
-                  Semua
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDoaFilter("saved");
-                    setActiveDoaIndex(0);
-                    setDoaTurnDir("fade");
-                  }}
-                  className={`min-h-[34px] rounded-lg px-2.5 text-xs font-semibold ${
-                    doaFilter === "saved"
-                      ? "bg-[#134a35] text-[#ffffff] dark:bg-[#E2B354] dark:text-[#0B111A]"
-                      : "text-[#354c3e] dark:text-slate-300"
-                  }`}
-                >
-                  Tersimpan ({doaBookmarks.length})
-                </button>
-              </div>
-
-              <label className="relative flex min-h-[38px] w-full items-center md:w-60">
-                <Search className="pointer-events-none absolute left-3 h-4 w-4 text-[#7c745f] dark:text-slate-400" />
-                <input
-                  type="search"
-                  value={doaQuery}
-                  onChange={(e) => {
-                    setDoaQuery(e.target.value);
-                    setActiveDoaIndex(0);
-                    setDoaTurnDir("fade");
-                  }}
-                  placeholder="Cari do'a atau kategori…"
-                  aria-label="Cari do'a harian"
-                  className="min-h-[38px] w-full rounded-xl border border-[#dce4df] bg-white pr-3.5 pl-9 text-xs outline-none focus:border-[#134a35] sm:text-sm dark:border-slate-700 dark:bg-[#162131] dark:focus:border-[#E2B354]"
-                />
-              </label>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[290px_minmax(0,1fr)] lg:items-start">
-            {doaDrawerOpen && (
-              <div
-                className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs lg:hidden"
-                onClick={() => setDoaDrawerOpen(false)}
-                aria-hidden="true"
+            <div style={{ color: "var(--tashrif-text)" }} className="flex items-center gap-2 text-xs">
+              <BookmarkCheck
+                style={{ color: "var(--tashrif-accent)" }}
+                className="h-4 w-4 shrink-0"
               />
-            )}
-
-            {/* Do'a Directory Sidebar / Mobile Drawer */}
-            <aside
-              className={`fixed inset-y-0 left-0 z-50 flex w-80 flex-col border-r border-[#e2e8e4] bg-[#ffffff] p-4 transition-transform duration-200 lg:sticky lg:top-20 lg:z-10 lg:max-h-[calc(100vh-110px)] lg:w-auto lg:translate-x-0 lg:rounded-2xl lg:border ${
-                doaDrawerOpen ? "translate-x-0" : "-translate-x-full"
-              } dark:border-slate-800 dark:bg-[#111A27]`}
+              <span>
+                Terakhir dibaca: <strong>QS. {lastRead.surahName}</strong> · Ayat {lastRead.ayatNumber}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                pendingScrollAyatRef.current = lastRead.ayatNumber;
+                onChangeTab("quran", lastRead.surahNumber);
+              }}
+              style={{
+                backgroundColor: "var(--tashrif-btn-bg)",
+                color: "var(--tashrif-btn-text)",
+              }}
+              className="min-h-[36px] rounded-lg px-3 text-xs font-bold transition-colors hover:opacity-90"
             >
-              <div className="flex items-start justify-between gap-2 border-b border-[#e8eeea] pb-3 dark:border-slate-800">
-                <div>
-                  <p className="text-[11px] font-semibold tracking-wider text-[#9c7d3c] uppercase dark:text-[#E2B354]">
-                    Indeks Halaman
-                  </p>
-                  <h3 className="font-display mt-0.5 text-base font-semibold text-[#103d2c] dark:text-white">
-                    Daftar Do'a Harian
-                  </h3>
-                  <p className="text-xs text-[#7c745f] dark:text-slate-400">
-                    {filteredDoa.length} halaman do'a
-                  </p>
+              Lanjut ke Ayat {lastRead.ayatNumber}
+            </button>
+          </div>
+        )}
+
+        {/* Do'a Harian Paginated Studio View */}
+        {activeTab === "doa" && (
+          <div className="space-y-4">
+            {/* Filter & Directory Trigger Bar */}
+            <div
+              style={{
+                border: "1px solid var(--tashrif-border-cell)",
+                backgroundColor: "var(--tashrif-paper)",
+              }}
+              className="flex flex-col gap-2.5 rounded-xl p-3 shadow-xs md:flex-row md:items-center md:justify-between"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <h2
+                    style={{ color: "var(--tashrif-ink)" }}
+                    className="font-display text-base font-semibold sm:text-lg"
+                  >
+                    Do'a Harian
+                  </h2>
+                  <span
+                    style={{ color: "var(--tashrif-accent)" }}
+                    className="font-mono-tabular text-xs font-bold"
+                  >
+                    ({filteredDoa.length})
+                  </span>
+                  {doaLoading && (
+                    <span
+                      style={{ color: "var(--tashrif-muted)" }}
+                      className="text-[11px] font-medium"
+                    >
+                      · Menyelaraskan…
+                    </span>
+                  )}
                 </div>
+
                 <button
                   type="button"
-                  onClick={() => setDoaDrawerOpen(false)}
-                  aria-label="Tutup daftar do'a"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#dce4df] text-[#174231] lg:hidden dark:border-slate-700 dark:text-slate-300"
+                  onClick={() => setDoaDrawerOpen(true)}
+                  style={{
+                    border: "1px solid var(--tashrif-border-cell)",
+                    backgroundColor: "var(--tashrif-wazan-bg)",
+                    color: "var(--tashrif-text)",
+                  }}
+                  className="inline-flex min-h-[38px] items-center gap-1.5 rounded-lg px-3 text-xs font-bold lg:hidden"
                 >
-                  <X className="h-4 w-4" />
+                  <List className="h-3.5 w-3.5" />
+                  <span>Daftar Do'a</span>
                 </button>
               </div>
 
-              <div className="mt-3 flex-1 space-y-1 overflow-y-auto pr-1">
-                {filteredDoa.map((item, idx) => {
-                  const isActive = idx === safeDoaIndex;
-                  const itemKey = doaBookmarkKey(item, idx);
-                  return (
-                    <button
-                      key={`${itemKey}-${idx}`}
-                      type="button"
-                      onClick={() => goToDoa(idx)}
-                      className={`flex min-h-[42px] w-full items-start gap-2 rounded-xl px-3 py-2 text-left text-xs transition-colors ${
-                        isActive
-                          ? "bg-[#134a35] font-semibold text-[#ffffff] dark:bg-[#1D3557]"
-                          : "text-[#354c3e] hover:bg-[#edf2ef] dark:text-slate-300 dark:hover:bg-[#172334]"
-                      }`}
-                    >
-                      <span className="font-mono-tabular shrink-0 opacity-75">
-                        {String(idx + 1).padStart(2, "0")}.
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <span className="line-clamp-2 block">{item.nama || "Do'a Harian"}</span>
-                        {item.grup && (
-                          <span
-                            className={`mt-0.5 block truncate text-[10px] ${
-                              isActive ? "text-[#e5dcc4] dark:text-slate-300" : "text-[#7c745f] dark:text-slate-400"
-                            }`}
-                          >
-                            {item.grup}
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </aside>
-
-            {/* Single-Prayer Reader Pane */}
-            <section className="min-w-0">
-              {!activeDoa ? (
-                <div className="rounded-2xl border border-[#e2e8e4] bg-[#ffffff] p-8 text-center shadow-xs dark:border-slate-800 dark:bg-[#111A27]">
-                  <p className="text-sm text-[#766f5d] dark:text-slate-400">
-                    {doaFilter === "saved"
-                      ? "Belum ada do'a yang disimpan ke daftar penanda."
-                      : "Tidak ada do'a yang cocok dengan pencarian Anda."}
-                  </p>
-                </div>
-              ) : (
-                (() => {
-                  const key = doaBookmarkKey(activeDoa, safeDoaIndex);
-                  const isSaved = doaBookmarks.includes(key);
-                  const isCopied = copiedId === `doa-${key}`;
-                  return (
-                    <>
-                      <article
-                        ref={doaCardRef}
-                        key={`doa-${key}-${safeDoaIndex}`}
-                        onTouchStart={(e) => {
-                          const touch = e.changedTouches[0];
-                          if (touch) doaTouchStartRef.current = { x: touch.clientX, y: touch.clientY };
-                        }}
-                        onTouchEnd={(e) => {
-                          const start = doaTouchStartRef.current;
-                          doaTouchStartRef.current = null;
-                          const touch = e.changedTouches[0];
-                          if (!start || !touch) return;
-                          const dx = touch.clientX - start.x;
-                          const dy = touch.clientY - start.y;
-                          if (Math.abs(dx) >= 48 && Math.abs(dx) > Math.abs(dy) * 1.25) {
-                            goToDoa(dx < 0 ? safeDoaIndex + 1 : safeDoaIndex - 1);
+              <div className="flex flex-wrap items-center gap-2">
+                <div
+                  style={{
+                    border: "1px solid var(--tashrif-border-cell)",
+                    backgroundColor: "var(--tashrif-row-alt)",
+                  }}
+                  className="inline-flex rounded-lg p-0.5"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDoaFilter("all");
+                      setActiveDoaIndex(0);
+                      setDoaTurnDir("fade");
+                    }}
+                    style={
+                      doaFilter === "all"
+                        ? {
+                            backgroundColor: "var(--tashrif-btn-bg)",
+                            color: "var(--tashrif-btn-text)",
                           }
-                        }}
-                        className={`scroll-mt-20 rounded-2xl border border-[#b7d3c3] bg-[#ffffff] p-5 shadow-sm ring-1 ring-[#134a35]/10 sm:p-7 dark:border-[#2a4562] dark:bg-[#111A27] dark:ring-[#E2B354]/15 page-enter-${doaTurnDir}`}
+                        : { color: "var(--tashrif-text)" }
+                    }
+                    className="min-h-[34px] rounded-md px-2.5 text-xs font-bold transition-colors"
+                  >
+                    Semua
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDoaFilter("saved");
+                      setActiveDoaIndex(0);
+                      setDoaTurnDir("fade");
+                    }}
+                    style={
+                      doaFilter === "saved"
+                        ? {
+                            backgroundColor: "var(--tashrif-btn-bg)",
+                            color: "var(--tashrif-btn-text)",
+                          }
+                        : { color: "var(--tashrif-text)" }
+                    }
+                    className="min-h-[34px] rounded-md px-2.5 text-xs font-bold transition-colors"
+                  >
+                    Tersimpan ({doaBookmarks.length})
+                  </button>
+                </div>
+
+                <label className="relative flex min-h-[38px] w-full items-center md:w-60">
+                  <Search
+                    style={{ color: "var(--tashrif-muted)" }}
+                    className="pointer-events-none absolute left-3 h-4 w-4"
+                  />
+                  <input
+                    type="search"
+                    value={doaQuery}
+                    onChange={(e) => {
+                      setDoaQuery(e.target.value);
+                      setActiveDoaIndex(0);
+                      setDoaTurnDir("fade");
+                    }}
+                    placeholder="Cari do'a atau kategori…"
+                    aria-label="Cari do'a harian"
+                    style={{
+                      border: "1.5px solid var(--tashrif-border-strong)",
+                      backgroundColor: "var(--tashrif-control-bg)",
+                      color: "var(--tashrif-text)",
+                    }}
+                    className="min-h-[38px] w-full rounded-lg pr-3.5 pl-9 text-xs font-medium outline-none sm:text-sm"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-[290px_minmax(0,1fr)] lg:items-start">
+              {doaDrawerOpen && (
+                <div
+                  className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs lg:hidden"
+                  onClick={() => setDoaDrawerOpen(false)}
+                  aria-hidden="true"
+                />
+              )}
+
+              {/* Do'a Directory Sidebar / Mobile Drawer */}
+              <aside
+                style={{
+                  backgroundColor: "var(--tashrif-paper)",
+                  borderColor: "var(--tashrif-border-cell)",
+                }}
+                className={`fixed inset-y-0 left-0 z-50 flex w-80 flex-col border-r p-4 transition-transform duration-200 lg:sticky lg:top-20 lg:z-10 lg:max-h-[calc(100vh-110px)] lg:w-auto lg:translate-x-0 lg:rounded-xl lg:border ${
+                  doaDrawerOpen ? "translate-x-0" : "-translate-x-full"
+                }`}
+              >
+                <div
+                  style={{ borderBottom: "1px solid var(--tashrif-border-cell)" }}
+                  className="flex items-start justify-between gap-2 pb-3"
+                >
+                  <div>
+                    <p
+                      style={{ color: "var(--tashrif-accent)" }}
+                      className="font-mono-tabular text-[11px] font-bold tracking-wider uppercase"
+                    >
+                      Indeks Halaman
+                    </p>
+                    <h3
+                      style={{ color: "var(--tashrif-ink)" }}
+                      className="font-display mt-0.5 text-base font-semibold"
+                    >
+                      Daftar Do'a Harian
+                    </h3>
+                    <p style={{ color: "var(--tashrif-muted)" }} className="text-xs">
+                      {filteredDoa.length} halaman do'a
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setDoaDrawerOpen(false)}
+                    aria-label="Tutup daftar do'a"
+                    style={{
+                      border: "1px solid var(--tashrif-border-cell)",
+                      backgroundColor: "var(--tashrif-wazan-bg)",
+                      color: "var(--tashrif-text)",
+                    }}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg lg:hidden"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="mt-3 flex-1 space-y-1 overflow-y-auto pr-1">
+                  {filteredDoa.map((item, idx) => {
+                    const isActive = idx === safeDoaIndex;
+                    const itemKey = doaBookmarkKey(item, idx);
+                    return (
+                      <button
+                        key={`${itemKey}-${idx}`}
+                        type="button"
+                        onClick={() => goToDoa(idx)}
+                        style={
+                          isActive
+                            ? {
+                                backgroundColor: "var(--tashrif-btn-bg)",
+                                color: "var(--tashrif-btn-text)",
+                              }
+                            : { color: "var(--tashrif-text)" }
+                        }
+                        className={`flex min-h-[42px] w-full items-start gap-2 rounded-lg px-3 py-2 text-left text-xs transition-colors ${
+                          isActive
+                            ? "font-bold"
+                            : "hover:bg-emerald-900/5 dark:hover:bg-amber-400/5"
+                        }`}
                       >
-                        <div className="border-b border-[#e8eeea] pb-4 dark:border-slate-800">
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-2 text-xs text-[#7c745f] dark:text-slate-400">
-                                <span className="font-semibold text-[#9c7d3c] dark:text-[#E2B354]">
-                                  {activeDoa.grup || "Do'a Harian"}
-                                </span>
-                                <span aria-hidden="true">·</span>
-                                <span>
-                                  Halaman {safeDoaIndex + 1} dari {filteredDoa.length}
-                                </span>
+                        <span className="font-mono-tabular shrink-0 opacity-80">
+                          {String(idx + 1).padStart(2, "0")}.
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <span className="line-clamp-2 block">{item.nama || "Do'a Harian"}</span>
+                          {item.grup && (
+                            <span
+                              style={!isActive ? { color: "var(--tashrif-muted)" } : undefined}
+                              className={`mt-0.5 block truncate text-[10px] ${
+                                isActive ? "opacity-85" : ""
+                              }`}
+                            >
+                              {item.grup}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </aside>
+
+              {/* Single-Prayer Reader Pane */}
+              <section className="min-w-0">
+                {!activeDoa ? (
+                  <div
+                    style={{
+                      border: "1px dashed var(--tashrif-group-break)",
+                      backgroundColor: "var(--tashrif-paper)",
+                      color: "var(--tashrif-muted)",
+                    }}
+                    className="rounded-xl p-8 text-center shadow-xs"
+                  >
+                    <p className="text-sm">
+                      {doaFilter === "saved"
+                        ? "Belum ada do'a yang disimpan ke daftar penanda."
+                        : "Tidak ada do'a yang cocok dengan pencarian Anda."}
+                    </p>
+                  </div>
+                ) : (
+                  (() => {
+                    const key = doaBookmarkKey(activeDoa, safeDoaIndex);
+                    const isSaved = doaBookmarks.includes(key);
+                    const isCopied = copiedId === `doa-${key}`;
+                    return (
+                      <>
+                        <article
+                          ref={doaCardRef}
+                          key={`doa-${key}-${safeDoaIndex}`}
+                          onTouchStart={(e) => {
+                            const touch = e.changedTouches[0];
+                            if (touch) doaTouchStartRef.current = { x: touch.clientX, y: touch.clientY };
+                          }}
+                          onTouchEnd={(e) => {
+                            const start = doaTouchStartRef.current;
+                            doaTouchStartRef.current = null;
+                            const touch = e.changedTouches[0];
+                            if (!start || !touch) return;
+                            const dx = touch.clientX - start.x;
+                            const dy = touch.clientY - start.y;
+                            if (Math.abs(dx) >= 48 && Math.abs(dx) > Math.abs(dy) * 1.25) {
+                              goToDoa(dx < 0 ? safeDoaIndex + 1 : safeDoaIndex - 1);
+                            }
+                          }}
+                          style={{
+                            backgroundColor: "var(--tashrif-paper)",
+                            border: "4px double var(--tashrif-border-strong)",
+                            borderRadius: "0.75rem",
+                          }}
+                          className={`scroll-mt-20 overflow-hidden shadow-xs page-enter-${doaTurnDir}`}
+                        >
+                          {/* Tinted Kitab Header Band */}
+                          <div
+                            style={{
+                              backgroundColor: "var(--tashrif-wazan-bg)",
+                              borderBottom: "1px solid var(--tashrif-border-cell)",
+                            }}
+                            className="px-4 py-4 sm:px-6"
+                          >
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <p
+                                  style={{ color: "var(--tashrif-accent)" }}
+                                  className="font-mono-tabular text-[11px] font-bold tracking-wider uppercase"
+                                >
+                                  {(activeDoa.grup || "Do'a Harian").toUpperCase()} · HALAMAN{" "}
+                                  {safeDoaIndex + 1} / {filteredDoa.length}
+                                </p>
+                                <h3
+                                  style={{ color: "var(--tashrif-ink)" }}
+                                  className="font-display mt-1 text-xl font-semibold sm:text-2xl"
+                                >
+                                  {activeDoa.nama || "Do'a Harian"}
+                                </h3>
+                                {activeDoa.tentang && (
+                                  <p
+                                    style={{ color: "var(--tashrif-muted)" }}
+                                    className="mt-1 text-xs"
+                                  >
+                                    {activeDoa.tentang}
+                                  </p>
+                                )}
                               </div>
-                              <h3 className="font-display mt-1.5 text-xl font-semibold text-[#103d2c] sm:text-2xl dark:text-white">
-                                {activeDoa.nama || "Do'a Harian"}
-                              </h3>
-                              {activeDoa.tentang && (
-                                <p className="mt-1 text-xs text-[#7c745f] dark:text-slate-400">
-                                  {activeDoa.tentang}
+
+                              <div className="flex shrink-0 items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    copyText(
+                                      `doa-${key}`,
+                                      [activeDoa.nama, activeDoa.ar, activeDoa.tr, activeDoa.idn]
+                                        .filter(Boolean)
+                                        .join("\n\n")
+                                    )
+                                  }
+                                  style={{
+                                    border: "1px solid var(--tashrif-border-cell)",
+                                    backgroundColor: "var(--tashrif-paper)",
+                                    color: "var(--tashrif-text)",
+                                  }}
+                                  className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-colors hover:opacity-90"
+                                >
+                                  {isCopied ? (
+                                    <Check className="h-3.5 w-3.5" />
+                                  ) : (
+                                    <Copy className="h-3.5 w-3.5" />
+                                  )}
+                                  <span>{isCopied ? "Tersalin" : "Salin"}</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDoaBookmarks(toggleDoaBookmark(key))}
+                                  style={
+                                    isSaved
+                                      ? {
+                                          backgroundColor: "var(--tashrif-btn-bg)",
+                                          color: "var(--tashrif-btn-text)",
+                                        }
+                                      : {
+                                          border: "1px solid var(--tashrif-border-cell)",
+                                          backgroundColor: "var(--tashrif-paper)",
+                                          color: "var(--tashrif-text)",
+                                        }
+                                  }
+                                  className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-colors hover:opacity-90"
+                                >
+                                  {isSaved ? (
+                                    <BookmarkCheck className="h-3.5 w-3.5" />
+                                  ) : (
+                                    <Bookmark className="h-3.5 w-3.5" />
+                                  )}
+                                  <span>{isSaved ? "Tersimpan" : "Simpan"}</span>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Arabic Text */}
+                          <div className="px-4 py-5 sm:px-7 sm:py-6">
+                            {activeDoa.ar && (
+                              <p
+                                lang="ar"
+                                dir="rtl"
+                                style={{ color: "var(--tashrif-ink)" }}
+                                className="arabic-classic-text whitespace-pre-wrap text-right"
+                              >
+                                {activeDoa.ar}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Dashed Bilingual Panel (Latin & Terjemahan) */}
+                          {(activeDoa.tr || activeDoa.idn) && (
+                            <div
+                              style={{
+                                borderTop: "1px dashed var(--tashrif-group-break)",
+                                backgroundColor: "var(--tashrif-wazan-bg)",
+                              }}
+                              className="space-y-2.5 px-4 py-4 sm:px-7 sm:py-5"
+                            >
+                              {activeDoa.tr && (
+                                <p
+                                  style={{ color: "var(--tashrif-muted)" }}
+                                  className="latin-reader-text whitespace-pre-wrap italic"
+                                >
+                                  {activeDoa.tr}
+                                </p>
+                              )}
+                              {activeDoa.idn && (
+                                <p
+                                  style={{ color: "var(--tashrif-text)" }}
+                                  className="prose-reader-text whitespace-pre-wrap font-medium"
+                                >
+                                  {activeDoa.idn}
                                 </p>
                               )}
                             </div>
+                          )}
+                        </article>
 
-                            <div className="flex shrink-0 items-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  copyText(
-                                    `doa-${key}`,
-                                    [activeDoa.nama, activeDoa.ar, activeDoa.tr, activeDoa.idn]
-                                      .filter(Boolean)
-                                      .join("\n\n")
-                                  )
-                                }
-                                className="inline-flex min-h-[36px] items-center gap-1 rounded-xl border border-[#dce4df] bg-[#f4f7f5] px-3 text-xs font-semibold text-[#174231] hover:bg-[#e6ede9] dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200"
-                              >
-                                {isCopied ? (
-                                  <Check className="h-3.5 w-3.5" />
-                                ) : (
-                                  <Copy className="h-3.5 w-3.5" />
-                                )}
-                                <span>{isCopied ? "Tersalin" : "Salin"}</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setDoaBookmarks(toggleDoaBookmark(key))}
-                                className={`inline-flex min-h-[36px] items-center gap-1 rounded-xl px-3 text-xs font-semibold ${
-                                  isSaved
-                                    ? "bg-[#134a35] text-[#ffffff] dark:bg-[#E2B354] dark:text-[#0B111A]"
-                                    : "border border-[#dce4df] bg-[#f4f7f5] text-[#174231] hover:bg-[#e6ede9] dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200"
-                                }`}
-                              >
-                                {isSaved ? (
-                                  <BookmarkCheck className="h-3.5 w-3.5" />
-                                ) : (
-                                  <Bookmark className="h-3.5 w-3.5" />
-                                )}
-                                <span>{isSaved ? "Tersimpan" : "Simpan"}</span>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        {activeDoa.ar && (
-                          <p
-                            lang="ar"
-                            dir="rtl"
-                            className="arabic-classic-text mt-6 whitespace-pre-wrap text-right text-[#1c2b23] dark:text-[#EDF2F7]"
-                          >
-                            {activeDoa.ar}
-                          </p>
-                        )}
-                        {activeDoa.tr && (
-                          <p className="latin-reader-text mt-5 whitespace-pre-wrap text-[#7a6d56] italic dark:text-slate-400">
-                            {activeDoa.tr}
-                          </p>
-                        )}
-                        {activeDoa.idn && (
-                          <p className="prose-reader-text mt-3 whitespace-pre-wrap text-[#2e3e34] dark:text-slate-300">
-                            {activeDoa.idn}
-                          </p>
-                        )}
-                      </article>
-
-                      <nav
-                        aria-label="Navigasi halaman do'a harian"
-                        className="sticky bottom-3 z-20 mt-4 flex items-center justify-between gap-2 rounded-2xl border border-[#dce4df]/90 bg-[#ffffff]/95 p-2 shadow-lg backdrop-blur-md dark:border-slate-700/90 dark:bg-[#111A27]/95"
-                      >
-                        <button
-                          type="button"
-                          disabled={safeDoaIndex === 0}
-                          onClick={() => goToDoa(safeDoaIndex - 1)}
-                          className="inline-flex min-h-[42px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border border-[#dce4df] bg-[#ffffff] px-3 text-xs font-semibold text-[#174231] transition-colors hover:bg-[#edf2ef] disabled:opacity-40 dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200 dark:hover:bg-[#1E2C40]"
-                        >
-                          <ChevronLeft className="h-4 w-4 shrink-0" />
-                          <span className="truncate">Do'a Sebelumnya</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
+                        <FloatingPageNav
+                          onPrev={() => goToDoa(safeDoaIndex - 1)}
+                          onNext={() => goToDoa(safeDoaIndex + 1)}
+                          canPrev={safeDoaIndex > 0}
+                          canNext={safeDoaIndex + 1 < filteredDoa.length}
+                          prevLabel="Do'a Sebelumnya"
+                          nextLabel="Do'a Berikutnya"
+                          centerText={`${safeDoaIndex + 1} / ${filteredDoa.length}`}
+                          ariaLabel="Navigasi halaman do'a harian"
+                          onCenterClick={() => {
                             if (window.matchMedia("(min-width: 1024px)").matches) return;
                             setDoaDrawerOpen(true);
                           }}
-                          aria-label="Buka daftar do'a harian"
-                          className="font-mono-tabular inline-flex min-h-[42px] shrink-0 items-center justify-center rounded-xl px-2.5 text-xs font-semibold text-[#6f6652] transition-colors hover:bg-[#edf2ef] lg:cursor-default lg:hover:bg-transparent dark:text-slate-300 dark:hover:bg-[#162131] dark:lg:hover:bg-transparent"
-                        >
-                          {safeDoaIndex + 1} / {filteredDoa.length}
-                        </button>
-
-                        <button
-                          type="button"
-                          disabled={safeDoaIndex + 1 >= filteredDoa.length}
-                          onClick={() => goToDoa(safeDoaIndex + 1)}
-                          className="inline-flex min-h-[42px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#134a35] px-3 text-xs font-semibold text-[#ffffff] transition-colors hover:bg-[#0e3928] disabled:opacity-40 dark:bg-[#E2B354] dark:text-[#0B111A]"
-                        >
-                          <span className="truncate">Do'a Berikutnya</span>
-                          <ChevronRight className="h-4 w-4 shrink-0" />
-                        </button>
-                      </nav>
-                    </>
-                  );
-                })()
-              )}
-            </section>
-          </div>
-        </div>
-      )}
-
-      {/* Dzikir Ba'da Shalat & Rangkaian Tahlil Studio Tabs */}
-      {isClassicMode && (
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-[#e2e8e4] bg-[#ffffff] p-3 shadow-xs sm:px-4 dark:border-slate-800 dark:bg-[#111A27]">
-            <div>
-              <h2 className="font-display text-base font-semibold text-[#103d2c] sm:text-lg dark:text-white">
-                {activeTab === "dzikir" ? "Dzikir Ba'da Shalat" : "Rangkaian Tahlil"}
-              </h2>
-              <p className="text-xs text-[#606c64] dark:text-slate-400">
-                Halaman {safeClassicIndex + 1} dari {classicPages.length} · Geser kanan/kiri untuk pindah
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setClassicDrawerOpen(true)}
-                className="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl border border-[#dce4df] bg-[#f4f7f5] px-3 text-xs font-semibold text-[#174231] lg:hidden dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200"
-              >
-                <List className="h-3.5 w-3.5" />
-                <span>Daftar</span>
-              </button>
-
-              {onOpenClassicCollection && (
-                <button
-                  type="button"
-                  onClick={() => onOpenClassicCollection(activeTab)}
-                  className="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl border border-[#134a35]/25 bg-[#ebf5ef] px-3 text-xs font-semibold text-[#134a35] transition-colors hover:bg-[#dceee3] dark:border-[#E2B354]/30 dark:bg-[#18283B] dark:text-[#E2B354]"
-                >
-                  <Maximize2 className="h-3.5 w-3.5" />
-                  <span>Ruang Baca Fokus</span>
-                </button>
-              )}
+                          centerAriaLabel="Buka daftar do'a harian"
+                        />
+                      </>
+                    );
+                  })()
+                )}
+              </section>
             </div>
           </div>
+        )}
 
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[290px_minmax(0,1fr)] lg:items-start">
-            {classicDrawerOpen && (
-              <div
-                className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs lg:hidden"
-                onClick={() => setClassicDrawerOpen(false)}
-                aria-hidden="true"
-              />
-            )}
-
-            <aside
-              className={`fixed inset-y-0 left-0 z-50 flex w-80 flex-col border-r border-[#e2e8e4] bg-[#ffffff] p-4 transition-transform duration-200 lg:sticky lg:top-20 lg:z-10 lg:max-h-[calc(100vh-110px)] lg:w-auto lg:translate-x-0 lg:rounded-2xl lg:border ${
-                classicDrawerOpen ? "translate-x-0" : "-translate-x-full"
-              } dark:border-slate-800 dark:bg-[#111A27]`}
+        {/* Dzikir Ba'da Shalat & Rangkaian Tahlil Studio Tabs */}
+        {isClassicMode && (
+          <div className="space-y-4">
+            <div
+              style={{
+                border: "1px solid var(--tashrif-border-cell)",
+                backgroundColor: "var(--tashrif-paper)",
+              }}
+              className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl p-3 shadow-xs sm:px-4"
             >
-              <div className="flex items-start justify-between gap-2 border-b border-[#e8eeea] pb-3 dark:border-slate-800">
-                <div>
-                  <p className="text-[11px] font-semibold tracking-wider text-[#9c7d3c] uppercase dark:text-[#E2B354]">
-                    Urutan Bacaan
-                  </p>
-                  <h3 className="font-display mt-0.5 text-base font-semibold text-[#103d2c] dark:text-white">
-                    {activeTab === "dzikir" ? "Daftar Halaman Dzikir" : "Daftar Bagian Tahlil"}
-                  </h3>
-                  <p className="text-xs text-[#7c745f] dark:text-slate-400">
-                    {classicPages.length} halaman
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setClassicDrawerOpen(false)}
-                  aria-label="Tutup daftar bacaan"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#dce4df] text-[#174231] lg:hidden dark:border-slate-700 dark:text-slate-300"
+              <div>
+                <h2
+                  style={{ color: "var(--tashrif-ink)" }}
+                  className="font-display text-base font-semibold sm:text-lg"
                 >
-                  <X className="h-4 w-4" />
-                </button>
+                  {activeTab === "dzikir" ? "Dzikir Ba'da Shalat" : "Rangkaian Tahlil"}
+                </h2>
+                <p style={{ color: "var(--tashrif-muted)" }} className="text-xs">
+                  Halaman {safeClassicIndex + 1} dari {classicPages.length} · Geser kanan/kiri untuk pindah
+                </p>
               </div>
 
-              <div className="mt-3 flex-1 space-y-1 overflow-y-auto pr-1">
-                {classicPages.map((pg, idx) => {
-                  const isActive = idx === safeClassicIndex;
-                  const firstLine =
-                    pg.text.split("\n").find((l) => l.trim().length > 0)?.trim() || pg.title;
-                  const itemLabel =
-                    activeTab === "dzikir" ? `Halaman ${idx + 1}` : pg.title;
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setClassicDrawerOpen(true)}
+                  style={{
+                    border: "1px solid var(--tashrif-border-cell)",
+                    backgroundColor: "var(--tashrif-wazan-bg)",
+                    color: "var(--tashrif-text)",
+                  }}
+                  className="inline-flex min-h-[38px] items-center gap-1.5 rounded-lg px-3 text-xs font-bold lg:hidden"
+                >
+                  <List className="h-3.5 w-3.5" />
+                  <span>Daftar</span>
+                </button>
+
+                {onOpenClassicCollection && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenClassicCollection(activeTab)}
+                    style={{
+                      backgroundColor: "var(--tashrif-btn-bg)",
+                      color: "var(--tashrif-btn-text)",
+                    }}
+                    className="inline-flex min-h-[38px] items-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-colors hover:opacity-90"
+                  >
+                    <Maximize2 className="h-3.5 w-3.5" />
+                    <span>Ruang Baca Fokus</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-[290px_minmax(0,1fr)] lg:items-start">
+              {classicDrawerOpen && (
+                <div
+                  className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs lg:hidden"
+                  onClick={() => setClassicDrawerOpen(false)}
+                  aria-hidden="true"
+                />
+              )}
+
+              <aside
+                style={{
+                  backgroundColor: "var(--tashrif-paper)",
+                  borderColor: "var(--tashrif-border-cell)",
+                }}
+                className={`fixed inset-y-0 left-0 z-50 flex w-80 flex-col border-r p-4 transition-transform duration-200 lg:sticky lg:top-20 lg:z-10 lg:max-h-[calc(100vh-110px)] lg:w-auto lg:translate-x-0 lg:rounded-xl lg:border ${
+                  classicDrawerOpen ? "translate-x-0" : "-translate-x-full"
+                }`}
+              >
+                <div
+                  style={{ borderBottom: "1px solid var(--tashrif-border-cell)" }}
+                  className="flex items-start justify-between gap-2 pb-3"
+                >
+                  <div>
+                    <p
+                      style={{ color: "var(--tashrif-accent)" }}
+                      className="font-mono-tabular text-[11px] font-bold tracking-wider uppercase"
+                    >
+                      Urutan Bacaan
+                    </p>
+                    <h3
+                      style={{ color: "var(--tashrif-ink)" }}
+                      className="font-display mt-0.5 text-base font-semibold"
+                    >
+                      {activeTab === "dzikir" ? "Daftar Halaman Dzikir" : "Daftar Bagian Tahlil"}
+                    </h3>
+                    <p style={{ color: "var(--tashrif-muted)" }} className="text-xs">
+                      {classicPages.length} halaman
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setClassicDrawerOpen(false)}
+                    aria-label="Tutup daftar bacaan"
+                    style={{
+                      border: "1px solid var(--tashrif-border-cell)",
+                      backgroundColor: "var(--tashrif-wazan-bg)",
+                      color: "var(--tashrif-text)",
+                    }}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg lg:hidden"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="mt-3 flex-1 space-y-1 overflow-y-auto pr-1">
+                  {classicPages.map((pg, idx) => {
+                    const isActive = idx === safeClassicIndex;
+                    const firstLine =
+                      pg.text.split("\n").find((l) => l.trim().length > 0)?.trim() || pg.title;
+                    const itemLabel =
+                      activeTab === "dzikir" ? `Halaman ${idx + 1}` : pg.title;
+                    return (
+                      <button
+                        key={`${activeTab}-nav-${idx}`}
+                        type="button"
+                        onClick={() => goToClassic(idx)}
+                        style={
+                          isActive
+                            ? {
+                                backgroundColor: "var(--tashrif-btn-bg)",
+                                color: "var(--tashrif-btn-text)",
+                              }
+                            : { color: "var(--tashrif-text)" }
+                        }
+                        className={`flex min-h-[42px] w-full items-start gap-2 rounded-lg px-3 py-2 text-left text-xs transition-colors ${
+                          isActive
+                            ? "font-bold"
+                            : "hover:bg-emerald-900/5 dark:hover:bg-amber-400/5"
+                        }`}
+                      >
+                        <span className="font-mono-tabular shrink-0 opacity-80">
+                          {String(idx + 1).padStart(2, "0")}.
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <span className="line-clamp-2 block">{itemLabel}</span>
+                          {activeTab === "dzikir" && (
+                            <span
+                              dir="rtl"
+                              style={!isActive ? { color: "var(--tashrif-muted)" } : undefined}
+                              className={`font-arabic mt-0.5 block truncate text-xs ${
+                                isActive ? "opacity-85" : ""
+                              }`}
+                            >
+                              {firstLine}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </aside>
+
+              <section className="min-w-0">
+                {activeClassicPage && (
+                  <>
+                    <article
+                      ref={classicCardRef}
+                      key={`${activeTab}-${safeClassicIndex}`}
+                      onTouchStart={(e) => {
+                        const touch = e.changedTouches[0];
+                        if (touch) classicTouchStartRef.current = { x: touch.clientX, y: touch.clientY };
+                      }}
+                      onTouchEnd={(e) => {
+                        const start = classicTouchStartRef.current;
+                        classicTouchStartRef.current = null;
+                        const touch = e.changedTouches[0];
+                        if (!start || !touch) return;
+                        const dx = touch.clientX - start.x;
+                        const dy = touch.clientY - start.y;
+                        if (Math.abs(dx) >= 48 && Math.abs(dx) > Math.abs(dy) * 1.25) {
+                          goToClassic(dx < 0 ? safeClassicIndex + 1 : safeClassicIndex - 1);
+                        }
+                      }}
+                      style={{
+                        backgroundColor: "var(--tashrif-paper)",
+                        border: "4px double var(--tashrif-border-strong)",
+                        borderRadius: "0.75rem",
+                      }}
+                      className={`scroll-mt-20 overflow-hidden shadow-xs page-enter-${classicTurnDir}`}
+                    >
+                      {/* Tinted Kitab Header Band */}
+                      <div
+                        style={{
+                          backgroundColor: "var(--tashrif-wazan-bg)",
+                          borderBottom: "1px solid var(--tashrif-border-cell)",
+                        }}
+                        className="px-4 py-4 sm:px-7"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p
+                              style={{ color: "var(--tashrif-accent)" }}
+                              className="font-mono-tabular text-[11px] font-bold tracking-wider uppercase"
+                            >
+                              {(activeClassicPage.subtitle || activeTab).toUpperCase()} ·{" "}
+                              {safeClassicIndex + 1} / {classicPages.length}
+                            </p>
+                            <h3
+                              style={{ color: "var(--tashrif-ink)" }}
+                              className="font-display mt-1 text-xl font-semibold sm:text-2xl"
+                            >
+                              {activeClassicPage.title}
+                            </h3>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              copyText(
+                                `${activeTab}-${safeClassicIndex}`,
+                                `${activeClassicPage.title}\n\n${activeClassicPage.text}`
+                              )
+                            }
+                            style={{
+                              border: "1px solid var(--tashrif-border-cell)",
+                              backgroundColor: "var(--tashrif-paper)",
+                              color: "var(--tashrif-text)",
+                            }}
+                            className="inline-flex min-h-[36px] shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-colors hover:opacity-90"
+                          >
+                            {copiedId === `${activeTab}-${safeClassicIndex}` ? (
+                              <Check className="h-3.5 w-3.5" />
+                            ) : (
+                              <Copy className="h-3.5 w-3.5" />
+                            )}
+                            <span>
+                              {copiedId === `${activeTab}-${safeClassicIndex}` ? "Tersalin" : "Salin"}
+                            </span>
+                          </button>
+                        </div>
+
+                        <div
+                          className="mx-auto mt-2.5 flex items-center justify-center gap-3"
+                          style={{ color: "var(--tashrif-accent)" }}
+                          aria-hidden="true"
+                        >
+                          <span
+                            className="h-px w-12"
+                            style={{ backgroundColor: "var(--tashrif-border-cell)" }}
+                          />
+                          <span className="font-arabic text-sm">۞</span>
+                          <span
+                            className="h-px w-12"
+                            style={{ backgroundColor: "var(--tashrif-border-cell)" }}
+                          />
+                        </div>
+                      </div>
+
+                      <div
+                        lang="ar"
+                        dir="rtl"
+                        style={{ color: "var(--tashrif-ink)" }}
+                        className="arabic-classic-text whitespace-pre-wrap px-4 py-6 text-right sm:px-8 sm:py-7"
+                      >
+                        {activeClassicPage.text}
+                      </div>
+
+                      <div
+                        style={{
+                          borderTop: "1px dashed var(--tashrif-group-break)",
+                          backgroundColor: "var(--tashrif-row-alt)",
+                        }}
+                        className="px-4 py-3 text-center"
+                      >
+                        <p
+                          style={{ color: "var(--tashrif-accent)" }}
+                          className="font-arabic text-sm font-semibold"
+                        >
+                          اقْرَؤُوا بِتَأَنٍّ وَحُضُورِ الْقَلْبِ
+                        </p>
+                      </div>
+                    </article>
+
+                    <FloatingPageNav
+                      onPrev={() => goToClassic(safeClassicIndex - 1)}
+                      onNext={() => goToClassic(safeClassicIndex + 1)}
+                      canPrev={safeClassicIndex > 0}
+                      canNext={safeClassicIndex + 1 < classicPages.length}
+                      prevLabel="Sebelumnya"
+                      nextLabel="Berikutnya"
+                      centerText={`${safeClassicIndex + 1} / ${classicPages.length}`}
+                      ariaLabel="Navigasi halaman bacaan"
+                      onCenterClick={() => {
+                        if (window.matchMedia("(min-width: 1024px)").matches) return;
+                        setClassicDrawerOpen(true);
+                      }}
+                      centerAriaLabel="Buka daftar halaman"
+                    />
+                  </>
+                )}
+              </section>
+            </div>
+          </div>
+        )}
+
+        {/* Split-Pane Surah Directory + Active Surah / Tafsir Reader */}
+        {isSurahMode && (
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[300px_minmax(0,1fr)] lg:items-start">
+            {/* Surah Directory */}
+            <aside
+              style={{
+                backgroundColor: "var(--tashrif-paper)",
+                border: "1px solid var(--tashrif-border-cell)",
+              }}
+              className={`${
+                effectiveSurahNumber ? "hidden lg:flex" : "flex"
+              } max-h-[75vh] flex-col rounded-xl p-3.5 shadow-xs lg:sticky lg:top-20`}
+            >
+              <label className="relative flex items-center">
+                <Search
+                  style={{ color: "var(--tashrif-muted)" }}
+                  className="pointer-events-none absolute left-3 h-4 w-4"
+                />
+                <input
+                  type="search"
+                  value={surahQuery}
+                  onChange={(e) => setSurahQuery(e.target.value)}
+                  placeholder="Cari surah (1–114)…"
+                  aria-label="Cari surah"
+                  style={{
+                    border: "1.5px solid var(--tashrif-border-strong)",
+                    backgroundColor: "var(--tashrif-control-bg)",
+                    color: "var(--tashrif-text)",
+                  }}
+                  className="min-h-[38px] w-full rounded-lg pr-3 pl-9 text-xs font-medium outline-none"
+                />
+              </label>
+
+              {listLoading && (
+                <p style={{ color: "var(--tashrif-muted)" }} className="py-8 text-center text-xs">
+                  Memuat daftar surah…
+                </p>
+              )}
+              {listError && (
+                <p className="py-8 text-center text-xs text-red-700 dark:text-red-400">
+                  {listError}
+                </p>
+              )}
+
+              <div className="mt-2.5 flex-1 space-y-1 overflow-y-auto pr-1">
+                {filteredSurahs.map((s) => {
+                  const isSelected = effectiveSurahNumber === s.nomor;
                   return (
                     <button
-                      key={`${activeTab}-nav-${idx}`}
+                      key={s.nomor}
                       type="button"
-                      onClick={() => goToClassic(idx)}
-                      className={`flex min-h-[42px] w-full items-start gap-2 rounded-xl px-3 py-2 text-left text-xs transition-colors ${
-                        isActive
-                          ? "bg-[#134a35] font-semibold text-[#ffffff] dark:bg-[#1D3557]"
-                          : "text-[#354c3e] hover:bg-[#edf2ef] dark:text-slate-300 dark:hover:bg-[#172334]"
+                      onClick={() => onChangeTab(activeTab, s.nomor)}
+                      style={
+                        isSelected
+                          ? {
+                              backgroundColor: "var(--tashrif-btn-bg)",
+                              color: "var(--tashrif-btn-text)",
+                            }
+                          : { color: "var(--tashrif-text)" }
+                      }
+                      className={`flex min-h-[46px] w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left transition-colors ${
+                        isSelected ? "" : "hover:bg-emerald-900/5 dark:hover:bg-amber-400/5"
                       }`}
                     >
-                      <span className="font-mono-tabular shrink-0 opacity-75">
-                        {String(idx + 1).padStart(2, "0")}.
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <span className="line-clamp-2 block">{itemLabel}</span>
-                        {activeTab === "dzikir" && (
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <span
+                          style={
+                            isSelected
+                              ? {
+                                  backgroundColor: "rgba(255,255,255,0.18)",
+                                  color: "var(--tashrif-btn-text)",
+                                }
+                              : {
+                                  backgroundColor: "var(--tashrif-wazan-bg)",
+                                  border: "1px solid var(--tashrif-border-cell)",
+                                  color: "var(--tashrif-accent)",
+                                }
+                          }
+                          className="font-mono-tabular flex h-7 w-7 shrink-0 items-center justify-center rounded text-xs font-bold"
+                        >
+                          {s.nomor}
+                        </span>
+                        <div className="min-w-0">
+                          <span className="block truncate text-xs font-bold sm:text-sm">
+                            {s.namaLatin}
+                          </span>
                           <span
-                            dir="rtl"
-                            className={`font-arabic mt-0.5 block truncate text-xs ${
-                              isActive
-                                ? "text-[#e5dcc4] dark:text-slate-300"
-                                : "text-[#7c745f] dark:text-slate-400"
+                            style={!isSelected ? { color: "var(--tashrif-muted)" } : undefined}
+                            className={`block truncate text-[11px] ${
+                              isSelected ? "opacity-85" : ""
                             }`}
                           >
-                            {firstLine}
+                            {s.arti} · {s.jumlahAyat} ayat
                           </span>
-                        )}
+                        </div>
                       </div>
+                      <span className="font-arabic shrink-0 text-base opacity-90">{s.nama}</span>
                     </button>
                   );
                 })}
               </div>
             </aside>
 
-            <section className="min-w-0">
-              {activeClassicPage && (
-                <>
-                  <article
-                    ref={classicCardRef}
-                    key={`${activeTab}-${safeClassicIndex}`}
-                    onTouchStart={(e) => {
-                      const touch = e.changedTouches[0];
-                      if (touch) classicTouchStartRef.current = { x: touch.clientX, y: touch.clientY };
-                    }}
-                    onTouchEnd={(e) => {
-                      const start = classicTouchStartRef.current;
-                      classicTouchStartRef.current = null;
-                      const touch = e.changedTouches[0];
-                      if (!start || !touch) return;
-                      const dx = touch.clientX - start.x;
-                      const dy = touch.clientY - start.y;
-                      if (Math.abs(dx) >= 48 && Math.abs(dx) > Math.abs(dy) * 1.25) {
-                        goToClassic(dx < 0 ? safeClassicIndex + 1 : safeClassicIndex - 1);
-                      }
-                    }}
-                    className={`scroll-mt-20 rounded-2xl border border-[#b7d3c3] bg-[#ffffff] p-5 shadow-sm ring-1 ring-[#134a35]/10 sm:p-8 dark:border-[#2a4562] dark:bg-[#111A27] dark:ring-[#E2B354]/15 page-enter-${classicTurnDir}`}
+            {/* Right Pane: Active Surah or Tafsir Detail */}
+            <section className={`${!effectiveSurahNumber ? "hidden lg:block" : "block"} min-w-0`}>
+              {!effectiveSurahNumber ? (
+                <div
+                  style={{
+                    border: "4px double var(--tashrif-border-strong)",
+                    backgroundColor: "var(--tashrif-paper)",
+                  }}
+                  className="rounded-xl p-10 text-center shadow-xs"
+                >
+                  <p
+                    style={{ color: "var(--tashrif-accent)" }}
+                    className="font-arabic text-3xl font-bold"
                   >
-                    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#e8eeea] pb-4 dark:border-slate-800">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold text-[#9c7d3c] dark:text-[#E2B354]">
-                          {activeClassicPage.subtitle || activeTab.toUpperCase()} ·{" "}
-                          {safeClassicIndex + 1} / {classicPages.length}
-                        </p>
-                        <h3 className="font-display mt-1 text-xl font-semibold text-[#103d2c] sm:text-2xl dark:text-white">
-                          {activeClassicPage.title}
-                        </h3>
-                      </div>
-
+                    بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ
+                  </p>
+                  <h2
+                    style={{ color: "var(--tashrif-ink)" }}
+                    className="font-display mt-3 text-lg font-semibold"
+                  >
+                    Pilih surah dari daftar di samping
+                  </h2>
+                  <p style={{ color: "var(--tashrif-muted)" }} className="mt-1 text-xs sm:text-sm">
+                    Baca ayat Al-Qur’an, dengarkan murattal dari 6 qari, atau pelajari tafsirnya.
+                  </p>
+                </div>
+              ) : (
+                <article
+                  ref={surahCardRef}
+                  key={`${activeTab}-${effectiveSurahNumber}-${detailLoading ? "loading" : "ready"}`}
+                  style={{
+                    backgroundColor: "var(--tashrif-paper)",
+                    border: "4px double var(--tashrif-border-strong)",
+                    borderRadius: "0.75rem",
+                  }}
+                  className={`scroll-mt-20 overflow-hidden shadow-xs page-enter-${
+                    detailLoading ? "fade" : surahTurnDir
+                  }`}
+                >
+                  {/* Surah Directory, Beranda Return & Quick Nav */}
+                  <div
+                    style={{
+                      borderBottom: "1px solid var(--tashrif-border-cell)",
+                      backgroundColor: "var(--tashrif-row-alt)",
+                    }}
+                    className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         type="button"
-                        onClick={() =>
-                          copyText(
-                            `${activeTab}-${safeClassicIndex}`,
-                            `${activeClassicPage.title}\n\n${activeClassicPage.text}`
-                          )
-                        }
-                        className="inline-flex min-h-[36px] shrink-0 items-center gap-1 rounded-xl border border-[#dce4df] bg-[#f4f7f5] px-3 text-xs font-semibold text-[#174231] hover:bg-[#e6ede9] dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200"
+                        onClick={() => onChangeTab(activeTab, undefined)}
+                        style={{
+                          border: "1px solid var(--tashrif-border-cell)",
+                          backgroundColor: "var(--tashrif-paper)",
+                          color: "var(--tashrif-text)",
+                        }}
+                        className="inline-flex min-h-[38px] items-center gap-1.5 rounded-lg px-3 text-xs font-bold lg:hidden"
                       >
-                        {copiedId === `${activeTab}-${safeClassicIndex}` ? (
-                          <Check className="h-3.5 w-3.5" />
-                        ) : (
-                          <Copy className="h-3.5 w-3.5" />
-                        )}
-                        <span>
-                          {copiedId === `${activeTab}-${safeClassicIndex}` ? "Tersalin" : "Salin"}
-                        </span>
+                        <ArrowLeft className="h-4 w-4" />
+                        <span>Daftar Surah</span>
+                      </button>
+
+                      {onBackHome && (
+                        <button
+                          type="button"
+                          onClick={onBackHome}
+                          style={{
+                            border: "1px solid var(--tashrif-border-cell)",
+                            backgroundColor: "var(--tashrif-paper)",
+                            color: "var(--tashrif-text)",
+                          }}
+                          className="inline-flex min-h-[38px] items-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-opacity hover:opacity-90"
+                        >
+                          <Home className="h-4 w-4" />
+                          <span>Beranda</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        disabled={effectiveSurahNumber <= 1}
+                        onClick={() => onChangeTab(activeTab, effectiveSurahNumber - 1)}
+                        aria-label="Surah sebelumnya"
+                        title="Surah sebelumnya"
+                        style={{
+                          border: "1px solid var(--tashrif-border-cell)",
+                          backgroundColor: "var(--tashrif-paper)",
+                          color: "var(--tashrif-text)",
+                        }}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg disabled:opacity-35"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={effectiveSurahNumber >= 114}
+                        onClick={() => onChangeTab(activeTab, effectiveSurahNumber + 1)}
+                        aria-label="Surah berikutnya"
+                        title="Surah berikutnya"
+                        style={{
+                          backgroundColor: "var(--tashrif-btn-bg)",
+                          color: "var(--tashrif-btn-text)",
+                        }}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg disabled:opacity-35"
+                      >
+                        <ChevronRight className="h-4 w-4" />
                       </button>
                     </div>
-
-                    <div
-                      lang="ar"
-                      dir="rtl"
-                      className="arabic-classic-text mt-6 whitespace-pre-wrap text-right text-[#1c2b23] dark:text-[#EDF2F7]"
-                    >
-                      {activeClassicPage.text}
-                    </div>
-                  </article>
-
-                  <nav
-                    aria-label="Navigasi halaman bacaan"
-                    className="sticky bottom-3 z-20 mt-4 flex items-center justify-between gap-2 rounded-2xl border border-[#dce4df]/90 bg-[#ffffff]/95 p-2 shadow-lg backdrop-blur-md dark:border-slate-700/90 dark:bg-[#111A27]/95"
-                  >
-                    <button
-                      type="button"
-                      disabled={safeClassicIndex === 0}
-                      onClick={() => goToClassic(safeClassicIndex - 1)}
-                      className="inline-flex min-h-[42px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border border-[#dce4df] bg-[#ffffff] px-3 text-xs font-semibold text-[#174231] transition-colors hover:bg-[#edf2ef] disabled:opacity-40 dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200 dark:hover:bg-[#1E2C40]"
-                    >
-                      <ChevronLeft className="h-4 w-4 shrink-0" />
-                      <span className="truncate">Sebelumnya</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (window.matchMedia("(min-width: 1024px)").matches) return;
-                        setClassicDrawerOpen(true);
-                      }}
-                      aria-label="Buka daftar halaman"
-                      className="font-mono-tabular inline-flex min-h-[42px] shrink-0 items-center justify-center rounded-xl px-2.5 text-xs font-semibold text-[#6f6652] transition-colors hover:bg-[#edf2ef] lg:cursor-default lg:hover:bg-transparent dark:text-slate-300 dark:hover:bg-[#162131] dark:lg:hover:bg-transparent"
-                    >
-                      {safeClassicIndex + 1} / {classicPages.length}
-                    </button>
-
-                    <button
-                      type="button"
-                      disabled={safeClassicIndex + 1 >= classicPages.length}
-                      onClick={() => goToClassic(safeClassicIndex + 1)}
-                      className="inline-flex min-h-[42px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#134a35] px-3 text-xs font-semibold text-[#ffffff] transition-colors hover:bg-[#0e3928] disabled:opacity-40 dark:bg-[#E2B354] dark:text-[#0B111A]"
-                    >
-                      <span className="truncate">Berikutnya</span>
-                      <ChevronRight className="h-4 w-4 shrink-0" />
-                    </button>
-                  </nav>
-                </>
-              )}
-            </section>
-          </div>
-        </div>
-      )}
-
-      {/* Split-Pane Surah Directory + Active Surah / Tafsir Reader */}
-      {isSurahMode && (
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[300px_minmax(0,1fr)] lg:items-start">
-          {/* Surah Directory */}
-          <aside
-            className={`${
-              effectiveSurahNumber ? "hidden lg:flex" : "flex"
-            } max-h-[75vh] flex-col rounded-2xl border border-[#e2e8e4] bg-[#ffffff] p-3.5 lg:sticky lg:top-20 dark:border-slate-800 dark:bg-[#111A27]`}
-          >
-            <label className="relative flex items-center">
-              <Search className="pointer-events-none absolute left-3 h-4 w-4 text-[#7c745f] dark:text-slate-400" />
-              <input
-                type="search"
-                value={surahQuery}
-                onChange={(e) => setSurahQuery(e.target.value)}
-                placeholder="Cari surah (1–114)…"
-                aria-label="Cari surah"
-                className="min-h-[38px] w-full rounded-xl border border-[#dce4df] bg-white pr-3 pl-9 text-xs outline-none focus:border-[#134a35] dark:border-slate-700 dark:bg-[#162131] dark:focus:border-[#E2B354]"
-              />
-            </label>
-
-            {listLoading && <p className="py-8 text-center text-xs text-[#766f5d] dark:text-slate-400">Memuat daftar surah…</p>}
-            {listError && <p className="py-8 text-center text-xs text-red-700 dark:text-red-400">{listError}</p>}
-
-            <div className="mt-2.5 flex-1 space-y-1 overflow-y-auto pr-1">
-              {filteredSurahs.map((s) => {
-                const isSelected = effectiveSurahNumber === s.nomor;
-                return (
-                  <button
-                    key={s.nomor}
-                    type="button"
-                    onClick={() => onChangeTab(activeTab, s.nomor)}
-                    className={`flex min-h-[46px] w-full items-center justify-between gap-2 rounded-xl px-2.5 py-1.5 text-left transition-colors ${
-                      isSelected
-                        ? "bg-[#134a35] text-[#ffffff] dark:bg-[#1D3557]"
-                        : "hover:bg-[#edf2ef] dark:hover:bg-[#162233]"
-                    }`}
-                  >
-                    <div className="flex min-w-0 items-center gap-2.5">
-                      <span
-                        className={`font-mono-tabular flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-semibold ${
-                          isSelected
-                            ? "bg-white/15 text-[#e7cf96] dark:text-[#E2B354]"
-                            : "bg-[#edf2ef] text-[#103d2c] dark:bg-[#1A283B] dark:text-[#E2B354]"
-                        }`}
-                      >
-                        {s.nomor}
-                      </span>
-                      <div className="min-w-0">
-                        <span className="block truncate text-xs font-semibold sm:text-sm">{s.namaLatin}</span>
-                        <span
-                          className={`block truncate text-[11px] ${
-                            isSelected ? "text-[#e5dcc4] dark:text-slate-300" : "text-[#7c745f] dark:text-slate-400"
-                          }`}
-                        >
-                          {s.arti} · {s.jumlahAyat} ayat
-                        </span>
-                      </div>
-                    </div>
-                    <span className="font-arabic shrink-0 text-base opacity-85">{s.nama}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </aside>
-
-          {/* Right Pane: Active Surah or Tafsir Detail */}
-          <section className={`${!effectiveSurahNumber ? "hidden lg:block" : "block"} min-w-0`}>
-            {!effectiveSurahNumber ? (
-              <div className="rounded-2xl border border-dashed border-[#cbd6cf] bg-[#ffffff] p-10 text-center dark:border-slate-700 dark:bg-[#111A27]">
-                <p className="font-arabic text-3xl text-[#9c7d3c] dark:text-[#E2B354]">
-                  بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ
-                </p>
-                <h2 className="font-display mt-3 text-lg font-semibold text-[#103d2c] dark:text-white">
-                  Pilih surah dari daftar di samping
-                </h2>
-                <p className="mt-1 text-xs text-[#646053] sm:text-sm dark:text-slate-400">
-                  Baca ayat Al-Qur’an, dengarkan murattal dari 6 qari, atau pelajari tafsirnya.
-                </p>
-              </div>
-            ) : (
-              <article
-                key={`${activeTab}-${effectiveSurahNumber}-${detailLoading ? "loading" : "ready"}`}
-                className={`rounded-2xl border border-[#e2e8e4] bg-[#ffffff] p-5 shadow-xs sm:p-7 dark:border-slate-800 dark:bg-[#111A27] page-enter-${
-                  detailLoading ? "fade" : surahTurnDir
-                }`}
-              >
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-2 lg:hidden">
-                  <button
-                    type="button"
-                    onClick={() => onChangeTab(activeTab, undefined)}
-                    className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-[#dce4df] bg-[#f4f7f5] px-3 text-xs font-semibold text-[#174231] dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                    <span>Daftar Surah</span>
-                  </button>
-
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      disabled={effectiveSurahNumber <= 1}
-                      onClick={() => onChangeTab(activeTab, effectiveSurahNumber - 1)}
-                      aria-label="Surah sebelumnya"
-                      title="Surah sebelumnya"
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#dce4df] bg-[#f4f7f5] text-[#174231] hover:bg-[#e6ede9] disabled:opacity-35 dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      disabled={effectiveSurahNumber >= 114}
-                      onClick={() => onChangeTab(activeTab, effectiveSurahNumber + 1)}
-                      aria-label="Surah berikutnya"
-                      title="Surah berikutnya"
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#134a35] text-[#ffffff] hover:bg-[#0e3928] disabled:opacity-35 dark:bg-[#E2B354] dark:text-[#0B111A]"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
                   </div>
-                </div>
 
-                {detailLoading && <p className="py-10 text-center text-sm text-[#766f5d] dark:text-slate-400">Memuat data…</p>}
-                {detailError && (
-                  <p className="py-10 text-center text-sm text-red-700 dark:text-red-400">{detailError}</p>
-                )}
+                  {detailLoading && (
+                    <p
+                      style={{ color: "var(--tashrif-muted)" }}
+                      className="py-12 text-center text-sm"
+                    >
+                      Memuat data…
+                    </p>
+                  )}
+                  {detailError && (
+                    <p className="py-12 text-center text-sm text-red-700 dark:text-red-400">
+                      {detailError}
+                    </p>
+                  )}
 
-                {!detailLoading && !detailError && activeTab === "quran" && suratDetail && (
-                  <>
-                    <div className="border-b border-[#e8eeea] pb-4 dark:border-slate-800">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <p className="text-xs text-[#7c745f] dark:text-slate-400">
-                            {suratDetail.tempatTurun} · {suratDetail.jumlahAyat} ayat
+                  {!detailLoading && !detailError && activeTab === "quran" && suratDetail && (
+                    <>
+                      {/* Tinted Surah Header Band */}
+                      <div
+                        style={{
+                          backgroundColor: "var(--tashrif-wazan-bg)",
+                          borderBottom: "1px solid var(--tashrif-border-cell)",
+                        }}
+                        className="px-4 py-4 sm:px-6"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <p
+                              style={{ color: "var(--tashrif-accent)" }}
+                              className="font-mono-tabular text-[11px] font-bold tracking-wider uppercase"
+                            >
+                              SURAH KE-{suratDetail.nomor} · {suratDetail.tempatTurun.toUpperCase()} ·{" "}
+                              {suratDetail.jumlahAyat} AYAT
+                            </p>
+                            <h2
+                              style={{ color: "var(--tashrif-ink)" }}
+                              className="font-display mt-0.5 text-xl font-semibold sm:text-2xl"
+                            >
+                              {suratDetail.namaLatin} ·{" "}
+                              <span className="font-arabic">{suratDetail.nama}</span>
+                            </h2>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => onChangeTab("tafsir", suratDetail.nomor)}
+                            style={{
+                              border: "1px solid var(--tashrif-border-cell)",
+                              backgroundColor: "var(--tashrif-paper)",
+                              color: "var(--tashrif-text)",
+                            }}
+                            className="min-h-[36px] rounded-lg px-3 text-xs font-bold transition-colors hover:opacity-90"
+                          >
+                            Lihat Tafsir Surah Ini
+                          </button>
+                        </div>
+
+                        {/* Audio Murattal Player Card */}
+                        <div
+                          style={{
+                            border: "1px solid var(--tashrif-border-cell)",
+                            backgroundColor: "var(--tashrif-paper)",
+                          }}
+                          className="mt-4 rounded-xl p-3.5 sm:p-4"
+                        >
+                          <div
+                            style={{ borderBottom: "1px solid var(--tashrif-border-cell)" }}
+                            className="flex flex-wrap items-center justify-between gap-2 pb-2.5"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span
+                                style={{
+                                  backgroundColor: "var(--tashrif-btn-bg)",
+                                  color: "var(--tashrif-btn-text)",
+                                }}
+                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+                              >
+                                <Volume2 className="h-3.5 w-3.5" />
+                              </span>
+                              <div>
+                                <p
+                                  style={{ color: "var(--tashrif-ink)" }}
+                                  className="text-xs font-bold"
+                                >
+                                  Pemutar Murattal
+                                </p>
+                                <p style={{ color: "var(--tashrif-muted)" }} className="text-[11px]">
+                                  {isPlaying ? "Sedang diputar" : "Audio satu surah penuh"}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div
+                              style={{ color: "var(--tashrif-text)" }}
+                              className="flex items-center gap-3 text-xs font-semibold"
+                            >
+                              <label className="inline-flex cursor-pointer items-center gap-1.5">
+                                <input
+                                  type="checkbox"
+                                  checked={showLatin}
+                                  onChange={(e) => setShowLatin(e.target.checked)}
+                                  className="h-4 w-4 accent-[#134a35] dark:accent-[#E2B354]"
+                                />
+                                <span>Latin</span>
+                              </label>
+                              <label className="inline-flex cursor-pointer items-center gap-1.5">
+                                <input
+                                  type="checkbox"
+                                  checked={showTranslation}
+                                  onChange={(e) => setShowTranslation(e.target.checked)}
+                                  className="h-4 w-4 accent-[#134a35] dark:accent-[#E2B354]"
+                                />
+                                <span>Terjemahan</span>
+                              </label>
+                            </div>
+                          </div>
+
+                          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                            <ThemedSelect
+                              className="w-full sm:flex-1"
+                              ariaLabel="Pilih qari"
+                              kickerLabel="Pilih Qari Murattal"
+                              value={qariId}
+                              onChange={(val) => setQariId(String(val))}
+                              options={QARIS.map(([id, name]) => ({
+                                value: id,
+                                label: `Qari: ${name}`,
+                              }))}
+                            />
+
+                            <div className="flex shrink-0 items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (isPlaying) {
+                                    audioRef.current?.pause();
+                                    setIsPlaying(false);
+                                  } else {
+                                    handlePlay();
+                                  }
+                                }}
+                                style={{
+                                  backgroundColor: "var(--tashrif-btn-bg)",
+                                  color: "var(--tashrif-btn-text)",
+                                }}
+                                className="inline-flex min-h-[38px] flex-1 items-center justify-center gap-1.5 rounded-lg px-4 text-xs font-bold whitespace-nowrap transition-colors hover:opacity-90 sm:flex-none"
+                              >
+                                {isPlaying ? (
+                                  <>
+                                    <Pause className="h-3.5 w-3.5 shrink-0" />
+                                    <span>Jeda</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Play className="h-3.5 w-3.5 shrink-0" />
+                                    <span>Putar Surah</span>
+                                  </>
+                                )}
+                              </button>
+
+                              <button
+                                type="button"
+                                disabled={!hasSrc}
+                                onClick={() => {
+                                  const audio = audioRef.current;
+                                  if (!audio) return;
+                                  audio.pause();
+                                  audio.currentTime = 0;
+                                  setIsPlaying(false);
+                                }}
+                                aria-label="Hentikan audio"
+                                style={{
+                                  border: "1px solid var(--tashrif-border-cell)",
+                                  backgroundColor: "var(--tashrif-paper)",
+                                  color: "var(--tashrif-text)",
+                                }}
+                                className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-bold whitespace-nowrap transition-colors hover:opacity-90 disabled:opacity-45"
+                              >
+                                <Square className="h-3.5 w-3.5 shrink-0" />
+                                <span>Stop</span>
+                              </button>
+                            </div>
+                          </div>
+
+                          <audio
+                            ref={audioRef}
+                            controls
+                            preload="metadata"
+                            aria-label="Pemutar murattal satu surah"
+                            onPlay={() => setIsPlaying(true)}
+                            onPause={() => setIsPlaying(false)}
+                            onEnded={() => setIsPlaying(false)}
+                            onError={() => {
+                              if (audioRef.current?.src) {
+                                setAudioStatus(
+                                  "Rekaman murattal gagal dimuat. Periksa koneksi internet atau pilih qari lain."
+                                );
+                              }
+                            }}
+                            className="mt-3 h-9 w-full"
+                          />
+                          <p style={{ color: "var(--tashrif-muted)" }} className="mt-1.5 text-[11px]">
+                            {audioStatus}
                           </p>
-                          <h2 className="font-display mt-0.5 text-xl font-semibold text-[#103d2c] sm:text-2xl dark:text-white">
-                            {suratDetail.namaLatin} · <span className="font-arabic">{suratDetail.nama}</span>
+                        </div>
+                      </div>
+
+                      {/* Daftar Ayat */}
+                      <div>
+                        {(suratDetail.ayat || []).map((ayat) => {
+                          const isBookmarked =
+                            lastRead?.surahNumber === suratDetail.nomor &&
+                            lastRead?.ayatNumber === ayat.nomorAyat;
+                          const copyKey = `ayat-${suratDetail.nomor}-${ayat.nomorAyat}`;
+                          const isCopied = copiedId === copyKey;
+                          return (
+                            <div
+                              key={ayat.nomorAyat}
+                              id={`ayat-${ayat.nomorAyat}`}
+                              style={{
+                                borderBottom: "1px solid var(--tashrif-border-cell)",
+                                backgroundColor: isBookmarked
+                                  ? "var(--tashrif-row-alt)"
+                                  : "transparent",
+                              }}
+                              className="last:border-b-0"
+                            >
+                              <div className="px-4 py-4 sm:px-6">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <span
+                                    style={{
+                                      backgroundColor: "var(--tashrif-wazan-bg)",
+                                      border: "1px solid var(--tashrif-border-cell)",
+                                      color: "var(--tashrif-accent)",
+                                    }}
+                                    className="inline-block rounded px-2 py-0.5 font-mono-tabular text-[11px] font-bold"
+                                  >
+                                    Ayat {ayat.nomorAyat}
+                                  </span>
+
+                                  <div className="flex items-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        copyText(
+                                          copyKey,
+                                          [
+                                            `QS. ${suratDetail.namaLatin} : ${ayat.nomorAyat}`,
+                                            ayat.teksArab,
+                                            ayat.teksLatin,
+                                            ayat.teksIndonesia,
+                                          ].join("\n\n")
+                                        )
+                                      }
+                                      style={{
+                                        border: "1px solid var(--tashrif-border-cell)",
+                                        backgroundColor: "var(--tashrif-row-alt)",
+                                        color: "var(--tashrif-text)",
+                                      }}
+                                      className="inline-flex min-h-[32px] items-center gap-1 rounded-lg px-2.5 text-[11px] font-bold transition-colors hover:opacity-90"
+                                    >
+                                      {isCopied ? (
+                                        <Check className="h-3 w-3" />
+                                      ) : (
+                                        <Copy className="h-3 w-3" />
+                                      )}
+                                      <span>{isCopied ? "Tersalin" : "Salin"}</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => handleBookmarkAyat(ayat.nomorAyat)}
+                                      style={
+                                        isBookmarked
+                                          ? {
+                                              backgroundColor: "var(--tashrif-btn-bg)",
+                                              color: "var(--tashrif-btn-text)",
+                                            }
+                                          : {
+                                              border: "1px solid var(--tashrif-border-cell)",
+                                              backgroundColor: "var(--tashrif-row-alt)",
+                                              color: "var(--tashrif-text)",
+                                            }
+                                      }
+                                      className="inline-flex min-h-[32px] items-center gap-1 rounded-lg px-2.5 text-[11px] font-bold transition-colors hover:opacity-90"
+                                    >
+                                      {isBookmarked ? (
+                                        <BookmarkCheck className="h-3 w-3" />
+                                      ) : (
+                                        <Bookmark className="h-3 w-3" />
+                                      )}
+                                      <span>{isBookmarked ? "Terakhir dibaca" : "Tandai"}</span>
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <p
+                                  lang="ar"
+                                  dir="rtl"
+                                  style={{ color: "var(--tashrif-ink)" }}
+                                  className="arabic-reader-text mt-3 text-right"
+                                >
+                                  {ayat.teksArab}
+                                </p>
+                              </div>
+
+                              {(showLatin || showTranslation) && (
+                                <div
+                                  style={{
+                                    borderTop: "1px dashed var(--tashrif-group-break)",
+                                    backgroundColor: "var(--tashrif-wazan-bg)",
+                                  }}
+                                  className="space-y-1.5 px-4 py-3 sm:px-6"
+                                >
+                                  {showLatin && (
+                                    <p
+                                      style={{ color: "var(--tashrif-muted)" }}
+                                      className="latin-reader-text italic"
+                                    >
+                                      {ayat.teksLatin}
+                                    </p>
+                                  )}
+                                  {showTranslation && (
+                                    <p
+                                      style={{ color: "var(--tashrif-text)" }}
+                                      className="prose-reader-text font-medium"
+                                    >
+                                      <span
+                                        style={{ color: "var(--tashrif-accent)" }}
+                                        className="mr-1.5 font-mono-tabular font-bold"
+                                      >
+                                        [{ayat.nomorAyat}]
+                                      </span>
+                                      {ayat.teksIndonesia}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+
+                  {!detailLoading && !detailError && activeTab === "tafsir" && tafsirDetail && (
+                    <>
+                      {/* Tinted Tafsir Header Band */}
+                      <div
+                        style={{
+                          backgroundColor: "var(--tashrif-wazan-bg)",
+                          borderBottom: "1px solid var(--tashrif-border-cell)",
+                        }}
+                        className="flex flex-wrap items-start justify-between gap-3 px-4 py-4 sm:px-6"
+                      >
+                        <div>
+                          <p
+                            style={{ color: "var(--tashrif-accent)" }}
+                            className="font-mono-tabular text-[11px] font-bold tracking-wider uppercase"
+                          >
+                            TAFSIR AL-QUR’AN · SURAH KE-{effectiveSurahNumber}
+                          </p>
+                          <h2
+                            style={{ color: "var(--tashrif-ink)" }}
+                            className="font-display mt-0.5 text-xl font-semibold sm:text-2xl"
+                          >
+                            {tafsirDetail.namaLatin || `Tafsir Surah ${effectiveSurahNumber}`}
                           </h2>
                         </div>
                         <button
                           type="button"
-                          onClick={() => onChangeTab("tafsir", suratDetail.nomor)}
-                          className="min-h-[36px] rounded-xl border border-[#dce4df] bg-[#f4f7f5] px-3 text-xs font-semibold text-[#174231] hover:bg-[#e6ede9] dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200"
+                          onClick={() => onChangeTab("quran", effectiveSurahNumber)}
+                          style={{
+                            border: "1px solid var(--tashrif-border-cell)",
+                            backgroundColor: "var(--tashrif-paper)",
+                            color: "var(--tashrif-text)",
+                          }}
+                          className="min-h-[36px] rounded-lg px-3 text-xs font-bold transition-colors hover:opacity-90"
                         >
-                          Lihat Tafsir Surah Ini
+                          Buka Ayat &amp; Murattal
                         </button>
                       </div>
 
-                      {/* Audio Murattal Player Card (Neatly Organized 2-Row Layout) */}
-                      <div className="mt-4 rounded-2xl border border-[#dce4df] bg-[#f8fbf9] p-3.5 sm:p-4 dark:border-slate-800 dark:bg-[#162131]">
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e4ece7] pb-2.5 dark:border-slate-700/70">
-                          <div className="flex items-center gap-2">
-                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#134a35] text-white dark:bg-[#E2B354] dark:text-[#0B111A]">
-                              <Volume2 className="h-3.5 w-3.5" />
-                            </span>
-                            <div>
-                              <p className="text-xs font-semibold text-[#103d2c] dark:text-white">
-                                Pemutar Murattal
-                              </p>
-                              <p className="text-[11px] text-[#606c64] dark:text-slate-400">
-                                {isPlaying ? "Sedang diputar" : "Audio satu surah penuh"}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-3 text-xs font-medium text-[#354c3e] dark:text-slate-300">
-                            <label className="inline-flex cursor-pointer items-center gap-1.5">
-                              <input
-                                type="checkbox"
-                                checked={showLatin}
-                                onChange={(e) => setShowLatin(e.target.checked)}
-                                className="h-4 w-4 accent-[#134a35] dark:accent-[#E2B354]"
-                              />
-                              <span>Latin</span>
-                            </label>
-                            <label className="inline-flex cursor-pointer items-center gap-1.5">
-                              <input
-                                type="checkbox"
-                                checked={showTranslation}
-                                onChange={(e) => setShowTranslation(e.target.checked)}
-                                className="h-4 w-4 accent-[#134a35] dark:accent-[#E2B354]"
-                              />
-                              <span>Terjemahan</span>
-                            </label>
-                          </div>
-                        </div>
-
-                        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-                          <select
-                            value={qariId}
-                            onChange={(e) => setQariId(e.target.value)}
-                            aria-label="Pilih qari"
-                            className="min-h-[38px] w-full flex-1 rounded-xl border border-[#dce4df] bg-white px-3 text-xs font-medium text-[#1d2c24] outline-none focus:border-[#134a35] dark:border-slate-700 dark:bg-[#111A27] dark:text-slate-100"
-                          >
-                            {QARIS.map(([id, name]) => (
-                              <option key={id} value={id}>
-                                Qari: {name}
-                              </option>
-                            ))}
-                          </select>
-
-                          <div className="flex shrink-0 items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (isPlaying) {
-                                  audioRef.current?.pause();
-                                  setIsPlaying(false);
-                                } else {
-                                  handlePlay();
-                                }
-                              }}
-                              className="inline-flex min-h-[38px] flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#134a35] px-4 text-xs font-semibold text-[#ffffff] whitespace-nowrap transition-colors hover:bg-[#0e3928] sm:flex-none dark:bg-[#E2B354] dark:text-[#0B111A]"
+                      <div>
+                        {(tafsirDetail.tafsir || []).map((item, idx) => {
+                          const copyKey = `tafsir-${effectiveSurahNumber}-${idx}`;
+                          const isCopied = copiedId === copyKey;
+                          const bodyText = item.teks || item.tafsir || "";
+                          return (
+                            <div
+                              key={idx}
+                              style={{ borderBottom: "1px solid var(--tashrif-border-cell)" }}
+                              className="px-4 py-4 last:border-b-0 sm:px-6"
                             >
-                              {isPlaying ? (
-                                <>
-                                  <Pause className="h-3.5 w-3.5 shrink-0" />
-                                  <span>Jeda</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Play className="h-3.5 w-3.5 shrink-0" />
-                                  <span>Putar Surah</span>
-                                </>
-                              )}
-                            </button>
-
-                            <button
-                              type="button"
-                              disabled={!hasSrc}
-                              onClick={() => {
-                                const audio = audioRef.current;
-                                if (!audio) return;
-                                audio.pause();
-                                audio.currentTime = 0;
-                                setIsPlaying(false);
-                              }}
-                              aria-label="Hentikan audio"
-                              className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-[#dce4df] bg-[#ffffff] px-3 text-xs font-semibold text-[#174231] whitespace-nowrap transition-colors hover:bg-[#edf2ef] disabled:opacity-45 dark:border-slate-700 dark:bg-[#111A27] dark:text-slate-200"
-                            >
-                              <Square className="h-3.5 w-3.5 shrink-0" />
-                              <span>Stop</span>
-                            </button>
-                          </div>
-                        </div>
-
-                        <audio
-                          ref={audioRef}
-                          controls
-                          preload="metadata"
-                          aria-label="Pemutar murattal satu surah"
-                          onPlay={() => setIsPlaying(true)}
-                          onPause={() => setIsPlaying(false)}
-                          onEnded={() => setIsPlaying(false)}
-                          onError={() => {
-                            if (audioRef.current?.src) {
-                              setAudioStatus(
-                                "Rekaman murattal gagal dimuat. Periksa koneksi internet atau pilih qari lain."
-                              );
-                            }
-                          }}
-                          className="mt-3 h-9 w-full"
-                        />
-                        <p className="mt-1.5 text-[11px] text-[#606c64] dark:text-slate-400">
-                          {audioStatus}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="divide-y divide-[#e8eeea] dark:divide-slate-800">
-                      {(suratDetail.ayat || []).map((ayat) => {
-                        const isBookmarked =
-                          lastRead?.surahNumber === suratDetail.nomor &&
-                          lastRead?.ayatNumber === ayat.nomorAyat;
-                        const copyKey = `ayat-${suratDetail.nomor}-${ayat.nomorAyat}`;
-                        const isCopied = copiedId === copyKey;
-                        return (
-                          <div
-                            key={ayat.nomorAyat}
-                            id={`ayat-${ayat.nomorAyat}`}
-                            className={`py-4 ${
-                              isBookmarked
-                                ? "rounded-xl bg-[#f4f7f5]/60 px-3 dark:bg-[#172334]/60"
-                                : ""
-                            }`}
-                          >
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <span className="font-mono-tabular text-xs font-semibold text-[#95763a] dark:text-[#E2B354]">
-                                Ayat {ayat.nomorAyat}
-                              </span>
-
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <span
+                                  style={{
+                                    backgroundColor: "var(--tashrif-wazan-bg)",
+                                    border: "1px solid var(--tashrif-border-cell)",
+                                    color: "var(--tashrif-accent)",
+                                  }}
+                                  className="inline-block rounded px-2 py-0.5 font-mono-tabular text-[11px] font-bold"
+                                >
+                                  {item.ayat ? `Ayat ${item.ayat}` : "Tafsir"}
+                                </span>
                                 <button
                                   type="button"
                                   onClick={() =>
                                     copyText(
                                       copyKey,
-                                      [
-                                        `QS. ${suratDetail.namaLatin} : ${ayat.nomorAyat}`,
-                                        ayat.teksArab,
-                                        ayat.teksLatin,
-                                        ayat.teksIndonesia,
-                                      ].join("\n\n")
+                                      `Tafsir ${tafsirDetail.namaLatin} ${
+                                        item.ayat ? `Ayat ${item.ayat}` : ""
+                                      }\n\n${bodyText}`
                                     )
                                   }
-                                  className="inline-flex min-h-[30px] items-center gap-1 rounded-lg border border-[#dce4df] bg-[#f4f7f5] px-2 text-[11px] font-semibold text-[#174231] hover:bg-[#e6ede9] dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200"
+                                  style={{
+                                    border: "1px solid var(--tashrif-border-cell)",
+                                    backgroundColor: "var(--tashrif-row-alt)",
+                                    color: "var(--tashrif-text)",
+                                  }}
+                                  className="inline-flex min-h-[32px] items-center gap-1 rounded-lg px-2.5 text-[11px] font-bold transition-colors hover:opacity-90"
                                 >
                                   {isCopied ? (
                                     <Check className="h-3 w-3" />
@@ -1401,142 +2006,40 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
                                   )}
                                   <span>{isCopied ? "Tersalin" : "Salin"}</span>
                                 </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => handleBookmarkAyat(ayat.nomorAyat)}
-                                  className={`inline-flex min-h-[30px] items-center gap-1 rounded-lg px-2 text-[11px] font-semibold ${
-                                    isBookmarked
-                                      ? "bg-[#134a35] text-[#ffffff] dark:bg-[#E2B354] dark:text-[#0B111A]"
-                                      : "border border-[#dce4df] bg-[#f4f7f5] text-[#174231] hover:bg-[#e6ede9] dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200"
-                                  }`}
-                                >
-                                  {isBookmarked ? (
-                                    <BookmarkCheck className="h-3 w-3" />
-                                  ) : (
-                                    <Bookmark className="h-3 w-3" />
-                                  )}
-                                  <span>{isBookmarked ? "Terakhir dibaca" : "Tandai"}</span>
-                                </button>
                               </div>
-                            </div>
-
-                            <p
-                              lang="ar"
-                              dir="rtl"
-                              className="arabic-reader-text mt-3 text-right text-[#1c2b23] dark:text-[#EDF2F7]"
-                            >
-                              {ayat.teksArab}
-                            </p>
-                            {showLatin && (
-                              <p className="latin-reader-text mt-2.5 text-[#7a6d56] italic dark:text-slate-400">
-                                {ayat.teksLatin}
-                              </p>
-                            )}
-                            {showTranslation && (
-                              <p className="prose-reader-text mt-1.5 text-[#2e3e34] dark:text-slate-300">
-                                {ayat.teksIndonesia}
-                              </p>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
-
-                {!detailLoading && !detailError && activeTab === "tafsir" && tafsirDetail && (
-                  <>
-                    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#e8eeea] pb-4 dark:border-slate-800">
-                      <div>
-                        <p className="text-xs text-[#7c745f] dark:text-slate-400">Tafsir Al-Qur’an</p>
-                        <h2 className="font-display mt-0.5 text-xl font-semibold text-[#103d2c] sm:text-2xl dark:text-white">
-                          {tafsirDetail.namaLatin || `Tafsir Surah ${effectiveSurahNumber}`}
-                        </h2>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => onChangeTab("quran", effectiveSurahNumber)}
-                        className="min-h-[36px] rounded-xl border border-[#dce4df] bg-[#f4f7f5] px-3 text-xs font-semibold text-[#174231] hover:bg-[#e6ede9] dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200"
-                      >
-                        Buka Ayat & Murattal
-                      </button>
-                    </div>
-
-                    <div className="divide-y divide-[#e8eeea] dark:divide-slate-800">
-                      {(tafsirDetail.tafsir || []).map((item, idx) => {
-                        const copyKey = `tafsir-${effectiveSurahNumber}-${idx}`;
-                        const isCopied = copiedId === copyKey;
-                        const bodyText = item.teks || item.tafsir || "";
-                        return (
-                          <div key={idx} className="py-4">
-                            <div className="flex items-center justify-between gap-2">
-                              <h3 className="font-mono-tabular text-xs font-semibold text-[#95763a] dark:text-[#E2B354]">
-                                {item.ayat ? `Ayat ${item.ayat}` : "Tafsir"}
-                              </h3>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  copyText(
-                                    copyKey,
-                                    `Tafsir ${tafsirDetail.namaLatin} ${
-                                      item.ayat ? `Ayat ${item.ayat}` : ""
-                                    }\n\n${bodyText}`
-                                  )
-                                }
-                                className="inline-flex min-h-[30px] items-center gap-1 rounded-lg border border-[#dce4df] bg-[#f4f7f5] px-2 text-[11px] font-semibold text-[#174231] hover:bg-[#e6ede9] dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200"
+                              <p
+                                style={{ color: "var(--tashrif-text)" }}
+                                className="prose-reader-text mt-2.5 whitespace-pre-wrap"
                               >
-                                {isCopied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                                <span>{isCopied ? "Tersalin" : "Salin"}</span>
-                              </button>
+                                {bodyText}
+                              </p>
                             </div>
-                            <p className="prose-reader-text mt-2 whitespace-pre-wrap text-[#2e3e34] dark:text-slate-300">
-                              {bodyText}
-                            </p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
-              </article>
-            )}
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </article>
+              )}
 
-            {effectiveSurahNumber && (
-              <nav
-                aria-label="Navigasi antar surah"
-                className="sticky bottom-3 z-20 mt-4 flex items-center justify-between gap-2 rounded-2xl border border-[#dce4df]/90 bg-[#ffffff]/95 p-2 shadow-lg backdrop-blur-md dark:border-slate-700/90 dark:bg-[#111A27]/95"
-              >
-                <button
-                  type="button"
-                  disabled={effectiveSurahNumber <= 1}
-                  onClick={() => onChangeTab(activeTab, effectiveSurahNumber - 1)}
-                  className="inline-flex min-h-[42px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border border-[#dce4df] bg-[#ffffff] px-3 text-xs font-semibold text-[#174231] transition-colors hover:bg-[#edf2ef] disabled:opacity-40 dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200 dark:hover:bg-[#1E2C40]"
-                >
-                  <ChevronLeft className="h-4 w-4 shrink-0" />
-                  <span className="truncate">Surah Sebelumnya</span>
-                </button>
+              {effectiveSurahNumber && (
+                <FloatingPageNav
+                  onPrev={() => onChangeTab(activeTab, effectiveSurahNumber - 1)}
+                  onNext={() => onChangeTab(activeTab, effectiveSurahNumber + 1)}
+                  canPrev={effectiveSurahNumber > 1}
+                  canNext={effectiveSurahNumber < 114}
+                  prevLabel="Surah Sebelumnya"
+                  nextLabel="Surah Berikutnya"
+                  centerText={`${effectiveSurahNumber} / 114`}
+                  ariaLabel="Navigasi antar surah"
+                />
+              )}
+            </section>
+          </div>
+        )}
 
-                <span className="font-mono-tabular shrink-0 px-2 text-xs font-semibold text-[#6f6652] dark:text-slate-300">
-                  {effectiveSurahNumber} / 114
-                </span>
-
-                <button
-                  type="button"
-                  disabled={effectiveSurahNumber >= 114}
-                  onClick={() => onChangeTab(activeTab, effectiveSurahNumber + 1)}
-                  className="inline-flex min-h-[42px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#134a35] px-3 text-xs font-semibold text-[#ffffff] transition-colors hover:bg-[#0e3928] disabled:opacity-40 dark:bg-[#E2B354] dark:text-[#0B111A]"
-                >
-                  <span className="truncate">Surah Berikutnya</span>
-                  <ChevronRight className="h-4 w-4 shrink-0" />
-                </button>
-              </nav>
-            )}
-          </section>
-        </div>
-      )}
-
-      <FooterDisclaimer variant="compact" />
+        <FooterDisclaimer variant="compact" />
+      </div>
     </div>
   );
 };

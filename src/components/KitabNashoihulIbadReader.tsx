@@ -1,5 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { kitabNashoihulIbad, type BabNashoihulIbad } from "../data/nashoihul-ibad";
+import { ThemedSelect } from "./ThemedSelect";
+import { FloatingPageNav } from "./FloatingPageNav";
 
 interface KitabNashoihulIbadReaderProps {
   initialBabId?: string;
@@ -12,6 +14,7 @@ export const KitabNashoihulIbadReader: React.FC<KitabNashoihulIbadReaderProps> =
   const [selectedBabId, setSelectedBabId] = useState<string>(initialBabId || defaultBabId);
   const [openAllArti, setOpenAllArti] = useState<boolean>(false);
   const [openItemIds, setOpenItemIds] = useState<Record<string, boolean>>({});
+  const readingCardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const valid = kitabNashoihulIbad.some((b) => b.id === initialBabId)
@@ -32,7 +35,9 @@ export const KitabNashoihulIbadReader: React.FC<KitabNashoihulIbadReaderProps> =
   const handleSelectBab = (id: string) => {
     setSelectedBabId(id);
     setOpenItemIds({});
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.requestAnimationFrame(() => {
+      readingCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   };
 
   const toggleSingleTerjemahan = (maqalahId: string) => {
@@ -102,29 +107,18 @@ export const KitabNashoihulIbadReader: React.FC<KitabNashoihulIbadReaderProps> =
         }}
         className="shadow-xs"
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>
-          <select
-            aria-label="Pilih Bab Kitab Nashoihul Ibad"
+        <div className="flex items-center gap-2.5">
+          <ThemedSelect
+            ariaLabel="Pilih Bab Kitab Nashoihul Ibad"
+            kickerLabel="Daftar Bab Nashoihul Ibad"
             value={activeBab?.id ?? selectedBabId}
-            onChange={(e) => handleSelectBab(e.target.value)}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              padding: "0.55rem 0.65rem",
-              borderRadius: "0.5rem",
-              border: "1.5px solid var(--tashrif-border-strong)",
-              backgroundColor: "var(--tashrif-control-bg)",
-              color: "var(--tashrif-text)",
-              fontSize: "0.8rem",
-              fontWeight: 700,
-            }}
-          >
-            {kitabNashoihulIbad.map((bab) => (
-              <option key={bab.id} value={bab.id}>
-                {bab.judulIndonesia}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => handleSelectBab(String(val))}
+            options={kitabNashoihulIbad.map((bab) => ({
+              value: bab.id,
+              label: bab.judulIndonesia,
+              sublabel: bab.judulLatin,
+            }))}
+          />
 
           <button
             type="button"
@@ -158,13 +152,14 @@ export const KitabNashoihulIbadReader: React.FC<KitabNashoihulIbadReaderProps> =
       {/* Bingkai Utama Kitab dengan Double Border */}
       {activeBab && (
         <div
+          ref={readingCardRef}
           style={{
             marginBottom: "0.95rem",
             backgroundColor: "var(--tashrif-paper)",
             border: "4px double var(--tashrif-border-strong)",
             borderRadius: "0.75rem",
           }}
-          className="overflow-hidden shadow-xs"
+          className="scroll-mt-20 overflow-hidden shadow-xs"
         >
           <div
             style={{
@@ -386,56 +381,15 @@ export const KitabNashoihulIbadReader: React.FC<KitabNashoihulIbadReaderProps> =
         </div>
       )}
 
-      {/* Navigasi Sebelumnya / Selanjutnya di Bawah */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr auto 1fr",
-          gap: "0.5rem",
-        }}
-        className="mb-4 items-center"
-      >
-        <button
-          type="button"
-          onClick={() => goToBabByIndex(currentBabIndex - 1)}
-          disabled={currentBabIndex <= 0}
-          style={{
-            opacity: currentBabIndex <= 0 ? 0.45 : 1,
-            cursor: currentBabIndex <= 0 ? "not-allowed" : "pointer",
-            border: "1px solid var(--tashrif-border-cell)",
-            backgroundColor: "var(--tashrif-paper)",
-            color: "var(--tashrif-text)",
-            borderRadius: "0.5rem",
-          }}
-          className="px-3 py-2.5 text-xs font-bold"
-        >
-          ← Sebelumnya
-        </button>
-
-        <span
-          style={{ color: "var(--tashrif-muted)", padding: "0 0.5rem" }}
-          className="font-mono-tabular text-xs font-bold"
-        >
-          {Math.max(1, currentBabIndex + 1)} / {kitabNashoihulIbad.length}
-        </span>
-
-        <button
-          type="button"
-          onClick={() => goToBabByIndex(currentBabIndex + 1)}
-          disabled={currentBabIndex >= kitabNashoihulIbad.length - 1}
-          style={{
-            opacity: currentBabIndex >= kitabNashoihulIbad.length - 1 ? 0.45 : 1,
-            cursor:
-              currentBabIndex >= kitabNashoihulIbad.length - 1 ? "not-allowed" : "pointer",
-            backgroundColor: "var(--tashrif-btn-bg)",
-            color: "var(--tashrif-btn-text)",
-            borderRadius: "0.5rem",
-          }}
-          className="px-3 py-2.5 text-xs font-bold"
-        >
-          Selanjutnya →
-        </button>
-      </div>
+      {/* Navigasi Mengambang Sebelumnya / Selanjutnya */}
+      <FloatingPageNav
+        ariaLabel="Navigasi antar bab Nashoihul Ibad"
+        onPrev={() => goToBabByIndex(currentBabIndex - 1)}
+        onNext={() => goToBabByIndex(currentBabIndex + 1)}
+        canPrev={currentBabIndex > 0}
+        canNext={currentBabIndex < kitabNashoihulIbad.length - 1}
+        centerText={`${Math.max(1, currentBabIndex + 1)} / ${kitabNashoihulIbad.length}`}
+      />
     </div>
   );
 };

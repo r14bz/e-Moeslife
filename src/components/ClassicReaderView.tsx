@@ -22,6 +22,7 @@ import {
 } from "../utils/readerEngine";
 import { writePreference } from "../services/preferences";
 import { FooterDisclaimer } from "./FooterDisclaimer";
+import { FloatingPageNav } from "./FloatingPageNav";
 
 interface ClassicReaderViewProps {
   sections: ClassicSection[];
@@ -82,7 +83,9 @@ export const ClassicReaderView: React.FC<ClassicReaderViewProps> = ({
         setIndex(start);
         writePreference("page", start);
         onPageChanged(pagesRef.current[start]);
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        window.requestAnimationFrame(() => {
+          paperRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
         return;
       }
     }
@@ -162,6 +165,12 @@ export const ClassicReaderView: React.FC<ClassicReaderViewProps> = ({
     };
   }, [rebuildPages]);
 
+  const scrollToPaperCard = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      paperRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, []);
+
   const goToPage = useCallback(
     (requestedIndex: number, animate: "" | "turn-next" | "turn-prev" = "") => {
       const currentPages = pagesRef.current;
@@ -173,11 +182,13 @@ export const ClassicReaderView: React.FC<ClassicReaderViewProps> = ({
         setIndex(target);
         writePreference("page", target);
         onPageChanged(currentPages[target]);
+        scrollToPaperCard();
         return;
       }
 
       turningRef.current = true;
       setTurnClass(animate === "turn-next" ? "turn-out-next" : "turn-out-prev");
+      scrollToPaperCard();
 
       window.setTimeout(() => {
         setIndex(target);
@@ -195,7 +206,7 @@ export const ClassicReaderView: React.FC<ClassicReaderViewProps> = ({
         }, 270);
       }, 155);
     },
-    [onPageChanged]
+    [onPageChanged, scrollToPaperCard]
   );
 
   const next = useCallback(() => {
@@ -258,329 +269,529 @@ export const ClassicReaderView: React.FC<ClassicReaderViewProps> = ({
       .filter(({ s }) => groupObj.matches(s) && Boolean(s.title));
   }, [sections, activeGroupKey]);
 
+  const groupBannerMeta = useMemo(() => {
+    switch (activeGroupKey) {
+      case "yasin":
+        return {
+          arabic: "سُوْرَةُ يٰسٓ",
+          title: "Surah Yasin — 83 Ayat",
+        };
+      case "rahman":
+        return {
+          arabic: "سُوْرَةُ الرَّحْمٰنِ",
+          title: "Surah Ar-Rahman — 78 Ayat",
+        };
+      case "dzikir":
+        return {
+          arabic: "أَذْكَارُ بَعْدَ الصَّلَاةِ",
+          title: "Dzikir & Wirid Ba'da Shalat",
+        };
+      default:
+        return {
+          arabic: "التَّهْلِيْلُ وَالتَّوَسُّلُ",
+          title: "Rangkaian Tahlil, Tawasul & Doa",
+        };
+    }
+  }, [activeGroupKey]);
+
   return (
     <div
-      className={`mx-auto max-w-6xl ${
-        focusMode ? "px-2.5 pt-2.5 pb-8 sm:px-6 sm:pt-4" : "px-4 pt-4 pb-12 sm:px-6"
-      }`}
+      style={{
+        backgroundColor: "var(--tashrif-bg)",
+        color: "var(--tashrif-text)",
+        minHeight: "100vh",
+      }}
     >
-      {/* Reader Top Action Bar */}
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2.5 sm:mb-4">
-        {focusMode ? (
-          <p className="min-w-0 truncate text-xs font-semibold text-[#5e6a62] dark:text-slate-400">
-            Mode Fokus · {activePage?.title || "Bacaan Klasik"}
-          </p>
-        ) : (
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onGoHome}
-              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-[#dce4df] bg-[#ffffff] px-3 text-xs font-semibold text-[#174231] hover:bg-[#edf2ef] dark:border-slate-800 dark:bg-[#111A27] dark:text-slate-200 dark:hover:bg-[#162233]"
-            >
-              <Home className="h-4 w-4" />
-              <span>Beranda</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={onOpenToc}
-              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-[#dce4df] bg-[#ffffff] px-3 text-xs font-semibold text-[#174231] lg:hidden dark:border-slate-800 dark:bg-[#111A27] dark:text-slate-200"
-            >
-              <List className="h-4 w-4" />
-              <span>Daftar Isi</span>
-            </button>
-          </div>
-        )}
-
-        <button
-          type="button"
-          onClick={onToggleFocus}
-          title={focusMode ? "Keluar mode fokus" : "Mode fokus membaca"}
-          className={`inline-flex items-center gap-1.5 rounded-xl font-semibold transition-colors ${
-            focusMode
-              ? "min-h-[36px] border border-[#dce4df] bg-[#ffffff] px-3 text-xs text-[#174231] hover:bg-[#edf2ef] dark:border-slate-700 dark:bg-[#111A27] dark:text-[#E2B354]"
-              : "min-h-[40px] bg-[#134a35] px-3.5 text-xs text-[#ffffff] hover:bg-[#0e3928] dark:bg-[#E2B354] dark:text-[#0B111A]"
-          }`}
-        >
-          {focusMode ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-          <span>{focusMode ? "Keluar Fokus" : "Mode Fokus"}</span>
-        </button>
-      </div>
-
       <div
-        className={`grid grid-cols-1 gap-6 ${
-          focusMode ? "" : "lg:grid-cols-[290px_minmax(0,1fr)] lg:items-start"
+        className={`mx-auto max-w-6xl ${
+          focusMode ? "px-2.5 pt-2.5 pb-8 sm:px-6 sm:pt-4" : "px-3.5 pt-3.5 pb-12 sm:px-6"
         }`}
       >
-        {/* Mobile Backdrop */}
-        {tocOpen && (
-          <div
-            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs lg:hidden"
-            onClick={onCloseToc}
-            aria-hidden="true"
-          />
-        )}
-
-        {/* Sidebar / Slide-over Daftar Isi */}
-        {!focusMode && (
-          <aside
-            className={`fixed inset-y-0 left-0 z-50 flex w-80 flex-col justify-between border-r border-[#e2e8e4] bg-[#ffffff] p-4 transition-transform duration-200 lg:sticky lg:top-20 lg:z-10 lg:max-h-[calc(100vh-100px)] lg:w-auto lg:translate-x-0 lg:rounded-2xl lg:border ${
-              tocOpen ? "translate-x-0" : "-translate-x-full"
-            } dark:border-slate-800 dark:bg-[#111A27]`}
-          >
-            <div className="flex min-h-0 flex-1 flex-col">
-              <div className="flex items-start justify-between gap-2 border-b border-[#e8eeea] pb-3.5 dark:border-slate-800">
-                <div>
-                  <p className="text-[11px] font-semibold tracking-wider text-[#9c7d3c] uppercase dark:text-[#E2B354]">
-                    Daftar Isi Klasik
-                  </p>
-                  <h2 className="font-display mt-0.5 text-base font-semibold text-[#103d2c] dark:text-white">
-                    Rangkaian Bacaan
-                  </h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={onCloseToc}
-                  aria-label="Tutup daftar isi"
-                  className="inline-flex min-h-[38px] min-w-[38px] items-center justify-center rounded-xl border border-[#dce4df] bg-[#f4f7f5] text-[#174231] lg:hidden dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-
-              <nav className="mt-3 space-y-1" aria-label="Kelompok bacaan klasik">
-                {CONTENTS_GROUPS.map((group, groupIndex) => {
-                  const firstSec = sections.findIndex(group.matches);
-                  if (firstSec < 0) return null;
-                  const isActive = activePage ? group.matches(activePage) : false;
-                  return (
-                    <button
-                      key={group.key}
-                      type="button"
-                      onClick={() => {
-                        goToPage(Math.max(0, sectionStarts[firstSec] ?? 0));
-                        onCloseToc();
-                      }}
-                      className={`flex min-h-[40px] w-full items-center justify-between rounded-xl px-3 text-left text-xs font-semibold transition-colors ${
-                        isActive
-                          ? "bg-[#134a35] text-[#ffffff] dark:bg-[#1D3557]"
-                          : "text-[#354c3e] hover:bg-[#edf2ef] dark:text-slate-300 dark:hover:bg-[#172334]"
-                      }`}
-                    >
-                      <span>
-                        {groupIndex + 1}. {group.title}
-                      </span>
-                    </button>
-                  );
-                })}
-              </nav>
-
-              {/* Active Group Sub-section Jump List */}
-              {activeGroupSections.length > 1 && (
-                <div className="mt-3.5 flex min-h-0 flex-1 flex-col border-t border-[#e8eeea] pt-3 dark:border-slate-800">
-                  <p className="mb-1.5 text-[11px] font-semibold tracking-wider text-[#7c745f] uppercase dark:text-slate-400">
-                    Bagian dalam bacaan ini
-                  </p>
-                  <div className="flex-1 space-y-0.5 overflow-y-auto pr-1">
-                    {activeGroupSections.map(({ s, idx }) => {
-                      const isCurrent = activePage?.sectionIndex === idx;
-                      return (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => {
-                            goToPage(Math.max(0, sectionStarts[idx] ?? 0));
-                            onCloseToc();
-                          }}
-                          className={`flex min-h-[34px] w-full items-center rounded-lg px-2.5 py-1 text-left text-xs transition-colors ${
-                            isCurrent
-                              ? "bg-[#134a35]/10 font-semibold text-[#103d2c] dark:bg-[#E2B354]/20 dark:text-[#E2B354]"
-                              : "text-[#646053] hover:bg-[#edf2ef]/70 hover:text-[#103d2c] dark:text-slate-400 dark:hover:bg-[#172334] dark:hover:text-slate-200"
-                          }`}
-                        >
-                          <span className="truncate">{s.title}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-4 border-t border-[#e8eeea] pt-3.5 dark:border-slate-800">
-              <div className="flex items-center justify-between text-xs font-medium text-[#646053] dark:text-slate-400">
-                <span>Progres bacaan</span>
-                <strong className="font-mono-tabular text-[#103d2c] dark:text-[#E2B354]">
-                  {progress.percent}%
-                </strong>
-              </div>
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#e8dfc8] dark:bg-slate-800">
-                <div
-                  className="h-full rounded-full bg-[#134a35] transition-all duration-300 dark:bg-[#E2B354]"
-                  style={{ width: `${progress.percent}%` }}
-                />
-              </div>
-              <p className="mt-2 text-[11px] leading-relaxed text-[#7c745f] dark:text-slate-400">
-                Posisi bacaan tersimpan otomatis di perangkat ini.
-              </p>
-            </div>
-          </aside>
-        )}
-
-        {/* Main Manuscript Paper Spread */}
-        <section className="flex min-w-0 flex-col items-center">
-          <div
-            ref={paperRef}
-            onTouchStart={(e) => {
-              if (e.touches.length !== 1 || tocOpen) return;
-              touchStartRef.current = {
-                x: e.touches[0].clientX,
-                y: e.touches[0].clientY,
-                time: Date.now(),
-              };
-            }}
-            onTouchEnd={(e) => {
-              const start = touchStartRef.current;
-              touchStartRef.current = null;
-              if (!start || !e.changedTouches.length || turningRef.current) return;
-              const direction = getSwipeDirection({
-                dx: e.changedTouches[0].clientX - start.x,
-                dy: e.changedTouches[0].clientY - start.y,
-                duration: Date.now() - start.time,
-              });
-              if (direction === "next") next();
-              else if (direction === "prev") prev();
-            }}
-            aria-label="Halaman bacaan. Geser ke kiri untuk halaman berikutnya, geser ke kanan untuk halaman sebelumnya."
-            className={`relative flex min-h-[500px] w-full flex-col justify-between rounded-2xl border border-[#e2e8e4] bg-[#ffffff] shadow-xs sm:min-h-[560px] sm:px-10 sm:py-9 dark:border-slate-800 dark:bg-[#111A27] ${
-              focusMode ? "max-w-4xl px-4 py-5" : "max-w-3xl px-6 py-7"
-            } ${turnClass}`}
-          >
-            {/* Subtle edge tap chevrons */}
-            <button
-              type="button"
-              disabled={!canPrev}
-              onClick={prev}
-              aria-label="Halaman sebelumnya"
-              title="Halaman sebelumnya"
-              className="absolute top-1/2 left-2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-[#8c784c] transition-colors hover:bg-[#f2ebda] disabled:opacity-25 sm:flex dark:text-slate-400 dark:hover:bg-[#1A283A] dark:hover:text-[#E2B354]"
+        {/* Reader Top Action Bar */}
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2.5 sm:mb-3.5">
+          {focusMode ? (
+            <p
+              style={{ color: "var(--tashrif-muted)" }}
+              className="min-w-0 truncate text-xs font-semibold"
             >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              disabled={!canNext}
-              onClick={next}
-              aria-label="Halaman berikutnya"
-              title="Halaman berikutnya"
-              className="absolute top-1/2 right-2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-[#8c784c] transition-colors hover:bg-[#f2ebda] disabled:opacity-25 sm:flex dark:text-slate-400 dark:hover:bg-[#1A283A] dark:hover:text-[#E2B354]"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
-
-            <div>
-              <div className="flex items-center justify-between gap-2">
-                <button
-                  type="button"
-                  disabled={!canPrev}
-                  onClick={prev}
-                  aria-label="Halaman sebelumnya"
-                  title="Halaman sebelumnya"
-                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#dce4df] bg-[#f4f7f5] text-[#174231] transition-colors hover:bg-[#e6ede9] disabled:opacity-35 sm:hidden dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <h2
-                  ref={titleRef}
-                  className="font-display flex-1 text-center text-lg font-semibold text-[#103d2c] sm:text-xl dark:text-white"
-                >
-                  {activePage?.title || "Memuat bacaan…"}
-                </h2>
-                <button
-                  type="button"
-                  disabled={!canNext}
-                  onClick={next}
-                  aria-label="Halaman berikutnya"
-                  title="Halaman berikutnya"
-                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#134a35] text-[#ffffff] transition-colors hover:bg-[#0e3928] disabled:opacity-35 sm:hidden dark:bg-[#E2B354] dark:text-[#0B111A]"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-              <div className="mx-auto my-3.5 flex items-center justify-center gap-3 text-[#b8934a] dark:text-[#E2B354]" aria-hidden="true">
-                <span className="h-px w-12 bg-[#dfd4ba] dark:bg-slate-800" />
-                <span className="font-arabic text-sm">۞</span>
-                <span className="h-px w-12 bg-[#dfd4ba] dark:bg-slate-800" />
-              </div>
-
-              <div
-                ref={textRef}
-                lang="ar"
-                dir="rtl"
-                className={`arabic-classic-text whitespace-pre-wrap text-[#1e2d24] dark:text-[#EDF2F7] ${
-                  activePage?.quranSurah ? "text-justify" : "text-right"
-                }`}
-              >
-                {activePage?.text || ""}
-              </div>
-            </div>
-
-            <div className="mt-7 border-t border-[#efe7d5] pt-4 text-center dark:border-slate-800">
-              <p className="font-arabic text-sm text-[#8a7548] dark:text-[#E2B354]">
-                اقْرَؤُوا بِتَأَنٍّ وَحُضُورِ الْقَلْبِ
-              </p>
-              <p className="font-mono-tabular mt-1 text-xs font-medium text-[#7c745f] dark:text-slate-400">
-                — {pageNumFormatted} —
-              </p>
-            </div>
-          </div>
-
-          {/* Ergonomic Sticky Page Controls */}
-          <nav
-            aria-label="Navigasi antar halaman bacaan"
-            className={`sticky bottom-3 z-20 mt-4 flex w-full items-center justify-between gap-2 rounded-2xl border border-[#dce4df]/90 bg-[#ffffff]/95 p-2 shadow-lg backdrop-blur-md dark:border-slate-700/90 dark:bg-[#111A27]/95 ${
-              focusMode ? "max-w-4xl" : "max-w-3xl"
-            }`}
-          >
-            <button
-              type="button"
-              disabled={!canPrev}
-              onClick={prev}
-              className="inline-flex min-h-[42px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border border-[#dce4df] bg-[#ffffff] px-3 text-xs font-semibold text-[#174231] transition-colors hover:bg-[#edf2ef] disabled:opacity-40 sm:text-sm dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200 dark:hover:bg-[#1E2C40]"
-            >
-              <ChevronLeft className="h-4 w-4 shrink-0" />
-              <span className="truncate">Sebelumnya</span>
-            </button>
-
-            {!focusMode && (
+              Mode Fokus · {activePage?.title || "Bacaan Klasik"}
+            </p>
+          ) : (
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={onGoHome}
-                aria-label="Kembali ke halaman awal"
-                title="Halaman awal"
-                className="inline-flex min-h-[42px] min-w-[42px] shrink-0 items-center justify-center rounded-xl border border-[#dce4df] bg-[#ffffff] text-[#174231] transition-colors hover:bg-[#edf2ef] dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200 dark:hover:bg-[#1E2C40]"
+                style={{
+                  border: "1px solid var(--tashrif-border-cell)",
+                  backgroundColor: "var(--tashrif-paper)",
+                  color: "var(--tashrif-text)",
+                }}
+                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl px-3 text-xs font-semibold shadow-xs transition-colors hover:opacity-90"
               >
                 <Home className="h-4 w-4" />
+                <span>Beranda</span>
               </button>
-            )}
 
-            <button
-              type="button"
-              disabled={!canNext}
-              onClick={next}
-              className="inline-flex min-h-[42px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#134a35] px-3 text-xs font-semibold text-[#ffffff] transition-colors hover:bg-[#0e3928] disabled:opacity-40 sm:text-sm dark:bg-[#E2B354] dark:text-[#0B111A]"
-            >
-              <span className="truncate">Berikutnya</span>
-              <ChevronRight className="h-4 w-4 shrink-0" />
-            </button>
-          </nav>
-
-          {!focusMode && (
-            <div className="w-full max-w-3xl">
-              <FooterDisclaimer variant="compact" />
+              <button
+                type="button"
+                onClick={onOpenToc}
+                style={{
+                  border: "1px solid var(--tashrif-border-cell)",
+                  backgroundColor: "var(--tashrif-paper)",
+                  color: "var(--tashrif-text)",
+                }}
+                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl px-3 text-xs font-semibold shadow-xs transition-colors hover:opacity-90 lg:hidden"
+              >
+                <List className="h-4 w-4" />
+                <span>Daftar Isi</span>
+              </button>
             </div>
           )}
-        </section>
+
+          <button
+            type="button"
+            onClick={onToggleFocus}
+            title={focusMode ? "Keluar mode fokus" : "Mode fokus membaca"}
+            style={
+              focusMode
+                ? {
+                    border: "1px solid var(--tashrif-border-cell)",
+                    backgroundColor: "var(--tashrif-paper)",
+                    color: "var(--tashrif-accent)",
+                  }
+                : {
+                    backgroundColor: "var(--tashrif-btn-bg)",
+                    color: "var(--tashrif-btn-text)",
+                  }
+            }
+            className={`inline-flex items-center gap-1.5 rounded-xl text-xs font-bold transition-colors ${
+              focusMode ? "min-h-[36px] px-3" : "min-h-[40px] px-3.5"
+            }`}
+          >
+            {focusMode ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+            <span>{focusMode ? "Keluar Fokus" : "Mode Fokus"}</span>
+          </button>
+        </div>
+
+        {/* Banner Header Hijau Zamrud (Senada Pembaca Kitab) */}
+        {!focusMode && (
+          <div
+            style={{
+              backgroundColor: "var(--tashrif-panel-bg)",
+              border: "1px solid var(--tashrif-panel-border)",
+              borderRadius: "0.75rem",
+            }}
+            className="mb-4 px-3 py-3.5 text-center shadow-xs sm:mb-5"
+          >
+            <h1
+              dir="rtl"
+              lang="ar"
+              style={{ color: "var(--tashrif-panel-bright)", lineHeight: "1.8" }}
+              className="font-arabic text-2xl font-bold"
+            >
+              {groupBannerMeta.arabic}
+            </h1>
+            <p style={{ color: "var(--tashrif-panel-sub)" }} className="mt-0.5 text-xs font-semibold">
+              {groupBannerMeta.title}
+            </p>
+          </div>
+        )}
+
+        <div
+          className={`grid grid-cols-1 gap-5 ${
+            focusMode ? "" : "lg:grid-cols-[290px_minmax(0,1fr)] lg:items-start"
+          }`}
+        >
+          {/* Mobile Backdrop */}
+          {tocOpen && (
+            <div
+              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs lg:hidden"
+              onClick={onCloseToc}
+              aria-hidden="true"
+            />
+          )}
+
+          {/* Sidebar / Slide-over Daftar Isi */}
+          {!focusMode && (
+            <aside
+              style={{
+                backgroundColor: "var(--tashrif-paper)",
+                borderColor: "var(--tashrif-border-cell)",
+              }}
+              className={`fixed inset-y-0 left-0 z-50 flex w-80 flex-col justify-between border-r p-4 transition-transform duration-200 lg:sticky lg:top-20 lg:z-10 lg:max-h-[calc(100vh-100px)] lg:w-auto lg:translate-x-0 lg:rounded-xl lg:border ${
+                tocOpen ? "translate-x-0" : "-translate-x-full"
+              }`}
+            >
+              <div className="flex min-h-0 flex-1 flex-col">
+                <div
+                  style={{ borderBottom: "1px solid var(--tashrif-border-cell)" }}
+                  className="flex items-start justify-between gap-2 pb-3.5"
+                >
+                  <div>
+                    <p
+                      style={{ color: "var(--tashrif-accent)" }}
+                      className="font-mono-tabular text-[11px] font-bold tracking-wider uppercase"
+                    >
+                      Daftar Isi Klasik
+                    </p>
+                    <h2
+                      style={{ color: "var(--tashrif-ink)" }}
+                      className="font-display mt-0.5 text-base font-semibold"
+                    >
+                      Rangkaian Bacaan
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onCloseToc}
+                    aria-label="Tutup daftar isi"
+                    style={{
+                      border: "1px solid var(--tashrif-border-cell)",
+                      backgroundColor: "var(--tashrif-wazan-bg)",
+                      color: "var(--tashrif-text)",
+                    }}
+                    className="inline-flex min-h-[38px] min-w-[38px] items-center justify-center rounded-xl lg:hidden"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <nav className="mt-3 space-y-1" aria-label="Kelompok bacaan klasik">
+                  {CONTENTS_GROUPS.map((group, groupIndex) => {
+                    const firstSec = sections.findIndex(group.matches);
+                    if (firstSec < 0) return null;
+                    const isActive = activePage ? group.matches(activePage) : false;
+                    return (
+                      <button
+                        key={group.key}
+                        type="button"
+                        onClick={() => {
+                          goToPage(Math.max(0, sectionStarts[firstSec] ?? 0));
+                          onCloseToc();
+                        }}
+                        style={
+                          isActive
+                            ? {
+                                backgroundColor: "var(--tashrif-btn-bg)",
+                                color: "var(--tashrif-btn-text)",
+                              }
+                            : {
+                                color: "var(--tashrif-text)",
+                              }
+                        }
+                        className={`flex min-h-[40px] w-full items-center justify-between rounded-xl px-3 text-left text-xs font-semibold transition-colors ${
+                          isActive ? "" : "hover:bg-emerald-900/5 dark:hover:bg-amber-400/5"
+                        }`}
+                      >
+                        <span>
+                          {groupIndex + 1}. {group.title}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </nav>
+
+                {/* Active Group Sub-section Jump List */}
+                {activeGroupSections.length > 1 && (
+                  <div
+                    style={{ borderTop: "1px solid var(--tashrif-border-cell)" }}
+                    className="mt-3.5 flex min-h-0 flex-1 flex-col pt-3"
+                  >
+                    <p
+                      style={{ color: "var(--tashrif-accent)" }}
+                      className="mb-1.5 font-mono-tabular text-[11px] font-bold tracking-wider uppercase"
+                    >
+                      Bagian dalam bacaan ini
+                    </p>
+                    <div className="flex-1 space-y-0.5 overflow-y-auto pr-1">
+                      {activeGroupSections.map(({ s, idx }) => {
+                        const isCurrent = activePage?.sectionIndex === idx;
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                              goToPage(Math.max(0, sectionStarts[idx] ?? 0));
+                              onCloseToc();
+                            }}
+                            style={
+                              isCurrent
+                                ? {
+                                    backgroundColor: "var(--tashrif-wazan-bg)",
+                                    color: "var(--tashrif-ink)",
+                                    borderLeft: "2px solid var(--tashrif-border-strong)",
+                                  }
+                                : {
+                                    color: "var(--tashrif-muted)",
+                                  }
+                            }
+                            className={`flex min-h-[34px] w-full items-center rounded-lg px-2.5 py-1 text-left text-xs transition-colors ${
+                              isCurrent
+                                ? "font-bold"
+                                : "hover:bg-emerald-900/5 dark:hover:bg-amber-400/5"
+                            }`}
+                          >
+                            <span className="truncate">{s.title}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div
+                style={{ borderTop: "1px solid var(--tashrif-border-cell)" }}
+                className="mt-4 pt-3.5"
+              >
+                <div
+                  style={{ color: "var(--tashrif-muted)" }}
+                  className="flex items-center justify-between text-xs font-medium"
+                >
+                  <span>Progres bacaan</span>
+                  <strong
+                    style={{ color: "var(--tashrif-accent)" }}
+                    className="font-mono-tabular"
+                  >
+                    {progress.percent}%
+                  </strong>
+                </div>
+                <div
+                  style={{ backgroundColor: "var(--tashrif-wazan-bg)" }}
+                  className="mt-2 h-2 overflow-hidden rounded-full"
+                >
+                  <div
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{
+                      width: `${progress.percent}%`,
+                      backgroundColor: "var(--tashrif-btn-bg)",
+                    }}
+                  />
+                </div>
+                <p
+                  style={{ color: "var(--tashrif-muted)" }}
+                  className="mt-2 text-[11px] leading-relaxed"
+                >
+                  Posisi bacaan tersimpan otomatis di perangkat ini.
+                </p>
+              </div>
+            </aside>
+          )}
+
+          {/* Main Manuscript Paper Spread */}
+          <section className="flex min-w-0 flex-col items-center">
+            <div
+              ref={paperRef}
+              onTouchStart={(e) => {
+                if (e.touches.length !== 1 || tocOpen) return;
+                touchStartRef.current = {
+                  x: e.touches[0].clientX,
+                  y: e.touches[0].clientY,
+                  time: Date.now(),
+                };
+              }}
+              onTouchEnd={(e) => {
+                const start = touchStartRef.current;
+                touchStartRef.current = null;
+                if (!start || !e.changedTouches.length || turningRef.current) return;
+                const direction = getSwipeDirection({
+                  dx: e.changedTouches[0].clientX - start.x,
+                  dy: e.changedTouches[0].clientY - start.y,
+                  duration: Date.now() - start.time,
+                });
+                if (direction === "next") next();
+                else if (direction === "prev") prev();
+              }}
+              aria-label="Halaman bacaan. Geser ke kiri untuk halaman berikutnya, geser ke kanan untuk halaman sebelumnya."
+              style={{
+                backgroundColor: "var(--tashrif-paper)",
+                border: "4px double var(--tashrif-border-strong)",
+                borderRadius: "0.75rem",
+              }}
+              className={`scroll-mt-20 relative flex min-h-[500px] w-full flex-col justify-between overflow-hidden shadow-xs sm:min-h-[560px] ${
+                focusMode ? "max-w-4xl" : "max-w-3xl"
+              } ${turnClass}`}
+            >
+              {/* Subtle edge tap chevrons on desktop */}
+              <button
+                type="button"
+                disabled={!canPrev}
+                onClick={prev}
+                aria-label="Halaman sebelumnya"
+                title="Halaman sebelumnya"
+                style={{ color: "var(--tashrif-accent)" }}
+                className="absolute top-1/2 left-2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full transition-colors hover:bg-emerald-900/5 disabled:opacity-25 sm:flex dark:hover:bg-amber-400/10"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                disabled={!canNext}
+                onClick={next}
+                aria-label="Halaman berikutnya"
+                title="Halaman berikutnya"
+                style={{ color: "var(--tashrif-accent)" }}
+                className="absolute top-1/2 right-2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full transition-colors hover:bg-emerald-900/5 disabled:opacity-25 sm:flex dark:hover:bg-amber-400/10"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+
+              <div>
+                {/* Kitab Manuscript Header Band */}
+                <div
+                  style={{
+                    backgroundColor: "var(--tashrif-wazan-bg)",
+                    borderBottom: "1px solid var(--tashrif-border-cell)",
+                  }}
+                  className="px-4 py-3.5 sm:px-10 sm:py-4"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      disabled={!canPrev}
+                      onClick={prev}
+                      aria-label="Halaman sebelumnya"
+                      title="Halaman sebelumnya"
+                      style={{
+                        border: "1px solid var(--tashrif-border-cell)",
+                        backgroundColor: "var(--tashrif-paper)",
+                        color: "var(--tashrif-text)",
+                      }}
+                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors disabled:opacity-35 sm:hidden"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+
+                    <div className="min-w-0 flex-1 text-center">
+                      <span
+                        style={{ color: "var(--tashrif-accent)" }}
+                        className="block font-mono-tabular text-[11px] font-bold tracking-wider uppercase"
+                      >
+                        HALAMAN {pageNumFormatted} · {bounds.end - bounds.start + 1} HAL
+                      </span>
+                      <h2
+                        ref={titleRef}
+                        style={{ color: "var(--tashrif-ink)" }}
+                        className="font-display mt-0.5 text-lg font-semibold sm:text-xl"
+                      >
+                        {activePage?.title || "Memuat bacaan…"}
+                      </h2>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={!canNext}
+                      onClick={next}
+                      aria-label="Halaman berikutnya"
+                      title="Halaman berikutnya"
+                      style={{
+                        backgroundColor: "var(--tashrif-btn-bg)",
+                        color: "var(--tashrif-btn-text)",
+                      }}
+                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors disabled:opacity-35 sm:hidden"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <div
+                    className="mx-auto mt-2.5 flex items-center justify-center gap-3"
+                    style={{ color: "var(--tashrif-accent)" }}
+                    aria-hidden="true"
+                  >
+                    <span
+                      className="h-px w-12"
+                      style={{ backgroundColor: "var(--tashrif-border-cell)" }}
+                    />
+                    <span className="font-arabic text-sm">۞</span>
+                    <span
+                      className="h-px w-12"
+                      style={{ backgroundColor: "var(--tashrif-border-cell)" }}
+                    />
+                  </div>
+                </div>
+
+                {/* Arabic Body Text */}
+                <div
+                  className={
+                    focusMode ? "px-4 py-5 sm:px-10 sm:py-7" : "px-5 py-6 sm:px-12 sm:py-8"
+                  }
+                >
+                  <div
+                    ref={textRef}
+                    lang="ar"
+                    dir="rtl"
+                    style={{ color: "var(--tashrif-ink)" }}
+                    className={`arabic-classic-text whitespace-pre-wrap ${
+                      activePage?.quranSurah ? "text-justify" : "text-right"
+                    }`}
+                  >
+                    {activePage?.text || ""}
+                  </div>
+                </div>
+              </div>
+
+              {/* Kitab Colophon Footer */}
+              <div
+                style={{
+                  borderTop: "1px dashed var(--tashrif-group-break)",
+                  backgroundColor: "var(--tashrif-row-alt)",
+                }}
+                className="px-4 py-3.5 text-center sm:px-10"
+              >
+                <p
+                  style={{ color: "var(--tashrif-accent)" }}
+                  className="font-arabic text-sm font-semibold"
+                >
+                  اقْرَؤُوا بِتَأَنٍّ وَحُضُورِ الْقَلْبِ
+                </p>
+                <p
+                  style={{ color: "var(--tashrif-muted)" }}
+                  className="font-mono-tabular mt-0.5 text-xs font-semibold"
+                >
+                  — {pageNumFormatted} —
+                </p>
+              </div>
+            </div>
+
+            {/* Ergonomic Floating Page Controls with Frosted Blur */}
+            <FloatingPageNav
+              maxWidthClass={focusMode ? "max-w-4xl" : "max-w-3xl"}
+              onPrev={prev}
+              onNext={next}
+              canPrev={canPrev}
+              canNext={canNext}
+              prevLabel="Sebelumnya"
+              nextLabel="Berikutnya"
+              centerText={pageNumFormatted}
+              ariaLabel="Navigasi antar halaman bacaan"
+              extraCenterButton={
+                !focusMode ? (
+                  <button
+                    type="button"
+                    onClick={onGoHome}
+                    aria-label="Kembali ke halaman awal"
+                    title="Beranda"
+                    style={{
+                      border: "1px solid var(--tashrif-border-cell)",
+                      backgroundColor: "var(--tashrif-wazan-bg)",
+                      color: "var(--tashrif-accent)",
+                    }}
+                    className="inline-flex min-h-[42px] min-w-[42px] shrink-0 items-center justify-center rounded-xl transition-opacity hover:opacity-90"
+                  >
+                    <Home className="h-4 w-4" />
+                  </button>
+                ) : undefined
+              }
+            />
+
+            {!focusMode && (
+              <div className="w-full max-w-3xl">
+                <FooterDisclaimer variant="compact" />
+              </div>
+            )}
+          </section>
+        </div>
       </div>
     </div>
   );

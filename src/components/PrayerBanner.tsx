@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Bell, BellOff, MapPin, Compass, X } from "lucide-react";
 import type { DailyPrayerSchedule, PrayerLocation, SkyScene } from "../types/emoeslife";
+import { ThemedSelect } from "./ThemedSelect";
 import { PERMISSIONS_READY_EVENT } from "../services/locationService";
 import {
   disablePrayerNotifications,
@@ -17,6 +18,7 @@ import {
   computePrayerTicker,
   detectLocation,
   findRegion,
+  formatHijriDate,
   getCities,
   getProvinces,
   getScene,
@@ -223,6 +225,7 @@ export const PrayerBanner: React.FC = () => {
   const [schedule, setSchedule] = useState<DailyPrayerSchedule | null>(null);
   const [clockText, setClockText] = useState("--:--:--");
   const [dateText, setDateText] = useState("");
+  const [hijriDateText, setHijriDateText] = useState("");
   const [statusLabel, setStatusLabel] = useState("Menunggu izin lokasi…");
   const [timeWindowText, setTimeWindowText] = useState("");
   const [inGrace, setInGrace] = useState(false);
@@ -379,6 +382,7 @@ export const PrayerBanner: React.FC = () => {
           year: "numeric",
         }).format(now)
       );
+      setHijriDateText(formatHijriDate(now, tz));
 
       if (!loc || !schedule) {
         const hourNum = Number(parts.hour);
@@ -666,6 +670,15 @@ export const PrayerBanner: React.FC = () => {
                     (locationStatus === "detecting" ? "Mendeteksi lokasi…" : "Lokasi belum dipilih")}
                 </span>
               </p>
+              {hijriDateText && (
+                <p
+                  className={`mt-0.5 text-[11px] font-medium ${
+                    isLightSky ? "text-[#174a36] dark:text-[#F4D99B]/90" : "text-[#F4D99B]/95"
+                  }`}
+                >
+                  {hijriDateText}
+                </p>
+              )}
             </div>
 
             <div className="flex flex-col items-start gap-1.5 sm:items-end">
@@ -869,56 +882,59 @@ export const PrayerBanner: React.FC = () => {
                 <label htmlFor="prayerProvince" className="mb-1 block text-xs font-semibold">
                   Provinsi
                 </label>
-                <select
+                <ThemedSelect
                   id="prayerProvince"
+                  className="w-full"
+                  ariaLabel="Pilih Provinsi"
+                  kickerLabel="Pilih Provinsi"
+                  placeholder="Memuat provinsi…"
                   value={draftProvince}
-                  onChange={(e) => handleProvinceChange(e.target.value)}
+                  onChange={(val) => handleProvinceChange(String(val))}
                   disabled={dialogLoading || !provinces.length}
-                  className="min-h-[42px] w-full rounded-xl border border-[#dce4df] bg-white px-3 text-sm outline-none focus:border-[#134a35] dark:border-slate-700 dark:bg-[#162131] dark:focus:border-[#E2B354]"
-                >
-                  {!provinces.length && <option>Memuat provinsi…</option>}
-                  {provinces.map((prov) => (
-                    <option key={prov} value={prov}>
-                      {prov}
-                    </option>
-                  ))}
-                </select>
+                  options={provinces.map((prov) => ({
+                    value: prov,
+                    label: prov,
+                  }))}
+                />
               </div>
 
               <div>
                 <label htmlFor="prayerCity" className="mb-1 block text-xs font-semibold">
                   Kabupaten / Kota
                 </label>
-                <select
+                <ThemedSelect
                   id="prayerCity"
+                  className="w-full"
+                  ariaLabel="Pilih Kabupaten / Kota"
+                  kickerLabel="Pilih Kabupaten / Kota"
+                  placeholder="Pilih provinsi dahulu"
                   value={draftCity}
-                  onChange={(e) => setDraftCity(e.target.value)}
+                  onChange={(val) => setDraftCity(String(val))}
                   disabled={dialogLoading || !cities.length}
-                  className="min-h-[42px] w-full rounded-xl border border-[#dce4df] bg-white px-3 text-sm outline-none focus:border-[#134a35] dark:border-slate-700 dark:bg-[#162131] dark:focus:border-[#E2B354]"
-                >
-                  {!cities.length && <option>Pilih provinsi dahulu</option>}
-                  {cities.map((city) => (
-                    <option key={city} value={city}>
-                      {city}
-                    </option>
-                  ))}
-                </select>
+                  options={cities.map((city) => ({
+                    value: city,
+                    label: city,
+                  }))}
+                />
               </div>
 
               <div>
                 <label htmlFor="prayerTimezone" className="mb-1 block text-xs font-semibold">
                   Zona waktu
                 </label>
-                <select
+                <ThemedSelect
                   id="prayerTimezone"
+                  className="w-full"
+                  ariaLabel="Pilih Zona Waktu"
+                  kickerLabel="Pilih Zona Waktu"
                   value={draftZone}
-                  onChange={(e) => setDraftZone(e.target.value as "WIB" | "WITA" | "WIT")}
-                  className="min-h-[42px] w-full rounded-xl border border-[#dce4df] bg-white px-3 text-sm outline-none focus:border-[#134a35] dark:border-slate-700 dark:bg-[#162131] dark:focus:border-[#E2B354]"
-                >
-                  <option value="WIB">WIB · UTC+7</option>
-                  <option value="WITA">WITA · UTC+8</option>
-                  <option value="WIT">WIT · UTC+9</option>
-                </select>
+                  onChange={(val) => setDraftZone(val as "WIB" | "WITA" | "WIT")}
+                  options={[
+                    { value: "WIB", label: "WIB · UTC+7" },
+                    { value: "WITA", label: "WITA · UTC+8" },
+                    { value: "WIT", label: "WIT · UTC+9" },
+                  ]}
+                />
               </div>
 
               {dialogError && (

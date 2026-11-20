@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
+  Home,
   List,
   Maximize2,
   Minimize2,
@@ -10,6 +11,7 @@ import {
 } from "lucide-react";
 import { firstText, kitabApiRequest, pickKitabArray } from "../utils/kitabEngine";
 import { FooterDisclaimer } from "./FooterDisclaimer";
+import { FloatingPageNav } from "./FloatingPageNav";
 
 interface ApiKitabViewProps {
   slug: string;
@@ -17,6 +19,7 @@ interface ApiKitabViewProps {
   focusMode: boolean;
   onToggleFocus: () => void;
   onBackToLibrary: () => void;
+  onGoHome: () => void;
 }
 
 interface ApiChapterEntry {
@@ -33,6 +36,7 @@ export const ApiKitabView: React.FC<ApiKitabViewProps> = ({
   focusMode,
   onToggleFocus,
   onBackToLibrary,
+  onGoHome,
 }) => {
   const [chapters, setChapters] = useState<ApiChapterEntry[]>([]);
   const [activeIndex, setActiveIndex] = useState<number>(0);
@@ -43,6 +47,7 @@ export const ApiKitabView: React.FC<ApiKitabViewProps> = ({
   const [chapterLoading, setChapterLoading] = useState(false);
   const [error, setError] = useState("");
   const [turnDir, setTurnDir] = useState<"next" | "prev" | "fade">("fade");
+  const readingCardRef = useRef<HTMLElement | null>(null);
 
   const openChapter = async (entry: ApiChapterEntry, idx: number, sourceList: ApiChapterEntry[]) => {
     setTurnDir(idx > activeIndex ? "next" : idx < activeIndex ? "prev" : "fade");
@@ -51,7 +56,9 @@ export const ApiKitabView: React.FC<ApiKitabViewProps> = ({
     setDrawerOpen(false);
     setChapterLoading(true);
     setError("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.requestAnimationFrame(() => {
+      readingCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
     try {
       const res = await kitabApiRequest({ action: "chapter", slug, nomor: entry.number });
       setChapterData((res || {}) as Record<string, unknown>);
@@ -137,7 +144,7 @@ export const ApiKitabView: React.FC<ApiKitabViewProps> = ({
             Mode Fokus · {title}
           </p>
         ) : (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={onBackToLibrary}
@@ -145,6 +152,15 @@ export const ApiKitabView: React.FC<ApiKitabViewProps> = ({
             >
               <ArrowLeft className="h-4 w-4" />
               <span>Perpustakaan</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onGoHome}
+              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-[#dce4df] bg-[#ffffff] px-3 text-xs font-semibold text-[#174231] hover:bg-[#edf2ef] dark:border-slate-800 dark:bg-[#111A27] dark:text-slate-200"
+            >
+              <Home className="h-4 w-4" />
+              <span>Beranda</span>
             </button>
 
             <button
@@ -245,8 +261,9 @@ export const ApiKitabView: React.FC<ApiKitabViewProps> = ({
         {/* Active Canvas */}
         <section className={`min-w-0 ${focusMode ? "mx-auto w-full max-w-4xl" : ""}`}>
           <article
+            ref={readingCardRef}
             key={`${slug}-${activeIndex}-${chapterLoading ? "loading" : "ready"}`}
-            className={`rounded-2xl border border-[#e2e8e4] bg-[#ffffff] shadow-xs dark:border-slate-800 dark:bg-[#111A27] page-enter-${
+            className={`scroll-mt-20 rounded-2xl border border-[#e2e8e4] bg-[#ffffff] shadow-xs dark:border-slate-800 dark:bg-[#111A27] page-enter-${
               chapterLoading ? "fade" : turnDir
             } ${focusMode ? "p-4 sm:p-8" : "p-5 sm:p-7"}`}
           >
@@ -329,43 +346,25 @@ export const ApiKitabView: React.FC<ApiKitabViewProps> = ({
           </article>
 
           {!loading && !chapterLoading && !error && activeEntry && (
-            <nav
-              aria-label="Navigasi antar bab kitab"
-              className="sticky bottom-3 z-20 mt-4 flex items-center justify-between gap-2 rounded-2xl border border-[#dce4df]/90 bg-[#ffffff]/95 p-2 shadow-lg backdrop-blur-md dark:border-slate-700/90 dark:bg-[#111A27]/95"
-            >
-              <button
-                type="button"
-                disabled={activeIndex === 0}
-                onClick={() => openChapter(currentList[activeIndex - 1], activeIndex - 1, currentList)}
-                className="inline-flex min-h-[42px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border border-[#dce4df] bg-[#ffffff] px-3 text-xs font-semibold text-[#174231] transition-colors hover:bg-[#edf2ef] disabled:opacity-40 dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200 dark:hover:bg-[#1E2C40]"
-              >
-                <ChevronLeft className="h-4 w-4 shrink-0" />
-                <span className="truncate">Bab Sebelumnya</span>
-              </button>
-
-              <button
-                type="button"
-                disabled={focusMode}
-                onClick={() => {
-                  if (focusMode || window.matchMedia("(min-width: 1024px)").matches) return;
-                  setDrawerOpen(true);
-                }}
-                aria-label="Daftar bab kitab"
-                className="font-mono-tabular inline-flex min-h-[42px] shrink-0 items-center justify-center rounded-xl px-2.5 text-xs font-semibold text-[#6f6652] transition-colors hover:bg-[#edf2ef] disabled:hover:bg-transparent lg:cursor-default lg:hover:bg-transparent dark:text-slate-300 dark:hover:bg-[#162131] dark:disabled:hover:bg-transparent dark:lg:hover:bg-transparent"
-              >
-                {activeIndex + 1} / {currentList.length}
-              </button>
-
-              <button
-                type="button"
-                disabled={activeIndex + 1 >= currentList.length}
-                onClick={() => openChapter(currentList[activeIndex + 1], activeIndex + 1, currentList)}
-                className="inline-flex min-h-[42px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#134a35] px-3 text-xs font-semibold text-[#ffffff] transition-colors hover:bg-[#0e3928] disabled:opacity-40 dark:bg-[#E2B354] dark:text-[#0B111A]"
-              >
-                <span className="truncate">Bab Berikutnya</span>
-                <ChevronRight className="h-4 w-4 shrink-0" />
-              </button>
-            </nav>
+            <FloatingPageNav
+              onPrev={() => openChapter(currentList[activeIndex - 1], activeIndex - 1, currentList)}
+              onNext={() => openChapter(currentList[activeIndex + 1], activeIndex + 1, currentList)}
+              canPrev={activeIndex > 0}
+              canNext={activeIndex + 1 < currentList.length}
+              prevLabel="Bab Sebelumnya"
+              nextLabel="Bab Berikutnya"
+              centerText={`${activeIndex + 1} / ${currentList.length}`}
+              ariaLabel="Navigasi antar bab kitab"
+              onCenterClick={
+                focusMode
+                  ? undefined
+                  : () => {
+                      if (window.matchMedia("(min-width: 1024px)").matches) return;
+                      setDrawerOpen(true);
+                    }
+              }
+              centerAriaLabel="Daftar bab kitab"
+            />
           )}
 
           {!focusMode && <FooterDisclaimer variant="compact" />}

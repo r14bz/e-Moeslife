@@ -126,6 +126,46 @@ export function localParts(date: Date, timezone: string) {
   };
 }
 
+const HIJRI_MONTHS = [
+  "Muharram",
+  "Safar",
+  "Rabiul Awal",
+  "Rabiul Akhir",
+  "Jumadil Awal",
+  "Jumadil Akhir",
+  "Rajab",
+  "Sya'ban",
+  "Ramadhan",
+  "Syawal",
+  "Zulkaidah",
+  "Zulhijjah",
+] as const;
+
+export function formatHijriDate(date: Date, timezone: string): string {
+  const calendars = ["en-u-ca-islamic-umalqura", "en-u-ca-islamic"];
+  for (const locale of calendars) {
+    try {
+      const parts = new Intl.DateTimeFormat(locale, {
+        timeZone: timezone,
+        day: "numeric",
+        month: "numeric",
+        year: "numeric",
+      }).formatToParts(date);
+      const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+      const dayNum = Number(String(map.day || "").replace(/\D/g, ""));
+      const monthNum = Number(String(map.month || "").replace(/\D/g, ""));
+      const yearNum = Number(String(map.year || "").replace(/\D/g, ""));
+      const monthName = HIJRI_MONTHS[monthNum - 1];
+      if (dayNum > 0 && monthName && yearNum > 0) {
+        return `${dayNum} ${monthName} ${yearNum} H`;
+      }
+    } catch {
+      // try fallback calendar
+    }
+  }
+  return "";
+}
+
 export function timeMinutes(value?: string | number): number {
   const [h, m] = String(value || "00:00").split(":").map(Number);
   return (h || 0) * 60 + (m || 0);

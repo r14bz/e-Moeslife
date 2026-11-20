@@ -54,6 +54,8 @@ function isDedicatedReader(route: AppRoute): boolean {
     route.view === "aqidatul-awam-kitab" ||
     route.view === "baiquniyyah-kitab" ||
     route.view === "nashoihul-kitab" ||
+    route.view === "bukhari-kitab" ||
+    route.view === "uqudulujain-kitab" ||
     route.view === "api-kitab" ||
     (route.view === "quran-studio" && Boolean(route.surahNumber))
   );
@@ -142,6 +144,8 @@ export const AppShell: React.FC<AppShellProps> = ({
     "aqidatul-awam-kitab": "Aqidatul Awam",
     "baiquniyyah-kitab": "Mandhumah Al-Baiquniyyah",
     "nashoihul-kitab": "Nashoihul Ibad",
+    "bukhari-kitab": "Shahih Bukhari",
+    "uqudulujain-kitab": "Uqudulujain",
     "api-kitab": "Pembaca Kitab Kuning",
     "nearby-mosques": "Masjid & Mushala Terdekat",
     download: "Unduh & Pasang Aplikasi (PWA)",
@@ -317,7 +321,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                   </a>
                 )}
 
-                {/* Compact Font Size Dropdown ("A ⌄") matching reference header */}
+                {/* Compact Font Size Dropdown ("A ⌄") matching e-Moeslife theme */}
                 <div className="relative" ref={fontMenuRef}>
                   <button
                     type="button"
@@ -329,40 +333,70 @@ export const AppShell: React.FC<AppShellProps> = ({
                     className="inline-flex min-h-[38px] shrink-0 items-center gap-1 rounded-xl border border-white/25 bg-white/10 px-2.5 text-xs font-bold text-white transition-colors hover:bg-white/20 dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200 dark:hover:bg-[#1E2C40]"
                   >
                     <span>{fontOptions.find((o) => o.id === fontSize)?.code || "A"}</span>
-                    <ChevronDown className="h-3.5 w-3.5 opacity-80" />
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 opacity-80 transition-transform duration-150 ${
+                        fontMenuOpen ? "rotate-180" : ""
+                      }`}
+                    />
                   </button>
 
                   {fontMenuOpen && (
                     <div
                       role="menu"
                       aria-label="Pilih ukuran tulisan"
-                      className="absolute right-0 mt-1.5 w-36 overflow-hidden rounded-xl border border-[#e2e8e4] bg-white p-1 text-[#1d2c24] shadow-xl dark:border-slate-700 dark:bg-[#111A27] dark:text-slate-100"
+                      style={{
+                        backgroundColor: "var(--tashrif-paper)",
+                        border: "1.5px solid var(--tashrif-border-strong)",
+                        boxShadow: "var(--tashrif-dropdown-shadow)",
+                        color: "var(--tashrif-text)",
+                      }}
+                      className="absolute right-0 z-50 mt-1.5 w-40 overflow-hidden rounded-xl"
                     >
-                      {fontOptions.map((opt) => {
-                        const active = fontSize === opt.id;
-                        return (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            role="menuitemradio"
-                            aria-checked={active}
-                            onClick={() => {
-                              onChangeFontSize(opt.id);
-                              setFontMenuOpen(false);
-                            }}
-                            className={`flex min-h-[36px] w-full items-center justify-between rounded-lg px-2.5 text-xs font-semibold transition-colors ${
-                              active
-                                ? "bg-[#134a35] text-white dark:bg-[#E2B354] dark:text-[#0B111A]"
-                                : "hover:bg-[#f4f7f5] dark:hover:bg-slate-800"
-                            }`}
-                          >
-                            <span>
-                              {opt.code} · {opt.label}
-                            </span>
-                            {active && <Check className="h-3.5 w-3.5" />}
-                          </button>
-                        );
-                      })}
+                      <div
+                        style={{
+                          backgroundColor: "var(--tashrif-wazan-bg)",
+                          borderBottom: "1px solid var(--tashrif-border-cell)",
+                          color: "var(--tashrif-accent)",
+                        }}
+                        className="px-3 py-1.5 text-[10px] font-bold tracking-wider uppercase"
+                      >
+                        Ukuran Teks
+                      </div>
+                      <div className="space-y-0.5 p-1.5">
+                        {fontOptions.map((opt) => {
+                          const active = fontSize === opt.id;
+                          return (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              role="menuitemradio"
+                              aria-checked={active}
+                              onClick={() => {
+                                onChangeFontSize(opt.id);
+                                setFontMenuOpen(false);
+                              }}
+                              style={
+                                active
+                                  ? {
+                                      backgroundColor: "var(--tashrif-btn-bg)",
+                                      color: "var(--tashrif-btn-text)",
+                                    }
+                                  : { color: "var(--tashrif-text)" }
+                              }
+                              className={`flex min-h-[38px] w-full items-center justify-between rounded-lg px-2.5 text-xs font-semibold transition-colors ${
+                                active
+                                  ? "font-bold"
+                                  : "hover:bg-emerald-900/5 dark:hover:bg-amber-400/10"
+                              }`}
+                            >
+                              <span>
+                                {opt.code} · {opt.label}
+                              </span>
+                              {active && <Check className="h-3.5 w-3.5 shrink-0" />}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
                 </div>

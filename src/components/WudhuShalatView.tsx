@@ -51,81 +51,142 @@ export const WudhuShalatView: React.FC<WudhuShalatViewProps> = ({
     SHALAT_INTENTIONS.find((i) => i.id === selectedShalatId) || SHALAT_INTENTIONS[0];
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5 px-4 pt-4 pb-10 sm:px-6">
-      {/* Page Header */}
-      <div className="flex flex-col justify-between gap-3 border-b border-[#e2e8e4] pb-4 md:flex-row md:items-end dark:border-slate-800">
-        <div className="flex items-start gap-3">
+    <div
+      style={{
+        backgroundColor: "var(--tashrif-bg)",
+        color: "var(--tashrif-text)",
+        minHeight: "100vh",
+      }}
+    >
+      <div className="mx-auto max-w-5xl space-y-4 px-3.5 pt-3.5 pb-10 sm:px-6">
+        {/* Top Bar + Back + Segmented Mode Switcher */}
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
           <button
             type="button"
             onClick={onBackHome}
-            aria-label="Kembali ke beranda"
-            className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#dce4df] bg-white text-[#174231] hover:bg-[#f2f6f4] dark:border-slate-800 dark:bg-[#111A27] dark:text-slate-200 dark:hover:bg-[#172334]"
+            style={{
+              border: "1px solid var(--tashrif-border-cell)",
+              backgroundColor: "var(--tashrif-paper)",
+              color: "var(--tashrif-text)",
+            }}
+            className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl px-3 text-xs font-semibold shadow-xs transition-colors hover:opacity-90"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Beranda</span>
           </button>
-          <div>
-            <p className="text-[11px] font-semibold tracking-wider text-[#9c7d3c] uppercase dark:text-[#E2B354]">
-              Tuntunan Ibadah Harian
-            </p>
-            <h1 className="font-display mt-0.5 text-xl font-semibold text-[#103d2c] sm:text-2xl dark:text-white">
-              Panduan Wudhu &amp; Shalat
-            </h1>
-            <p className="mt-0.5 text-xs text-[#5e6a62] sm:text-sm dark:text-slate-300">
-              Tata cara lengkap dengan bacaan Arab, transliterasi Latin, dan arti bahasa Indonesia.
-            </p>
+
+          {/* Tab Switcher */}
+          <div
+            role="tablist"
+            aria-label="Pilih panduan"
+            style={{
+              border: "1px solid var(--tashrif-border-cell)",
+              backgroundColor: "var(--tashrif-paper)",
+            }}
+            className="flex shrink-0 rounded-xl p-1 shadow-xs"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "wudhu"}
+              onClick={() => setTab("wudhu")}
+              style={
+                tab === "wudhu"
+                  ? {
+                      backgroundColor: "var(--tashrif-btn-bg)",
+                      color: "var(--tashrif-btn-text)",
+                    }
+                  : { color: "var(--tashrif-text)" }
+              }
+              className="inline-flex min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded-lg px-3.5 text-xs font-bold whitespace-nowrap transition-colors sm:flex-none"
+            >
+              <Droplets className="h-3.5 w-3.5" />
+              <span>Tata Cara Wudhu</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "shalat"}
+              onClick={() => setTab("shalat")}
+              style={
+                tab === "shalat"
+                  ? {
+                      backgroundColor: "var(--tashrif-btn-bg)",
+                      color: "var(--tashrif-btn-text)",
+                    }
+                  : { color: "var(--tashrif-text)" }
+              }
+              className="inline-flex min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded-lg px-3.5 text-xs font-bold whitespace-nowrap transition-colors sm:flex-none"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>Tata Cara Shalat</span>
+            </button>
           </div>
         </div>
 
-        {/* Tab Switcher */}
+        {/* Banner Header Hijau Zamrud (Senada Pembaca Kitab) */}
         <div
-          role="tablist"
-          aria-label="Pilih panduan"
-          className="flex shrink-0 rounded-xl border border-[#dce4df] bg-white p-1 dark:border-slate-800 dark:bg-[#111A27]"
+          style={{
+            backgroundColor: "var(--tashrif-panel-bg)",
+            border: "1px solid var(--tashrif-panel-border)",
+            borderRadius: "0.75rem",
+          }}
+          className="px-3.5 py-4 text-center shadow-xs"
         >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === "wudhu"}
-            onClick={() => setTab("wudhu")}
-            className={`inline-flex min-h-[38px] flex-1 items-center justify-center gap-1.5 rounded-lg px-3.5 text-xs font-semibold whitespace-nowrap transition-colors sm:flex-none ${
-              tab === "wudhu"
-                ? "bg-[#134a35] text-white dark:bg-[#E2B354] dark:text-[#0B111A]"
-                : "text-[#354c3e] hover:text-[#103d2c] dark:text-slate-300"
-            }`}
+          <h1
+            dir="rtl"
+            lang="ar"
+            style={{ color: "var(--tashrif-panel-bright)", lineHeight: "1.8" }}
+            className="font-arabic text-2xl font-bold sm:text-[1.65rem]"
           >
-            <Droplets className="h-3.5 w-3.5" />
-            <span>Tata Cara Wudhu</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === "shalat"}
-            onClick={() => setTab("shalat")}
-            className={`inline-flex min-h-[38px] flex-1 items-center justify-center gap-1.5 rounded-lg px-3.5 text-xs font-semibold whitespace-nowrap transition-colors sm:flex-none ${
-              tab === "shalat"
-                ? "bg-[#134a35] text-white dark:bg-[#E2B354] dark:text-[#0B111A]"
-                : "text-[#354c3e] hover:text-[#103d2c] dark:text-slate-300"
-            }`}
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>Tata Cara Shalat</span>
-          </button>
+            {tab === "wudhu" ? "أَحْكَامُ الْوُضُوْءِ وَسُنَنُهُ" : "كَيْفِيَّةُ الصَّلَاةِ وَأَرْكَانُهَا"}
+          </h1>
+          <p style={{ color: "var(--tashrif-panel-sub)" }} className="mt-0.5 text-xs font-semibold">
+            {tab === "wudhu"
+              ? "Panduan Wudhu — Niat, Fardhu, Tata Cara & Doa Sesudah Wudhu"
+              : "Panduan Shalat — Niat 5 Waktu, 13 Rukun, Bacaan Lengkap & Doa Qunut"}
+          </p>
         </div>
-      </div>
 
-      {/* Wudhu Rukun & Batal Cards */}
-      {tab === "wudhu" && (
-        <section className="space-y-4">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="rounded-2xl border border-[#e2e8e4] bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-[#111A27]">
-              <h2 className="flex items-center gap-2 text-sm font-semibold text-[#103d2c] dark:text-white">
-                <CheckCircle2 className="h-4 w-4 text-[#134a35] dark:text-[#E2B354]" />
-                <span>6 Fardhu (Rukun) Wudhu</span>
-              </h2>
-              <ol className="mt-2.5 space-y-1.5 text-xs leading-relaxed text-[#354c3e] dark:text-slate-300">
+        {/* Wudhu Rukun & Batal Cards */}
+        {tab === "wudhu" && (
+          <section className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div
+              style={{
+                backgroundColor: "var(--tashrif-paper)",
+                border: "1px solid var(--tashrif-border-cell)",
+                borderRadius: "0.75rem",
+              }}
+              className="overflow-hidden shadow-xs"
+            >
+              <div
+                style={{
+                  backgroundColor: "var(--tashrif-wazan-bg)",
+                  borderBottom: "1px solid var(--tashrif-border-cell)",
+                }}
+                className="flex items-center gap-2 px-4 py-2.5"
+              >
+                <CheckCircle2
+                  style={{ color: "var(--tashrif-accent)" }}
+                  className="h-4 w-4 shrink-0"
+                />
+                <h2
+                  style={{ color: "var(--tashrif-ink)" }}
+                  className="text-xs font-bold tracking-wide uppercase"
+                >
+                  6 Fardhu (Rukun) Wudhu
+                </h2>
+              </div>
+              <ol
+                style={{ color: "var(--tashrif-text)" }}
+                className="space-y-1.5 p-4 text-xs leading-relaxed"
+              >
                 {WUDHU_RUKUN.map((item, idx) => (
                   <li key={idx} className="flex items-start gap-2">
-                    <span className="font-mono-tabular mt-0.5 font-semibold text-[#9c7d3c] dark:text-[#E2B354]">
+                    <span
+                      style={{ color: "var(--tashrif-accent)" }}
+                      className="font-mono-tabular mt-0.5 font-bold"
+                    >
                       {idx + 1}.
                     </span>
                     <span>{item}</span>
@@ -134,154 +195,283 @@ export const WudhuShalatView: React.FC<WudhuShalatViewProps> = ({
               </ol>
             </div>
 
-            <div className="rounded-2xl border border-[#e2e8e4] bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-[#111A27]">
-              <h2 className="flex items-center gap-2 text-sm font-semibold text-[#103d2c] dark:text-white">
-                <Info className="h-4 w-4 text-[#9c7d3c] dark:text-[#E2B354]" />
-                <span>Yang Membatalkan Wudhu</span>
-              </h2>
-              <ul className="mt-2.5 space-y-1.5 text-xs leading-relaxed text-[#354c3e] dark:text-slate-300">
+            <div
+              style={{
+                backgroundColor: "var(--tashrif-paper)",
+                border: "1px solid var(--tashrif-border-cell)",
+                borderRadius: "0.75rem",
+              }}
+              className="overflow-hidden shadow-xs"
+            >
+              <div
+                style={{
+                  backgroundColor: "var(--tashrif-wazan-bg)",
+                  borderBottom: "1px solid var(--tashrif-border-cell)",
+                }}
+                className="flex items-center gap-2 px-4 py-2.5"
+              >
+                <Info
+                  style={{ color: "var(--tashrif-accent)" }}
+                  className="h-4 w-4 shrink-0"
+                />
+                <h2
+                  style={{ color: "var(--tashrif-ink)" }}
+                  className="text-xs font-bold tracking-wide uppercase"
+                >
+                  Yang Membatalkan Wudhu
+                </h2>
+              </div>
+              <ul
+                style={{ color: "var(--tashrif-text)" }}
+                className="space-y-1.5 p-4 text-xs leading-relaxed"
+              >
                 {WUDHU_BATAL.map((item, idx) => (
                   <li key={idx} className="flex items-start gap-2">
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#9c7d3c] dark:bg-[#E2B354]" />
+                    <span
+                      style={{ color: "var(--tashrif-accent)" }}
+                      className="font-mono-tabular font-bold"
+                    >
+                      —
+                    </span>
                     <span>{item}</span>
                   </li>
                 ))}
               </ul>
             </div>
-          </div>
-        </section>
-      )}
+          </section>
+        )}
 
-      {/* Shalat Niat 5 Waktu Selector & 13 Rukun Ringkas */}
-      {tab === "shalat" && (
-        <section className="space-y-4">
-          <div className="rounded-2xl border border-[#b7d3c3] bg-white p-4 shadow-xs ring-1 ring-[#134a35]/10 sm:p-5 dark:border-[#2a4562] dark:bg-[#111A27] dark:ring-[#E2B354]/15">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e8eeea] pb-3 dark:border-slate-800">
-              <div>
-                <p className="text-[11px] font-semibold tracking-wider text-[#9c7d3c] uppercase dark:text-[#E2B354]">
-                  Lafal Niat Shalat Fardhu
-                </p>
-                <h2 className="font-display mt-0.5 text-base font-semibold text-[#103d2c] sm:text-lg dark:text-white">
-                  Pilih Shalat 5 Waktu
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={() =>
-                  handleCopy(
-                    `niat-${activeIntention.id}`,
-                    `${activeIntention.name}\n${activeIntention.arabic}\n${activeIntention.latin}\n${activeIntention.translation}`
-                  )
-                }
-                className="inline-flex min-h-[34px] items-center gap-1 rounded-xl border border-[#dce4df] bg-[#f4f7f5] px-3 text-xs font-semibold text-[#174231] hover:bg-[#e6ede9] dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200"
-              >
-                {copiedKey === `niat-${activeIntention.id}` ? (
-                  <Check className="h-3.5 w-3.5" />
-                ) : (
-                  <Copy className="h-3.5 w-3.5" />
-                )}
-                <span>{copiedKey === `niat-${activeIntention.id}` ? "Tersalin" : "Salin Niat"}</span>
-              </button>
-            </div>
-
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {SHALAT_INTENTIONS.map((item) => {
-                const active = item.id === activeIntention.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setSelectedShalatId(item.id)}
-                    className={`min-h-[36px] rounded-xl px-3 text-xs font-semibold transition-colors ${
-                      active
-                        ? "bg-[#134a35] text-white dark:bg-[#E2B354] dark:text-[#0B111A]"
-                        : "border border-[#dce4df] bg-[#f4f7f5] text-[#354c3e] hover:bg-[#e6ede9] dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200"
-                    }`}
-                  >
-                    {item.name.replace("Shalat ", "")} · {item.rakaat}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="mt-4 space-y-2 rounded-xl bg-[#f7faf8] p-3.5 sm:p-4 dark:bg-[#162131]">
-              <p
-                lang="ar"
-                dir="rtl"
-                className="arabic-reader-text text-right text-[#1c2b23] dark:text-[#EDF2F7]"
-              >
-                {activeIntention.arabic}
-              </p>
-              <p className="latin-reader-text text-[#7a6d56] italic dark:text-slate-400">
-                {activeIntention.latin}
-              </p>
-              <p className="prose-reader-text text-[#2e3e34] dark:text-slate-300">
-                {activeIntention.translation}
-              </p>
-            </div>
-          </div>
-
-          <details className="rounded-2xl border border-[#e2e8e4] bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-[#111A27]">
-            <summary className="cursor-pointer list-none text-sm font-semibold text-[#103d2c] dark:text-white">
-              <span className="inline-flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-[#134a35] dark:text-[#E2B354]" />
-                <span>Ringkasan 13 Rukun Shalat (Ketuk untuk melihat)</span>
-              </span>
-            </summary>
-            <ol className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1.5 border-t border-[#e8eeea] pt-3 text-xs leading-relaxed text-[#354c3e] sm:grid-cols-2 dark:border-slate-800 dark:text-slate-300">
-              {SHALAT_RUKUN.map((item, idx) => (
-                <li key={idx} className="flex items-start gap-2">
-                  <span className="font-mono-tabular mt-0.5 font-semibold text-[#9c7d3c] dark:text-[#E2B354]">
-                    {String(idx + 1).padStart(2, "0")}.
-                  </span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ol>
-          </details>
-        </section>
-      )}
-
-      {/* Quick Jump Step Index */}
-      <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto pb-1">
-        {activeSteps.map((step) => (
-          <a
-            key={step.id}
-            href={`#${step.id}`}
-            className="inline-flex min-h-[34px] shrink-0 items-center gap-1.5 rounded-xl border border-[#dce4df] bg-white px-3 text-xs font-medium text-[#174231] hover:border-[#134a35] hover:bg-[#f4f8f5] dark:border-slate-800 dark:bg-[#111A27] dark:text-slate-200 dark:hover:border-[#E2B354]"
-          >
-            <span className="font-mono-tabular font-semibold text-[#9c7d3c] dark:text-[#E2B354]">
-              {step.number}
-            </span>
-            <span className="max-w-[170px] truncate">{step.title}</span>
-          </a>
-        ))}
-      </div>
-
-      {/* Step-by-Step Detailed Cards */}
-      <div className="space-y-4">
-        {activeSteps.map((step) => {
-          const isCopied = copiedKey === step.id;
-          return (
-            <article
-              key={step.id}
-              id={step.id}
-              className="scroll-mt-20 overflow-hidden rounded-2xl border border-[#e2e8e4] bg-white shadow-xs dark:border-slate-800 dark:bg-[#111A27]"
+        {/* Shalat Niat 5 Waktu Selector & 13 Rukun Ringkas */}
+        {tab === "shalat" && (
+          <section className="space-y-4">
+            <div
+              style={{
+                backgroundColor: "var(--tashrif-paper)",
+                border: "4px double var(--tashrif-border-strong)",
+                borderRadius: "0.75rem",
+              }}
+              className="overflow-hidden shadow-xs"
             >
-              <div className="p-4 sm:p-6">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="flex min-w-0 flex-1 items-start gap-3">
-                    <span className="font-mono-tabular flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#134a35] text-xs font-bold text-white dark:bg-[#E2B354] dark:text-[#0B111A]">
-                      {step.number}
+              <div
+                style={{
+                  backgroundColor: "var(--tashrif-wazan-bg)",
+                  borderBottom: "1px solid var(--tashrif-border-cell)",
+                }}
+                className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-5"
+              >
+                <div>
+                  <p
+                    style={{ color: "var(--tashrif-accent)" }}
+                    className="font-mono-tabular text-[11px] font-bold tracking-wider uppercase"
+                  >
+                    Lafal Niat Shalat Fardhu · 5 Waktu
+                  </p>
+                  <h2
+                    style={{ color: "var(--tashrif-ink)" }}
+                    className="font-display mt-0.5 text-base font-semibold sm:text-lg"
+                  >
+                    {activeIntention.name} ({activeIntention.rakaat})
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleCopy(
+                      `niat-${activeIntention.id}`,
+                      `${activeIntention.name}\n${activeIntention.arabic}\n${activeIntention.latin}\n${activeIntention.translation}`
+                    )
+                  }
+                  style={{
+                    border: "1px solid var(--tashrif-border-cell)",
+                    backgroundColor: "var(--tashrif-paper)",
+                    color: "var(--tashrif-text)",
+                  }}
+                  className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-colors hover:opacity-90"
+                >
+                  {copiedKey === `niat-${activeIntention.id}` ? (
+                    <Check className="h-3.5 w-3.5" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
+                  <span>{copiedKey === `niat-${activeIntention.id}` ? "Tersalin" : "Salin Niat"}</span>
+                </button>
+              </div>
+
+              <div className="p-4 sm:p-5">
+                <div className="flex flex-wrap gap-1.5">
+                  {SHALAT_INTENTIONS.map((item) => {
+                    const active = item.id === activeIntention.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setSelectedShalatId(item.id)}
+                        style={
+                          active
+                            ? {
+                                backgroundColor: "var(--tashrif-btn-bg)",
+                                color: "var(--tashrif-btn-text)",
+                              }
+                            : {
+                                border: "1px solid var(--tashrif-border-cell)",
+                                backgroundColor: "var(--tashrif-row-alt)",
+                                color: "var(--tashrif-text)",
+                              }
+                        }
+                        className="min-h-[38px] rounded-lg px-3 text-xs font-bold transition-colors"
+                      >
+                        {item.name.replace("Shalat ", "")} · {item.rakaat}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-4">
+                  <p
+                    lang="ar"
+                    dir="rtl"
+                    style={{ color: "var(--tashrif-ink)" }}
+                    className="arabic-reader-text text-right"
+                  >
+                    {activeIntention.arabic}
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    borderTop: "1px dashed var(--tashrif-group-break)",
+                    backgroundColor: "var(--tashrif-wazan-bg)",
+                  }}
+                  className="mt-3.5 space-y-1.5 rounded-lg p-3.5"
+                >
+                  <p
+                    style={{ color: "var(--tashrif-muted)" }}
+                    className="latin-reader-text italic"
+                  >
+                    {activeIntention.latin}
+                  </p>
+                  <p
+                    style={{ color: "var(--tashrif-text)" }}
+                    className="prose-reader-text font-medium"
+                  >
+                    {activeIntention.translation}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <details
+              style={{
+                backgroundColor: "var(--tashrif-paper)",
+                border: "1px solid var(--tashrif-border-cell)",
+                borderRadius: "0.75rem",
+              }}
+              className="overflow-hidden shadow-xs"
+            >
+              <summary
+                style={{
+                  backgroundColor: "var(--tashrif-wazan-bg)",
+                  color: "var(--tashrif-ink)",
+                }}
+                className="cursor-pointer list-none px-4 py-3 text-xs font-bold sm:text-sm"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <CheckCircle2 style={{ color: "var(--tashrif-accent)" }} className="h-4 w-4 shrink-0" />
+                  <span>Ringkasan 13 Rukun Shalat (Ketuk untuk melihat)</span>
+                </span>
+              </summary>
+              <ol
+                style={{
+                  borderTop: "1px solid var(--tashrif-border-cell)",
+                  color: "var(--tashrif-text)",
+                }}
+                className="grid grid-cols-1 gap-x-6 gap-y-1.5 p-4 text-xs leading-relaxed sm:grid-cols-2"
+              >
+                {SHALAT_RUKUN.map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-2">
+                    <span
+                      style={{ color: "var(--tashrif-accent)" }}
+                      className="font-mono-tabular mt-0.5 font-bold"
+                    >
+                      {String(idx + 1).padStart(2, "0")}.
                     </span>
-                    <div className="min-w-0">
-                      <span className="inline-block rounded-md bg-[#fbf5e6] px-2 py-0.5 text-[10px] font-semibold text-[#8d6820] uppercase dark:bg-[#272011] dark:text-[#E2B354]">
-                        {step.badge}
-                      </span>
-                      <h3 className="font-display mt-1 text-base font-semibold text-[#103d2c] sm:text-lg dark:text-white">
-                        {step.title}
-                      </h3>
-                    </div>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ol>
+            </details>
+          </section>
+        )}
+
+        {/* Quick Jump Step Index */}
+        <div
+          style={{
+            backgroundColor: "var(--tashrif-paper)",
+            border: "1px solid var(--tashrif-border-cell)",
+            borderRadius: "0.75rem",
+          }}
+          className="p-2.5 shadow-xs"
+        >
+          <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto">
+            {activeSteps.map((step) => (
+              <a
+                key={step.id}
+                href={`#${step.id}`}
+                style={{
+                  border: "1px solid var(--tashrif-border-cell)",
+                  backgroundColor: "var(--tashrif-row-alt)",
+                  color: "var(--tashrif-text)",
+                }}
+                className="inline-flex min-h-[38px] shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-colors hover:opacity-85"
+              >
+                <span
+                  style={{ color: "var(--tashrif-accent)" }}
+                  className="font-mono-tabular font-bold"
+                >
+                  {step.number}
+                </span>
+                <span className="max-w-[175px] truncate">{step.title}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* Step-by-Step Detailed Kitab Cards */}
+        <div className="space-y-4">
+          {activeSteps.map((step) => {
+            const isCopied = copiedKey === step.id;
+            return (
+              <article
+                key={step.id}
+                id={step.id}
+                style={{
+                  backgroundColor: "var(--tashrif-paper)",
+                  border: "4px double var(--tashrif-border-strong)",
+                  borderRadius: "0.75rem",
+                }}
+                className="scroll-mt-20 overflow-hidden shadow-xs"
+              >
+                {/* Tinted Kitab Header Band */}
+                <div
+                  style={{
+                    backgroundColor: "var(--tashrif-wazan-bg)",
+                    borderBottom: "1px solid var(--tashrif-border-cell)",
+                  }}
+                  className="flex flex-wrap items-center justify-between gap-2.5 px-4 py-3 sm:px-5"
+                >
+                  <div className="min-w-0 flex-1">
+                    <span
+                      style={{ color: "var(--tashrif-accent)" }}
+                      className="block font-mono-tabular text-[11px] font-bold tracking-wider uppercase"
+                    >
+                      URUTAN {step.number} · {step.badge}
+                    </span>
+                    <h3
+                      style={{ color: "var(--tashrif-ink)" }}
+                      className="font-display mt-0.5 text-base font-semibold sm:text-lg"
+                    >
+                      {step.title}
+                    </h3>
                   </div>
 
                   {step.arabic && (
@@ -295,7 +485,12 @@ export const WudhuShalatView: React.FC<WudhuShalatViewProps> = ({
                             .join("\n\n")
                         )
                       }
-                      className="inline-flex min-h-[34px] shrink-0 items-center gap-1 rounded-xl border border-[#dce4df] bg-[#f4f7f5] px-2.5 text-xs font-semibold text-[#174231] hover:bg-[#e6ede9] dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200"
+                      style={{
+                        border: "1px solid var(--tashrif-border-cell)",
+                        backgroundColor: "var(--tashrif-paper)",
+                        color: "var(--tashrif-text)",
+                      }}
+                      className="inline-flex min-h-[36px] shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-xs font-bold transition-colors hover:opacity-90"
                     >
                       {isCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                       <span>{isCopied ? "Tersalin" : "Salin Bacaan"}</span>
@@ -303,51 +498,89 @@ export const WudhuShalatView: React.FC<WudhuShalatViewProps> = ({
                   )}
                 </div>
 
-                <p className="prose-reader-text mt-3 text-[#2e3e34] dark:text-slate-300">
-                  {step.summary}
-                </p>
-
-                {step.movement && (
-                  <p className="mt-2 rounded-xl border border-[#e4ece7] bg-[#f8fbf9] px-3.5 py-2.5 text-xs leading-relaxed text-[#354c3e] dark:border-slate-800 dark:bg-[#162131] dark:text-slate-300">
-                    <strong className="text-[#134a35] dark:text-[#E2B354]">Gerakan:</strong>{" "}
-                    {step.movement}
+                {/* Body */}
+                <div className="p-4 sm:p-5">
+                  <p
+                    style={{ color: "var(--tashrif-text)" }}
+                    className="prose-reader-text"
+                  >
+                    {step.summary}
                   </p>
-                )}
 
-                {step.arabic && (
-                  <div className="mt-4 space-y-2 border-t border-[#e8eeea] pt-4 dark:border-slate-800">
-                    <p
-                      lang="ar"
-                      dir="rtl"
-                      className="arabic-reader-text whitespace-pre-wrap text-right text-[#1c2b23] dark:text-[#EDF2F7]"
+                  {step.movement && (
+                    <div
+                      style={{
+                        border: "1px solid var(--tashrif-border-cell)",
+                        backgroundColor: "var(--tashrif-row-alt)",
+                        color: "var(--tashrif-text)",
+                      }}
+                      className="mt-2.5 rounded-lg px-3.5 py-2.5 text-xs leading-relaxed"
                     >
-                      {step.arabic}
-                    </p>
-                    {step.latin && (
-                      <p className="latin-reader-text text-[#7a6d56] italic dark:text-slate-400">
-                        {step.latin}
-                      </p>
-                    )}
-                    {step.translation && (
-                      <p className="prose-reader-text text-[#2e3e34] dark:text-slate-300">
-                        {step.translation}
-                      </p>
-                    )}
-                  </div>
-                )}
+                      <strong style={{ color: "var(--tashrif-accent)" }}>Tatacara / Gerakan:</strong>{" "}
+                      {step.movement}
+                    </div>
+                  )}
 
-                {step.note && (
-                  <p className="mt-3 text-xs text-[#6e644e] italic dark:text-slate-400">
-                    Catatan: {step.note}
-                  </p>
-                )}
-              </div>
-            </article>
-          );
-        })}
+                  {step.arabic && (
+                    <div className="mt-4">
+                      <p
+                        lang="ar"
+                        dir="rtl"
+                        style={{ color: "var(--tashrif-ink)" }}
+                        className="arabic-reader-text whitespace-pre-wrap text-right"
+                      >
+                        {step.arabic}
+                      </p>
+
+                      {(step.latin || step.translation) && (
+                        <div
+                          style={{
+                            borderTop: "1px dashed var(--tashrif-group-break)",
+                            backgroundColor: "var(--tashrif-wazan-bg)",
+                          }}
+                          className="mt-3 space-y-1.5 rounded-lg p-3.5"
+                        >
+                          {step.latin && (
+                            <p
+                              style={{ color: "var(--tashrif-muted)" }}
+                              className="latin-reader-text italic"
+                            >
+                              {step.latin}
+                            </p>
+                          )}
+                          {step.translation && (
+                            <p
+                              style={{ color: "var(--tashrif-text)" }}
+                              className="prose-reader-text font-medium"
+                            >
+                              {step.translation}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {step.note && (
+                    <div
+                      style={{
+                        borderTop: "1px dotted var(--tashrif-border-cell)",
+                        color: "var(--tashrif-muted)",
+                      }}
+                      className="mt-3 pt-2.5 text-xs leading-relaxed"
+                    >
+                      <strong style={{ color: "var(--tashrif-accent)" }}>Catatan:</strong>{" "}
+                      {step.note}
+                    </div>
+                  )}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+
+        <FooterDisclaimer variant="compact" />
       </div>
-
-      <FooterDisclaimer variant="compact" />
     </div>
   );
 };

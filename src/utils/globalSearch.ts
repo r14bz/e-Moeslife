@@ -8,6 +8,8 @@ import { semuaBabJurumiyah } from "../data/jurumiyah";
 import { aqidatulAwamBabs, aqidatulAwamBaits } from "../data/aqidatulAwam";
 import { baiquniyyahBabs, baiquniyyahBaits } from "../data/baiquniyyah";
 import { kitabNashoihulIbad } from "../data/nashoihul-ibad";
+import { semuaBabBukhari } from "../data/bukhari";
+import { semuaBabUqudulujain } from "../data/uqudulujain";
 import { SHALAT_INTENTIONS, SHALAT_STEPS, WUDHU_STEPS } from "../data/wudhuShalatGuide";
 import type { EQuranDoaItem, EQuranSurahSummary, LocalBookMeta } from "../types/emoeslife";
 import { arrayAt, normalizeChapter, parseStructuredSafinah } from "./kitabEngine";
@@ -65,7 +67,7 @@ interface IndexedChapter {
   displayText: string;
 }
 
-const HEAVY_SLUGS = new Set(["bulughul", "muwatta", "jalalain", "muslim", "bukhari", "riyadhus"]);
+const HEAVY_SLUGS = new Set(["bulughul", "muwatta", "jalalain", "muslim", "riyadhus"]);
 
 // Module-level caches for instant repeated searches
 const kitabChapterCache: Record<string, IndexedChapter[]> = {};
@@ -222,6 +224,40 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
         title,
         displayText,
         searchText: `${title} ${bab.judulArab} ${bab.judulLatin} ${bab.deskripsiSingkat || ""} ${maqalahText}`.toLocaleLowerCase("id"),
+      };
+    });
+    kitabChapterCache[book.slug] = indexed;
+    return indexed;
+  }
+
+  if (book.format === "bukhari") {
+    const indexed: IndexedChapter[] = semuaBabBukhari.map((bab) => {
+      const hadisText = bab.isi
+        .map((item) => `${item.sanadRingkas || ""} ${item.arab} ${item.terjemahan} ${item.catatan || ""}`)
+        .join(" ");
+      const title = `${bab.id}. ${bab.judulIndo || bab.judulLatin || bab.kitabLatin || `Bab ${bab.id}`}`;
+      const displayText = `${bab.judulArab} · ${bab.judulLatin} · ${bab.ringkasan || ""} · ${hadisText}`;
+      return {
+        title,
+        displayText,
+        searchText: `${title} ${bab.judulArab} ${bab.judulLatin} ${bab.ringkasan || ""} ${hadisText}`.toLocaleLowerCase("id"),
+      };
+    });
+    kitabChapterCache[book.slug] = indexed;
+    return indexed;
+  }
+
+  if (book.format === "uqudulujain") {
+    const indexed: IndexedChapter[] = semuaBabUqudulujain.map((bab) => {
+      const itemsText = bab.isi
+        .map((item) => `${item.sanadRingkas || ""} ${item.arab} ${item.terjemahan} ${item.catatan || ""}`)
+        .join(" ");
+      const title = `${bab.id}. ${bab.judulIndo}`;
+      const displayText = `${bab.judulArab || ""} · ${bab.ringkasan || ""} · ${itemsText}`;
+      return {
+        title,
+        displayText,
+        searchText: `${title} ${bab.judulArab || ""} ${bab.ringkasan || ""} ${itemsText}`.toLocaleLowerCase("id"),
       };
     });
     kitabChapterCache[book.slug] = indexed;

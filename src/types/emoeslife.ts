@@ -20,6 +20,8 @@ export type AppRoute =
   | { view: "aqidatul-awam-kitab"; babId?: string }
   | { view: "baiquniyyah-kitab"; babId?: string }
   | { view: "nashoihul-kitab"; babId?: string }
+  | { view: "bukhari-kitab"; babId?: number }
+  | { view: "uqudulujain-kitab"; babId?: number }
   | { view: "api-kitab"; slug: string; title: string }
   | { view: "nearby-mosques" }
   | { view: "download" };
@@ -59,7 +61,17 @@ export interface LocalBookMeta {
   slug: string;
   title: string;
   category: string;
-  format?: "structured" | "tashrif" | "alfiyah" | "imrithi" | "jurumiyah" | "aqidatul-awam" | "baiquniyyah" | "nashoihul-ibad";
+  format?:
+    | "structured"
+    | "tashrif"
+    | "alfiyah"
+    | "imrithi"
+    | "jurumiyah"
+    | "aqidatul-awam"
+    | "baiquniyyah"
+    | "nashoihul-ibad"
+    | "bukhari"
+    | "uqudulujain";
   source: "local" | "api";
 }
 
