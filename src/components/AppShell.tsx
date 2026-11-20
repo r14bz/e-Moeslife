@@ -39,7 +39,14 @@ function getActiveTab(route: AppRoute): NavTab | null {
     return "bacaan";
   }
   if (route.view === "quran-studio") return "quran";
-  if (route.view === "download" || route.view === "nearby-mosques") return null;
+  if (
+    route.view === "download" ||
+    route.view === "nearby-mosques" ||
+    route.view === "ecode-halal" ||
+    route.view === "qibla"
+  ) {
+    return null;
+  }
   return "kitab";
 }
 
@@ -148,6 +155,8 @@ export const AppShell: React.FC<AppShellProps> = ({
     "uqudulujain-kitab": "Uqudulujain",
     "api-kitab": "Pembaca Kitab Kuning",
     "nearby-mosques": "Masjid & Mushala Terdekat",
+    qibla: "Arah Kiblat",
+    "ecode-halal": "Cek Status Halal E-Code",
     download: "Unduh & Pasang Aplikasi (PWA)",
   };
 
@@ -480,7 +489,7 @@ export const AppShell: React.FC<AppShellProps> = ({
           />
           <nav
             aria-label="Navigasi bawah"
-            className="fixed inset-x-4 bottom-2.5 z-40 mx-auto max-w-[356px] rounded-2xl border border-[#dce4df]/85 bg-white/80 p-1 shadow-[0_8px_24px_rgba(16,61,44,0.12)] backdrop-blur-xl lg:hidden dark:border-slate-700/80 dark:bg-[#0F1722]/80 dark:shadow-2xl"
+            className="fixed inset-x-3 bottom-2.5 z-40 mx-auto max-w-[356px] rounded-2xl border border-[#dce4df]/85 bg-white/80 p-1 shadow-[0_8px_24px_rgba(16,61,44,0.12)] backdrop-blur-xl lg:hidden dark:border-slate-700/80 dark:bg-[#0F1722]/80 dark:shadow-2xl"
           >
             <div className="grid grid-cols-4 gap-1">
               {navItems.map((item) => {

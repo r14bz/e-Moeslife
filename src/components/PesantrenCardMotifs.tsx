@@ -2,9 +2,11 @@ import React from "react";
 import {
   BookMarked,
   BookOpen,
+  Compass,
   Droplets,
   HandHeart,
   Library,
+  ShieldCheck,
   Sparkles,
 } from "lucide-react";
 import type { LocalBookMeta } from "../types/emoeslife";
@@ -18,6 +20,8 @@ export type CollectionIconId =
   | "doa"
   | "quran"
   | "tafsir"
+  | "qibla"
+  | "ecode"
   | "kitab";
 
 interface CollectionVisualStyle {
@@ -148,6 +152,22 @@ export const COLLECTION_VISUALS: Record<CollectionIconId, CollectionVisualStyle>
     arrowClass:
       "bg-[#eef5f4] text-[#184f4a] dark:bg-[#182942] dark:text-[#E2B354]",
     icon: <BookMarked className="h-5 w-5" />,
+  },
+  qibla: {
+    subtitle: "Kompas arah Ka'bah",
+    boxClass:
+      "border-[#cde2d7] bg-[#ebf5ef] text-[#134a35] dark:border-[#1f4235] dark:bg-[#142b23] dark:text-[#74d6ab]",
+    arrowClass:
+      "bg-[#eef5f1] text-[#134a35] dark:bg-[#182942] dark:text-[#E2B354]",
+    icon: <Compass className="h-5 w-5" />,
+  },
+  ecode: {
+    subtitle: "Cek bahan E100–E1521",
+    boxClass:
+      "border-[#e8d9b4] bg-[#fbf5e6] text-[#8d6820] dark:border-[#42351b] dark:bg-[#272011] dark:text-[#E2B354]",
+    arrowClass:
+      "bg-[#f8f3e6] text-[#8d6820] dark:bg-[#182942] dark:text-[#E2B354]",
+    icon: <ShieldCheck className="h-5 w-5" />,
   },
   kitab: {
     subtitle: "24 kitab & syarah",

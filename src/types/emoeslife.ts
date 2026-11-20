@@ -24,6 +24,8 @@ export type AppRoute =
   | { view: "uqudulujain-kitab"; babId?: number }
   | { view: "api-kitab"; slug: string; title: string }
   | { view: "nearby-mosques" }
+  | { view: "qibla" }
+  | { view: "ecode-halal"; initialQuery?: string }
   | { view: "download" };
 
 export interface ClassicPage extends ClassicSection {

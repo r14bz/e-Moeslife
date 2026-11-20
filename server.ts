@@ -100,6 +100,119 @@ async function startServer() {
     }
   });
 
+  const ALLOWED_ECODE_ACTIONS = new Set(["summary", "list", "search", "detail"]);
+  const ALLOWED_ECODE_STATUS = new Map([
+    ["halal", "Halal"],
+    ["haram", "Haram"],
+    ["doubtful", "Doubtful"],
+  ]);
+
+  app.get("/api/ecode", async (req, res) => {
+    const pick = (v: unknown) => (Array.isArray(v) ? String(v[0] || "") : String(v || ""));
+    const action = pick(req.query.action || "list").trim().toLowerCase();
+    const apiKey = (process.env.AHMADSANUSI_API_KEY || "").trim();
+
+    if (!ALLOWED_ECODE_ACTIONS.has(action)) {
+      return res.status(400).json({ status: "error", message: "Aksi API E-Code tidak valid." });
+    }
+
+    if (!apiKey) {
+      return res.status(503).json({
+        status: "error",
+        unconfigured: true,
+        message:
+          "Layanan Cek Halal E-Code belum aktif karena AHMADSANUSI_API_KEY belum dikonfigurasi di server.",
+      });
+    }
+
+    const parsePositiveInt = (raw: string, fallback: number, max: number): number | null => {
+      const value = raw.trim() ? Number(raw) : fallback;
+      return Number.isInteger(value) && value >= 1 && value <= max ? value : null;
+    };
+
+    const upstream = new URL(`${KITAB_BASE_URL}/v1/ecode`);
+    if (action === "summary") {
+      upstream.pathname = "/v1/ecode/summary";
+    } else if (action === "list") {
+      const page = parsePositiveInt(pick(req.query.page), 1, 1000);
+      const limit = parsePositiveInt(pick(req.query.limit), 20, 100);
+      if (page === null || limit === null) {
+        return res.status(400).json({ status: "error", message: "Parameter halaman E-Code tidak valid." });
+      }
+      upstream.searchParams.set("page", String(page));
+      upstream.searchParams.set("limit", String(limit));
+
+      const rawStatus = pick(req.query.status).trim();
+      if (rawStatus) {
+        const mappedStatus = ALLOWED_ECODE_STATUS.get(rawStatus.toLowerCase());
+        if (!mappedStatus) {
+          return res.status(400).json({ status: "error", message: "Filter status halal tidak valid." });
+        }
+        upstream.searchParams.set("status", mappedStatus);
+      }
+
+      const rawType = pick(req.query.type).trim();
+      if (rawType) {
+        if (!/^[\p{L}\p{N}\s,&/()-]{1,80}$/u.test(rawType)) {
+          return res.status(400).json({ status: "error", message: "Filter kategori bahan tidak valid." });
+        }
+        upstream.searchParams.set("type", rawType);
+      }
+    } else if (action === "search") {
+      const q = pick(req.query.q).trim();
+      if (q.length < 1 || q.length > 100) {
+        return res.status(400).json({
+          status: "error",
+          message: "Kata pencarian E-Code minimal 1 dan maksimal 100 karakter.",
+        });
+      }
+      const page = parsePositiveInt(pick(req.query.page), 1, 1000);
+      const limit = parsePositiveInt(pick(req.query.limit), 20, 100);
+      if (page === null || limit === null) {
+        return res.status(400).json({ status: "error", message: "Parameter halaman E-Code tidak valid." });
+      }
+      upstream.pathname = "/v1/ecode/search";
+      upstream.searchParams.set("q", q);
+      upstream.searchParams.set("page", String(page));
+      upstream.searchParams.set("limit", String(limit));
+    } else if (action === "detail") {
+      const code = pick(req.query.code).trim();
+      if (!/^[a-z0-9][a-z0-9._-]{0,30}$/i.test(code)) {
+        return res.status(400).json({ status: "error", message: "Format kode E-Code tidak valid." });
+      }
+      upstream.pathname = `/v1/ecode/${encodeURIComponent(code)}`;
+    }
+
+    try {
+      const response = await fetch(upstream.toString(), {
+        method: "GET",
+        headers: {
+          "X-API-Key": apiKey,
+          Accept: "application/json",
+        },
+      });
+      const text = await response.text();
+      res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate=86400");
+      try {
+        const parsed = JSON.parse(text);
+        if (!response.ok && (response.status === 401 || response.status === 403)) {
+          return res.status(502).json({
+            status: "error",
+            message: "Autentikasi API Ahmad Sanusi ditolak. Periksa AHMADSANUSI_API_KEY di server.",
+          });
+        }
+        return res.status(response.status).json(parsed);
+      } catch {
+        return res.status(response.status).send(text);
+      }
+    } catch {
+      return res.status(502).json({
+        status: "error",
+        message: "Gagal menghubungi layanan E-Code Halal.",
+      });
+    }
+  });
+
   const httpServer = http.createServer(app);
 
   if (process.env.NODE_ENV === "production") {

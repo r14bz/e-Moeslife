@@ -105,6 +105,16 @@ export const HomeView: React.FC<HomeViewProps> = ({
       title: "Tafsir Al-Qur’an",
       onClick: () => onNavigate({ view: "quran-studio", tab: "tafsir" }),
     },
+    {
+      id: "qibla",
+      title: "Arah Kiblat",
+      onClick: () => onNavigate({ view: "qibla" }),
+    },
+    {
+      id: "ecode",
+      title: "Cek Halal E-Code",
+      onClick: () => onNavigate({ view: "ecode-halal" }),
+    },
     { id: "kitab", title: "Kitab Kuning", onClick: () => onNavigate({ view: "kitab-hub" }) },
   ];
 
@@ -203,7 +213,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             </p>
           </div>
           <span className="font-mono-tabular shrink-0 text-xs font-semibold text-[#5e6a62] dark:text-slate-400">
-            08 koleksi
+            10 koleksi
           </span>
         </div>
 
@@ -264,7 +274,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             </span>
           </button>
 
-          {/* 6 Compact Clean White Cards */}
+          {/* 8 Compact Clean White Cards (4x2 on desktop, 2x4 on mobile) */}
           {secondaryCollections.map((item) => {
             const visual = COLLECTION_VISUALS[item.id];
             return (
@@ -272,16 +282,16 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 key={item.id}
                 type="button"
                 onClick={item.onClick}
-                className="group col-span-1 flex min-h-[68px] items-center justify-between gap-2 rounded-2xl border border-[#e2e8e4] bg-white px-2.5 py-2 text-left shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-[#134a35] hover:shadow-sm sm:min-h-[72px] sm:px-3.5 sm:py-3 lg:col-span-4 dark:border-slate-800 dark:bg-[#111A27] dark:hover:border-[#E2B354] dark:hover:bg-[#162233]"
+                className="group col-span-1 flex min-h-[68px] items-center justify-between gap-2 rounded-2xl border border-[#e2e8e4] bg-white px-2.5 py-2 text-left shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-[#134a35] hover:shadow-sm sm:min-h-[72px] sm:px-3.5 sm:py-3 lg:col-span-3 lg:px-3 dark:border-slate-800 dark:bg-[#111A27] dark:hover:border-[#E2B354] dark:hover:bg-[#162233]"
               >
-                <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
                   <span
                     className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-transform duration-200 group-hover:scale-[1.04] sm:h-10 sm:w-10 ${visual.boxClass}`}
                   >
                     {visual.icon}
                   </span>
                   <div className="min-w-0">
-                    <span className="block truncate text-xs font-semibold leading-tight text-[#103d2c] sm:text-sm dark:text-white">
+                    <span className="block truncate text-xs font-semibold leading-tight text-[#103d2c] sm:text-sm lg:text-[13px] dark:text-white">
                       {item.title}
                     </span>
                     <span className="mt-0.5 block truncate text-[10.5px] leading-tight text-[#606c64] sm:text-[11px] dark:text-slate-400">
@@ -291,7 +301,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 </div>
 
                 <span
-                  className={`hidden h-7 w-7 shrink-0 items-center justify-center rounded-full transition-transform duration-200 group-hover:translate-x-0.5 sm:flex ${visual.arrowClass}`}
+                  className={`hidden h-7 w-7 shrink-0 items-center justify-center rounded-full transition-transform duration-200 group-hover:translate-x-0.5 sm:flex lg:hidden xl:flex ${visual.arrowClass}`}
                 >
                   <ArrowRight className="h-3.5 w-3.5" />
                 </span>

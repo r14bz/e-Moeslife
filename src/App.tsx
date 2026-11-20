@@ -83,6 +83,12 @@ const DownloadView = lazy(() =>
 const WudhuShalatView = lazy(() =>
   import("./components/WudhuShalatView").then((m) => ({ default: m.WudhuShalatView }))
 );
+const EcodeHalalView = lazy(() =>
+  import("./components/EcodeHalalView").then((m) => ({ default: m.EcodeHalalView }))
+);
+const QiblaView = lazy(() =>
+  import("./components/QiblaView").then((m) => ({ default: m.QiblaView }))
+);
 const ApkUpdatePrompt = lazy(() =>
   import("./components/ApkUpdatePrompt").then((m) => ({ default: m.ApkUpdatePrompt }))
 );
@@ -676,6 +682,17 @@ export function App() {
 
       {route.view === "nearby-mosques" && (
         <NearbyMosquesView onBackHome={() => navigate({ view: "home" })} />
+      )}
+
+      {route.view === "qibla" && (
+        <QiblaView onBackHome={() => navigate({ view: "home" })} />
+      )}
+
+      {route.view === "ecode-halal" && (
+        <EcodeHalalView
+          initialQuery={route.initialQuery}
+          onBackHome={() => navigate({ view: "home" })}
+        />
       )}
 
       {route.view === "download" && (
