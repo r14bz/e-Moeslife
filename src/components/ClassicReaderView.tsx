@@ -480,7 +480,7 @@ export const ClassicReaderView: React.FC<ClassicReaderViewProps> = ({
                               }
                         }
                         className={`flex min-h-[40px] w-full items-center justify-between rounded-xl px-3 text-left text-xs font-semibold transition-colors ${
-                          isActive ? "" : "hover:bg-emerald-900/5 dark:hover:bg-amber-400/5"
+                          isActive ? "" : "hover:bg-[var(--tashrif-dropdown-hover)]"
                         }`}
                       >
                         <span>
@@ -528,7 +528,7 @@ export const ClassicReaderView: React.FC<ClassicReaderViewProps> = ({
                             className={`flex min-h-[34px] w-full items-center rounded-lg px-2.5 py-1 text-left text-xs transition-colors ${
                               isCurrent
                                 ? "font-bold"
-                                : "hover:bg-emerald-900/5 dark:hover:bg-amber-400/5"
+                                : "hover:bg-[var(--tashrif-dropdown-hover)]"
                             }`}
                           >
                             <span className="truncate">{s.title}</span>
@@ -620,7 +620,7 @@ export const ClassicReaderView: React.FC<ClassicReaderViewProps> = ({
                 aria-label="Halaman sebelumnya"
                 title="Halaman sebelumnya"
                 style={{ color: "var(--tashrif-accent)" }}
-                className="absolute top-1/2 left-2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full transition-colors hover:bg-emerald-900/5 disabled:opacity-25 sm:flex dark:hover:bg-amber-400/10"
+                className="absolute top-1/2 left-2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full transition-colors hover:bg-[var(--tashrif-dropdown-hover)] disabled:opacity-25 sm:flex"
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
@@ -631,7 +631,7 @@ export const ClassicReaderView: React.FC<ClassicReaderViewProps> = ({
                 aria-label="Halaman berikutnya"
                 title="Halaman berikutnya"
                 style={{ color: "var(--tashrif-accent)" }}
-                className="absolute top-1/2 right-2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full transition-colors hover:bg-emerald-900/5 disabled:opacity-25 sm:flex dark:hover:bg-amber-400/10"
+                className="absolute top-1/2 right-2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full transition-colors hover:bg-[var(--tashrif-dropdown-hover)] disabled:opacity-25 sm:flex"
               >
                 <ChevronRight className="h-5 w-5" />
               </button>

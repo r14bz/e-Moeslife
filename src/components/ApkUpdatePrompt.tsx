@@ -3,9 +3,9 @@ import {
   AlertCircle,
   CheckCircle2,
   Download,
-  ExternalLink,
   Loader2,
   RefreshCw,
+  ShieldAlert,
   ShieldCheck,
   Sparkles,
   Wrench,
@@ -14,6 +14,7 @@ import {
 import {
   formatApkSize,
   INSTALLED_APK_VERSION_NAME,
+  isNativeAndroidApp,
   type ApkChangelogCategory,
   type ApkReleaseInfo,
 } from "../services/apkUpdater";
@@ -37,7 +38,7 @@ const CATEGORY_STYLE: Record<
   fitur: {
     icon: <Sparkles className="h-3.5 w-3.5" />,
     badgeClass:
-      "bg-emerald-50 text-[#134a35] border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/70",
+      "border-[var(--theme-tint-border)] bg-[var(--theme-tint-bg)] text-[var(--theme-tint-text)]",
   },
   keamanan: {
     icon: <ShieldCheck className="h-3.5 w-3.5" />,
@@ -81,7 +82,7 @@ export const ApkUpdatePrompt: React.FC<ApkUpdatePromptProps> = ({
   const [progress, setProgress] = useState<ApkDownloadProgressEvent | null>(null);
   const [needsPermissionRetry, setNeedsPermissionRetry] = useState(false);
   const [installError, setInstallError] = useState<string | null>(null);
-  const canInAppInstall = isInAppApkInstallerAvailable();
+  const canInAppInstall = isInAppApkInstallerAvailable() || isNativeAndroidApp();
 
   useEffect(() => {
     setDownloading(false);
@@ -96,10 +97,10 @@ export const ApkUpdatePrompt: React.FC<ApkUpdatePromptProps> = ({
     return (
       <div
         role="status"
-        className="fixed right-4 bottom-20 left-4 z-50 mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl border border-[#dce4df] bg-white px-4 py-3 text-xs font-medium text-[#1d2c24] shadow-xl lg:right-6 lg:bottom-6 lg:left-auto dark:border-slate-700 dark:bg-[#111A27] dark:text-slate-100"
+        className="fixed right-4 bottom-20 left-4 z-50 mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl border border-[var(--theme-border-strong)] bg-[var(--theme-card)] px-4 py-3 text-xs font-medium text-[var(--theme-ink)] shadow-xl lg:right-6 lg:bottom-6 lg:left-auto"
       >
         <div className="flex items-center gap-2.5">
-          <RefreshCw className="h-4 w-4 shrink-0 text-[#134a35] dark:text-[#E2B354]" />
+          <RefreshCw className="h-4 w-4 shrink-0 text-[var(--theme-tint-text)]" />
           <span>{statusMessage}</span>
         </div>
         <button
@@ -169,7 +170,7 @@ export const ApkUpdatePrompt: React.FC<ApkUpdatePromptProps> = ({
       aria-labelledby="apk-update-title"
     >
       <div
-        className="w-full max-w-md rounded-3xl border border-[#e2e8e4] bg-white p-5 text-[#1d2c24] shadow-2xl dark:border-slate-700/80 dark:bg-[#111A27] dark:text-slate-100"
+        className="w-full max-w-md rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-5 text-[var(--theme-ink)] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">
@@ -177,20 +178,20 @@ export const ApkUpdatePrompt: React.FC<ApkUpdatePromptProps> = ({
             <img
               src="/assets/app-icon/icon.png"
               alt="e-Moeslife"
-              className="h-12 w-12 shrink-0 rounded-2xl border border-[#e2e8e4] bg-white p-1 dark:border-slate-700"
+              className="h-12 w-12 shrink-0 rounded-2xl border border-[var(--theme-border)] bg-white p-1"
             />
             <div>
-              <p className="text-[11px] font-bold tracking-wider text-[#9c7d3c] uppercase dark:text-[#E2B354]">
+              <p className="text-[11px] font-bold tracking-wider text-[var(--theme-accent)] uppercase">
                 Pembaruan Tersedia
               </p>
               <h2
                 id="apk-update-title"
-                className="font-display text-lg font-semibold text-[#103d2c] dark:text-white"
+                className="font-display text-lg font-semibold text-[var(--theme-heading)]"
               >
                 e-Moeslife v{release.versionName}
               </h2>
               {dateLabel && (
-                <p className="text-[11px] text-[#5e6a62] dark:text-slate-400">
+                <p className="text-[11px] text-[var(--theme-muted)]">
                   Dirilis {dateLabel}
                 </p>
               )}
@@ -208,24 +209,24 @@ export const ApkUpdatePrompt: React.FC<ApkUpdatePromptProps> = ({
           )}
         </div>
 
-        <div className="mt-4 rounded-2xl border border-[#e8eeea] bg-[#f8faf9] p-3.5 text-xs dark:border-slate-800 dark:bg-[#152030]">
+        <div className="mt-4 rounded-2xl border border-[var(--theme-border-soft)] bg-[var(--theme-card-alt)] p-3.5 text-xs">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[#5e6a62] dark:text-slate-400">Versi terpasang</span>
-            <span className="font-semibold text-[#1d2c24] dark:text-slate-200">
+            <span className="text-[var(--theme-muted)]">Versi terpasang</span>
+            <span className="font-semibold text-[var(--theme-ink)]">
               v{INSTALLED_APK_VERSION_NAME}
             </span>
           </div>
           <div className="mt-1.5 flex items-center justify-between gap-2">
-            <span className="text-[#5e6a62] dark:text-slate-400">Versi terbaru</span>
-            <span className="font-bold text-[#134a35] dark:text-[#E2B354]">
+            <span className="text-[var(--theme-muted)]">Versi terbaru</span>
+            <span className="font-bold text-[var(--theme-tint-text)]">
               v{release.versionName}
               {sizeLabel ? ` · ${sizeLabel}` : ""}
             </span>
           </div>
         </div>
 
-        <div className="mt-3.5 rounded-2xl border border-[#e8eeea] bg-[#fbfcfb] p-3.5 dark:border-slate-800 dark:bg-[#131D2B]">
-          <p className="text-[11px] font-bold tracking-wider text-[#9c7d3c] uppercase dark:text-[#E2B354]">
+        <div className="mt-3.5 rounded-2xl border border-[var(--theme-border-soft)] bg-[var(--theme-card-alt)] p-3.5">
+          <p className="text-[11px] font-bold tracking-wider text-[var(--theme-accent)] uppercase">
             Catatan Pembaruan (Changelog)
           </p>
 
@@ -241,12 +242,12 @@ export const ApkUpdatePrompt: React.FC<ApkUpdatePromptProps> = ({
                       {style.icon}
                       <span>{group.label}</span>
                     </div>
-                    <ul className="space-y-1 pl-1 text-xs leading-relaxed text-[#354c3e] dark:text-slate-300">
+                    <ul className="space-y-1 pl-1 text-xs leading-relaxed text-[var(--theme-nav-muted)]">
                       {group.items.map((item, idx) => (
                         <li key={`${group.category}-${idx}`} className="flex items-start gap-2">
                           <span
                             aria-hidden="true"
-                            className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#134a35] dark:bg-[#E2B354]"
+                            className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--theme-primary)]"
                           />
                           <span>{item}</span>
                         </li>
@@ -257,15 +258,15 @@ export const ApkUpdatePrompt: React.FC<ApkUpdatePromptProps> = ({
               })}
             </div>
           ) : (
-            <p className="mt-2 text-xs leading-relaxed text-[#5e6a62] dark:text-slate-300">
+            <p className="mt-2 text-xs leading-relaxed text-[var(--theme-muted)]">
               Pembaruan aplikasi tersedia dengan peningkatan stabilitas dan pengalaman baca.
             </p>
           )}
         </div>
 
         {downloading && progress && (
-          <div className="mt-3.5 rounded-2xl border border-[#d6e5dc] bg-[#f3f8f5] p-3 dark:border-emerald-900/60 dark:bg-emerald-950/30">
-            <div className="flex items-center justify-between text-xs font-semibold text-[#134a35] dark:text-[#E2B354]">
+          <div className="mt-3.5 rounded-2xl border border-[var(--theme-tint-border)] bg-[var(--theme-tint-bg)] p-3">
+            <div className="flex items-center justify-between text-xs font-semibold text-[var(--theme-tint-text)]">
               <span>
                 {progress.stage === "connecting"
                   ? "Menghubungkan ke server…"
@@ -277,14 +278,14 @@ export const ApkUpdatePrompt: React.FC<ApkUpdatePromptProps> = ({
               </span>
               <span className="font-mono-tabular">{progress.percent}%</span>
             </div>
-            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[#dce7e0] dark:bg-slate-800">
+            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[var(--theme-border)]">
               <div
-                className="h-full rounded-full bg-[#134a35] transition-all duration-150 dark:bg-[#E2B354]"
+                className="h-full rounded-full bg-[var(--theme-primary)] transition-all duration-150"
                 style={{ width: `${Math.max(4, progress.percent)}%` }}
               />
             </div>
             {progress.totalBytes > 0 && (
-              <p className="mt-1.5 text-[11px] text-[#5e6a62] dark:text-slate-400">
+              <p className="mt-1.5 text-[11px] text-[var(--theme-muted)]">
                 {formatByteProgress(progress.downloadedBytes)} /{" "}
                 {formatByteProgress(progress.totalBytes)}
               </p>
@@ -304,29 +305,43 @@ export const ApkUpdatePrompt: React.FC<ApkUpdatePromptProps> = ({
         )}
 
         {installError && !downloading && (
-          <div className="mt-3.5 space-y-1.5 rounded-2xl border border-red-200 bg-red-50 p-3 text-xs text-red-900 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
+          <div className="mt-3.5 space-y-2 rounded-2xl border border-red-200 bg-red-50 p-3 text-xs text-red-900 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
             <div className="flex items-start gap-2">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>{installError}</span>
             </div>
-            <a
-              href={release.downloadUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 font-semibold underline"
-            >
-              <span>Unduh manual melalui browser</span>
-              <ExternalLink className="h-3 w-3" />
-            </a>
+            {canInAppInstall && (
+              <button
+                type="button"
+                onClick={handleInAppUpdate}
+                className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg bg-red-900 px-3 text-[11px] font-semibold text-white hover:bg-red-800 dark:bg-red-800 dark:hover:bg-red-700"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                <span>Coba Unduh Ulang di Aplikasi</span>
+              </button>
+            )}
           </div>
         )}
 
-        <p className="mt-3 flex items-start gap-2 text-[11px] leading-relaxed text-[#5e6a62] dark:text-slate-400">
-          <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#134a35] dark:text-[#E2B354]" />
+        <div className="mt-3.5 flex items-start gap-2.5 rounded-2xl border border-amber-300/85 bg-amber-50/90 p-3 text-[11.5px] leading-relaxed text-amber-950 dark:border-amber-700/60 dark:bg-amber-950/35 dark:text-amber-100">
+          <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-700 dark:text-[#E2B354]" />
+          <div>
+            <p className="font-semibold text-amber-950 dark:text-[#f5d388]">
+              Info Pemasangan (Google Play Protect)
+            </p>
+            <p className="mt-0.5">
+              Klik <strong>Detail selengkapnya</strong> lalu pilih <strong>Tetap instal</strong>{" "}
+              jika pembaruan diblokir oleh Google Play Protect. Hal tersebut terjadi karena aplikasi
+              e-Moeslife diunduh langsung dan bukan berasal dari Google Play Store.
+            </p>
+          </div>
+        </div>
+
+        <p className="mt-2.5 flex items-start gap-2 text-[11px] leading-relaxed text-[var(--theme-muted)]">
+          <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--theme-tint-text)]" />
           <span>
-            {canInAppInstall
-              ? "Pembaruan diunduh langsung di dalam aplikasi lalu muncul konfirmasi Perbarui Android. Data bacaan dan pengaturan tetap tersimpan."
-              : "Setelah berkas APK selesai diunduh, ketuk notifikasi unduhan lalu pilih Perbarui / Update. Data bacaan dan pengaturan tetap tersimpan."}
+            Pembaruan diunduh dan dipasang langsung di dalam aplikasi e-Moeslife tanpa dialihkan ke
+            browser. Data bacaan dan pengaturan tetap tersimpan aman.
           </span>
         </p>
 
@@ -336,7 +351,7 @@ export const ApkUpdatePrompt: React.FC<ApkUpdatePromptProps> = ({
               type="button"
               onClick={handleInAppUpdate}
               disabled={downloading}
-              className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-[#134a35] px-4 text-xs font-bold text-white shadow-xs transition-colors hover:bg-[#0e3928] disabled:opacity-75 dark:bg-[#E2B354] dark:text-[#0B111A] dark:hover:bg-[#ecc26c]"
+              className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--theme-primary)] px-4 text-xs font-bold text-[var(--theme-primary-text)] shadow-xs transition-colors hover:bg-[var(--theme-primary-hover)] disabled:opacity-75"
             >
               {downloading ? (
                 <>
@@ -363,7 +378,7 @@ export const ApkUpdatePrompt: React.FC<ApkUpdatePromptProps> = ({
               target="_blank"
               rel="noopener noreferrer"
               onClick={onDismiss}
-              className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-[#134a35] px-4 text-xs font-bold text-white shadow-xs transition-colors hover:bg-[#0e3928] dark:bg-[#E2B354] dark:text-[#0B111A] dark:hover:bg-[#ecc26c]"
+              className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--theme-primary)] px-4 text-xs font-bold text-[var(--theme-primary-text)] shadow-xs transition-colors hover:bg-[var(--theme-primary-hover)]"
             >
               <Download className="h-4 w-4" />
               <span>Unduh &amp; Perbarui APK</span>
@@ -373,7 +388,7 @@ export const ApkUpdatePrompt: React.FC<ApkUpdatePromptProps> = ({
             type="button"
             onClick={onDismiss}
             disabled={downloading}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#dce4df] bg-white px-4 text-xs font-semibold text-[#354c3e] transition-colors hover:bg-[#f4f7f5] disabled:opacity-50 dark:border-slate-700 dark:bg-[#162131] dark:text-slate-300 dark:hover:bg-[#1E2C40]"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[var(--theme-border-strong)] bg-[var(--theme-card)] px-4 text-xs font-semibold text-[var(--theme-nav-muted)] transition-colors hover:bg-[var(--theme-card-alt)] disabled:opacity-50"
           >
             Nanti Saja
           </button>

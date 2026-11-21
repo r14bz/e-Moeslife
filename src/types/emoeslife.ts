@@ -1,6 +1,7 @@
 import type { ClassicSection } from "../data/sections";
 
 export type ThemeMode = "light" | "dark";
+export type ColorThemeId = "emerald" | "sapphire" | "teal" | "maroon" | "sepia";
 export type FontSizeScale = "small" | "normal" | "large";
 export type CollectionKind = "tahlil" | "yasin" | "rahman" | "dzikir";
 export type QuranStudioTab = "quran" | "dzikir" | "doa" | "tahlil" | "tafsir";
@@ -22,6 +23,13 @@ export type AppRoute =
   | { view: "nashoihul-kitab"; babId?: string }
   | { view: "bukhari-kitab"; babId?: number }
   | { view: "uqudulujain-kitab"; babId?: number }
+  | {
+      view: "turats-kitab";
+      slug: "qarib" | "fathul-muin" | "kasyifatus-saja" | "bahjatul-wasail" | "alhikam";
+      babIndex?: number;
+    }
+  | { view: "qathrul-ghaits-kitab"; lembaranIndex?: number }
+  | { view: "tijan-darori-kitab"; babId?: string }
   | { view: "api-kitab"; slug: string; title: string }
   | { view: "nearby-mosques" }
   | { view: "qibla" }
@@ -73,7 +81,10 @@ export interface LocalBookMeta {
     | "baiquniyyah"
     | "nashoihul-ibad"
     | "bukhari"
-    | "uqudulujain";
+    | "uqudulujain"
+    | "turats"
+    | "qathrul-ghaits"
+    | "tijan-darori";
   source: "local" | "api";
 }
 

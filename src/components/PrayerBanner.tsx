@@ -604,8 +604,8 @@ export const PrayerBanner: React.FC = () => {
   return (
     <>
       <section
-        className={`relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-[#dce4df] bg-gradient-to-br ${sceneStyle.gradient} p-4 shadow-sm sm:p-5 dark:border-slate-800 ${
-          isLightSky ? "text-[#103d2c] dark:text-slate-100" : "text-slate-100"
+        className={`relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-[var(--theme-border-strong)] bg-gradient-to-br ${sceneStyle.gradient} p-4 shadow-sm sm:p-5 dark:border-[var(--theme-border)] ${
+          isLightSky ? "text-[var(--theme-heading)] dark:text-slate-100" : "text-slate-100"
         }`}
         aria-label="Jadwal shalat hari ini"
       >
@@ -635,7 +635,7 @@ export const PrayerBanner: React.FC = () => {
             <div>
               <p
                 className={`text-[11px] font-semibold tracking-wide ${
-                  isLightSky ? "text-[#134a35] dark:text-[#E7C67E]" : "text-[#F3D792]"
+                  isLightSky ? "text-[var(--theme-primary)] dark:text-[var(--theme-hero-eyebrow)]" : "text-[#F3D792]"
                 }`}
               >
                 Jadwal Shalat
@@ -703,7 +703,7 @@ export const PrayerBanner: React.FC = () => {
                   {timeWindowText && (
                     <p
                       className={`font-mono-tabular text-sm font-semibold sm:text-base ${
-                        isLightSky ? "text-[#103d2c] dark:text-[#F4D99B]" : "text-[#F4D99B]"
+                        isLightSky ? "text-[var(--theme-heading)] dark:text-[#F4D99B]" : "text-[#F4D99B]"
                       }`}
                     >
                       {timeWindowText}
@@ -716,7 +716,7 @@ export const PrayerBanner: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => void requestGpsLocation()}
-                    className="inline-flex min-h-[34px] items-center gap-1.5 rounded-lg bg-[#134a35] px-2.5 text-[11px] font-semibold text-white shadow-xs transition-colors hover:bg-[#0e3928] dark:bg-[#E2B354] dark:text-[#0B111A]"
+                    className="inline-flex min-h-[34px] items-center gap-1.5 rounded-lg bg-[var(--theme-primary)] px-2.5 text-[11px] font-semibold text-[var(--theme-primary-text)] shadow-xs transition-colors hover:bg-[var(--theme-primary-hover)]"
                   >
                     <Compass className="h-3 w-3" />
                     <span>Izinkan Lokasi</span>
@@ -739,10 +739,10 @@ export const PrayerBanner: React.FC = () => {
                   className={`inline-flex min-h-[34px] items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-semibold backdrop-blur-sm transition-colors ${
                     notifEnabled
                       ? isLightSky
-                        ? "border-[#134a35]/30 bg-[#134a35]/15 text-[#103d2c] hover:bg-[#134a35]/25 dark:border-[#E2B354]/40 dark:bg-[#E2B354]/20 dark:text-[#F4D99B]"
+                        ? "border-[var(--theme-tint-border)] bg-[var(--theme-tint-bg)]/90 text-[var(--theme-tint-text)] hover:bg-[var(--theme-tint-hover)]"
                         : "border-[#F3D792]/50 bg-[#E2B354]/20 text-[#F4D99B] hover:bg-[#E2B354]/30"
                       : isLightSky
-                      ? "border-[#134a35]/20 bg-white/75 text-[#425c50] hover:bg-white/95 dark:border-white/25 dark:bg-white/10 dark:text-slate-300"
+                      ? "border-[var(--theme-border-strong)] bg-white/75 text-[var(--theme-nav-muted)] hover:bg-white/95 dark:border-white/25 dark:bg-white/10 dark:text-slate-300"
                       : "border-white/25 bg-white/15 text-white/80 hover:bg-white/25"
                   }`}
                 >
@@ -760,7 +760,7 @@ export const PrayerBanner: React.FC = () => {
                   onClick={openLocationDialog}
                   className={`inline-flex min-h-[34px] items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-semibold backdrop-blur-sm transition-colors ${
                     isLightSky
-                      ? "border-[#134a35]/20 bg-white/75 text-[#103d2c] hover:bg-white/95 dark:border-white/25 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+                      ? "border-[var(--theme-border-strong)] bg-white/75 text-[var(--theme-heading)] hover:bg-white/95 dark:border-white/25 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
                       : "border-white/25 bg-white/15 text-white hover:bg-white/25"
                   }`}
                 >
@@ -776,7 +776,7 @@ export const PrayerBanner: React.FC = () => {
               role="status"
               className={`rounded-xl border px-3 py-1.5 text-[11px] leading-snug backdrop-blur-sm ${
                 isLightSky
-                  ? "border-[#134a35]/15 bg-white/80 text-[#173d2e] dark:border-white/15 dark:bg-white/10 dark:text-slate-200"
+                  ? "border-[var(--theme-border)] bg-white/80 text-[var(--theme-ink)] dark:border-white/15 dark:bg-white/10 dark:text-slate-200"
                   : "border-white/20 bg-white/10 text-slate-100"
               }`}
             >
@@ -788,7 +788,7 @@ export const PrayerBanner: React.FC = () => {
             <p
               className={`rounded-xl border px-3 py-2 text-[11px] leading-snug backdrop-blur-sm ${
                 isLightSky
-                  ? "border-[#134a35]/15 bg-white/75 text-[#173d2e] dark:border-white/15 dark:bg-white/10 dark:text-slate-200"
+                  ? "border-[var(--theme-border)] bg-white/75 text-[var(--theme-ink)] dark:border-white/15 dark:bg-white/10 dark:text-slate-200"
                   : "border-white/20 bg-white/10 text-slate-100"
               }`}
             >
@@ -807,19 +807,21 @@ export const PrayerBanner: React.FC = () => {
                   className={`flex flex-col items-center rounded-xl border px-1 py-1.5 text-center backdrop-blur-sm transition-colors sm:py-2 ${
                     isActive
                       ? isLightSky
-                        ? "border-[#134a35] bg-[#134a35] text-white shadow-xs dark:border-[#E2B354]/80 dark:bg-[#E2B354]/30"
+                        ? "border-[var(--theme-primary)] bg-[var(--theme-primary)] text-[var(--theme-primary-text)] shadow-xs dark:border-[var(--theme-accent)] dark:bg-[var(--theme-tint-bg)] dark:text-[var(--theme-heading)]"
                         : "border-[#F3D792]/85 bg-[#E2B354]/30 text-white"
                       : isLightSky
-                      ? "border-[#cfdcd5] bg-white/80 text-[#173d2e] dark:border-white/20 dark:bg-white/12 dark:text-slate-100"
+                      ? "border-[var(--theme-border-strong)] bg-white/80 text-[var(--theme-ink)] dark:border-white/20 dark:bg-white/12 dark:text-slate-100"
                       : "border-white/20 bg-white/12 text-white/95"
                   }`}
                 >
                   <span
                     className={`text-[10px] font-medium sm:text-[11px] ${
                       isActive
-                        ? "text-white/90"
+                        ? isLightSky
+                          ? "opacity-90"
+                          : "text-white/90"
                         : isLightSky
-                        ? "text-[#425c50] dark:text-slate-200"
+                        ? "text-[var(--theme-muted)] dark:text-slate-200"
                         : "text-slate-100/90"
                     }`}
                   >
@@ -828,9 +830,9 @@ export const PrayerBanner: React.FC = () => {
                   <strong
                     className={`font-mono-tabular mt-0.5 text-xs font-semibold sm:text-sm ${
                       isActive
-                        ? "text-white"
+                        ? ""
                         : isLightSky
-                        ? "text-[#103d2c] dark:text-white"
+                        ? "text-[var(--theme-heading)] dark:text-white"
                         : "text-white"
                     }`}
                   >
@@ -854,17 +856,17 @@ export const PrayerBanner: React.FC = () => {
             role="dialog"
             aria-modal="true"
             aria-labelledby="prayerLocationTitle"
-            className="w-full max-w-md rounded-2xl border border-[#e2e8e4] bg-[#ffffff] p-5 text-[#1d2c24] shadow-2xl dark:border-slate-800 dark:bg-[#111A27] dark:text-[#E9EEF5]"
+            className="w-full max-w-md rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-5 text-[var(--theme-ink)] shadow-2xl"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-[11px] font-semibold tracking-wider text-[#9c7d3c] uppercase dark:text-[#E2B354]">
+                <p className="text-[11px] font-semibold tracking-wider text-[var(--theme-accent)] uppercase">
                   Pengaturan Lokasi
                 </p>
-                <h3 id="prayerLocationTitle" className="font-display mt-0.5 text-lg font-semibold text-[#103d2c] dark:text-white">
+                <h3 id="prayerLocationTitle" className="font-display mt-0.5 text-lg font-semibold text-[var(--theme-heading)]">
                   Pilih lokasi jadwal
                 </h3>
-                <p className="mt-1 text-xs text-[#646053] dark:text-slate-400">
+                <p className="mt-1 text-xs text-[var(--theme-muted)]">
                   Jadwal shalat akan mengikuti kota yang kamu pilih.
                 </p>
               </div>
@@ -872,7 +874,7 @@ export const PrayerBanner: React.FC = () => {
                 type="button"
                 onClick={() => setModalOpen(false)}
                 aria-label="Tutup"
-                className="inline-flex min-h-[38px] min-w-[38px] items-center justify-center rounded-xl border border-[#dce4df] bg-[#f4f7f5] text-[#174231] hover:bg-[#e6ede9] dark:border-slate-700 dark:bg-[#172334] dark:text-slate-200"
+                className="inline-flex min-h-[38px] min-w-[38px] items-center justify-center rounded-xl border border-[var(--theme-border-strong)] bg-[var(--theme-card-alt)] text-[var(--theme-nav-muted)] hover:bg-[var(--theme-tint-bg)]"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -949,7 +951,7 @@ export const PrayerBanner: React.FC = () => {
                   type="button"
                   onClick={handleSaveManualLocation}
                   disabled={dialogLoading || !draftCity}
-                  className="min-h-[42px] w-full rounded-xl bg-[#134a35] px-4 text-xs font-semibold text-[#ffffff] transition-colors hover:bg-[#0e3928] disabled:opacity-60 dark:bg-[#E2B354] dark:text-[#0B111A]"
+                  className="min-h-[42px] w-full rounded-xl bg-[var(--theme-primary)] px-4 text-xs font-semibold text-[var(--theme-primary-text)] transition-colors hover:bg-[var(--theme-primary-hover)] disabled:opacity-60"
                 >
                   {dialogLoading ? "Memuat jadwal…" : "Gunakan lokasi ini"}
                 </button>
@@ -957,7 +959,7 @@ export const PrayerBanner: React.FC = () => {
                   type="button"
                   onClick={handleUseGps}
                   disabled={gpsLoading}
-                  className="inline-flex min-h-[42px] w-full items-center justify-center gap-2 rounded-xl border border-[#dce4df] bg-[#f4f7f5] px-4 text-xs font-semibold text-[#174231] transition-colors hover:bg-[#e6ede9] disabled:opacity-60 dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200"
+                  className="inline-flex min-h-[42px] w-full items-center justify-center gap-2 rounded-xl border border-[var(--theme-border-strong)] bg-[var(--theme-card-alt)] px-4 text-xs font-semibold text-[var(--theme-nav-muted)] transition-colors hover:bg-[var(--theme-tint-bg)] disabled:opacity-60"
                 >
                   <Compass className="h-4 w-4" />
                   <span>{gpsLoading ? "Mendeteksi lokasi…" : "Gunakan lokasi otomatis (GPS)"}</span>

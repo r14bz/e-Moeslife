@@ -191,7 +191,7 @@ export function ThemedSelect<T extends string | number = string>({
                   className={`flex min-h-[40px] w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-xs transition-colors disabled:opacity-45 ${
                     isSelected
                       ? "font-bold"
-                      : "font-semibold hover:bg-emerald-900/5 dark:hover:bg-amber-400/10"
+                      : "font-semibold hover:bg-[var(--tashrif-dropdown-hover)]"
                   }`}
                 >
                   <div className="min-w-0 flex-1">

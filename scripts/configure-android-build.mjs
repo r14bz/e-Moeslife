@@ -91,7 +91,10 @@ if (fs.existsSync(manifestPath)) {
     '<uses-permission android:name="android.permission.USE_EXACT_ALARM" />',
     '<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />',
     '<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />',
+    '<uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />',
     '<uses-feature android:name="android.hardware.location.gps" android:required="false" />',
+    '<uses-feature android:name="android.hardware.sensor.compass" android:required="false" />',
+    '<uses-feature android:name="android.hardware.sensor.accelerometer" android:required="false" />',
   ];
 
   const missing = requiredEntries.filter((entry) => {
@@ -157,9 +160,12 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.media.AudioAttributes;
+import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
+import android.net.Uri;
 import android.os.Build;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
@@ -184,7 +190,8 @@ public final class ApkUpdateChecker {
     private static final String KEY_NOTIFIED_VERSION = "notified_version_code";
     private static final String KEY_LAST_CHECK_MS = "last_check_ms";
     private static final String KEY_PENDING_OPEN = "pending_open_apk_update";
-    private static final String CHANNEL_ID = "pembaruan-aplikasi";
+    private static final String LEGACY_CHANNEL_ID = "pembaruan-aplikasi";
+    private static final String CHANNEL_ID = "pembaruan-aplikasi-v2";
     private static final int NOTIFICATION_ID = 519901;
     private static final long MIN_CHECK_COOLDOWN_MS = 10L * 60L * 1000L;
     private static final int NOTIFICATION_ACCENT_COLOR = Color.parseColor("#009950");
@@ -480,6 +487,14 @@ public final class ApkUpdateChecker {
         }
     }
 
+    private static Uri resolveUpdateSoundUri(Context context) {
+        int rawId = context.getResources().getIdentifier("notif_update", "raw", context.getPackageName());
+        if (rawId != 0) {
+            return Uri.parse("android.resource://" + context.getPackageName() + "/" + rawId);
+        }
+        return RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+    }
+
     private static void showUpdateNotification(
         Context context,
         long versionCode,
@@ -489,14 +504,26 @@ public final class ApkUpdateChecker {
         NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm == null) return;
 
+        Uri soundUri = resolveUpdateSoundUri(context);
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                nm.deleteNotificationChannel(LEGACY_CHANNEL_ID);
+            } catch (Exception ignored) {
+                // Ignore if legacy channel absent
+            }
             NotificationChannel channel = new NotificationChannel(
                 CHANNEL_ID,
                 "Pembaruan Aplikasi",
                 NotificationManager.IMPORTANCE_HIGH
             );
-            channel.setDescription("Pemberitahuan otomatis saat versi terbaru e-Moeslife tersedia");
+            channel.setDescription("Pemberitahuan otomatis bersuara saat versi terbaru e-Moeslife tersedia");
             channel.enableVibration(true);
+            AudioAttributes audioAttrs = new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build();
+            channel.setSound(soundUri, audioAttrs);
             nm.createNotificationChannel(channel);
         }
 
@@ -562,6 +589,8 @@ public final class ApkUpdateChecker {
             )
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setSound(soundUri)
+            .setDefaults(NotificationCompat.DEFAULT_VIBRATE | NotificationCompat.DEFAULT_LIGHTS)
             .setOnlyAlertOnce(true)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent);
@@ -1030,6 +1059,187 @@ public class ApkInstallerPlugin extends Plugin {
 
   fs.writeFileSync(path.join(javaAppDir, "ApkInstallerPlugin.java"), pluginJava, "utf8");
 
+  const qiblaCompassJava = `package com.emoeslife.app;
+
+import android.content.Context;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+import android.os.Build;
+import android.view.Display;
+import android.view.Surface;
+import android.view.WindowManager;
+import com.getcapacitor.JSObject;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+
+@CapacitorPlugin(name = "QiblaCompass")
+public class QiblaCompassPlugin extends Plugin implements SensorEventListener {
+
+    private SensorManager sensorManager;
+    private Sensor rotationSensor;
+    private Sensor accelSensor;
+    private Sensor magnetSensor;
+
+    private final float[] rotationMatrix = new float[9];
+    private final float[] remappedMatrix = new float[9];
+    private final float[] orientationAngles = new float[3];
+    private final float[] lastAccel = new float[3];
+    private final float[] lastMagnet = new float[3];
+    private boolean hasAccel = false;
+    private boolean hasMagnet = false;
+    private boolean listening = false;
+    private long lastEmitMs = 0L;
+    private int currentAccuracy = SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM;
+
+    private void initSensorsIfNeeded() {
+        if (sensorManager != null) return;
+        sensorManager = (SensorManager) getContext().getSystemService(Context.SENSOR_SERVICE);
+        if (sensorManager == null) return;
+        rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+        accelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        magnetSensor = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+    }
+
+    private boolean isHardwareAvailable() {
+        initSensorsIfNeeded();
+        if (sensorManager == null) return false;
+        return rotationSensor != null || (accelSensor != null && magnetSensor != null);
+    }
+
+    @SuppressWarnings("deprecation")
+    private int getDisplayRotation() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && getActivity() != null) {
+                Display display = getActivity().getDisplay();
+                if (display != null) return display.getRotation();
+            }
+            WindowManager wm = (WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE);
+            if (wm != null && wm.getDefaultDisplay() != null) {
+                return wm.getDefaultDisplay().getRotation();
+            }
+        } catch (Exception ignored) {
+            // fallback
+        }
+        return Surface.ROTATION_0;
+    }
+
+    private void emitAzimuthFromMatrix() {
+        int axisX = SensorManager.AXIS_X;
+        int axisY = SensorManager.AXIS_Y;
+        int rot = getDisplayRotation();
+        if (rot == Surface.ROTATION_90) {
+            axisX = SensorManager.AXIS_Y;
+            axisY = SensorManager.AXIS_MINUS_X;
+        } else if (rot == Surface.ROTATION_180) {
+            axisX = SensorManager.AXIS_MINUS_X;
+            axisY = SensorManager.AXIS_MINUS_Y;
+        } else if (rot == Surface.ROTATION_270) {
+            axisX = SensorManager.AXIS_MINUS_Y;
+            axisY = SensorManager.AXIS_X;
+        }
+
+        SensorManager.remapCoordinateSystem(rotationMatrix, axisX, axisY, remappedMatrix);
+        SensorManager.getOrientation(remappedMatrix, orientationAngles);
+
+        double deg = Math.toDegrees(orientationAngles[0]);
+        deg = ((deg % 360.0) + 360.0) % 360.0;
+
+        long now = System.currentTimeMillis();
+        if (now - lastEmitMs < 45L) return;
+        lastEmitMs = now;
+
+        JSObject data = new JSObject();
+        data.put("heading", deg);
+        data.put("accuracy", currentAccuracy);
+        data.put("absolute", true);
+        notifyListeners("compassReading", data);
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        if (!listening || event == null || event.sensor == null) return;
+        int type = event.sensor.getType();
+        if (type == Sensor.TYPE_ROTATION_VECTOR) {
+            SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values);
+            emitAzimuthFromMatrix();
+        } else if (type == Sensor.TYPE_ACCELEROMETER) {
+            System.arraycopy(event.values, 0, lastAccel, 0, Math.min(3, event.values.length));
+            hasAccel = true;
+            if (hasMagnet && SensorManager.getRotationMatrix(rotationMatrix, null, lastAccel, lastMagnet)) {
+                emitAzimuthFromMatrix();
+            }
+        } else if (type == Sensor.TYPE_MAGNETIC_FIELD) {
+            System.arraycopy(event.values, 0, lastMagnet, 0, Math.min(3, event.values.length));
+            hasMagnet = true;
+            if (hasAccel && SensorManager.getRotationMatrix(rotationMatrix, null, lastAccel, lastMagnet)) {
+                emitAzimuthFromMatrix();
+            }
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        currentAccuracy = accuracy;
+    }
+
+    private void startListeningInternal() {
+        if (listening || !isHardwareAvailable()) return;
+        listening = true;
+        if (rotationSensor != null) {
+            sensorManager.registerListener(this, rotationSensor, SensorManager.SENSOR_DELAY_UI);
+        } else {
+            if (accelSensor != null) {
+                sensorManager.registerListener(this, accelSensor, SensorManager.SENSOR_DELAY_UI);
+            }
+            if (magnetSensor != null) {
+                sensorManager.registerListener(this, magnetSensor, SensorManager.SENSOR_DELAY_UI);
+            }
+        }
+    }
+
+    private void stopListeningInternal() {
+        if (!listening || sensorManager == null) return;
+        listening = false;
+        sensorManager.unregisterListener(this);
+    }
+
+    @PluginMethod
+    public void start(PluginCall call) {
+        boolean available = isHardwareAvailable();
+        if (available) {
+            startListeningInternal();
+        }
+        JSObject ret = new JSObject();
+        ret.put("available", available);
+        ret.put("listening", listening);
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void stop(PluginCall call) {
+        stopListeningInternal();
+        call.resolve();
+    }
+
+    @Override
+    protected void handleOnPause() {
+        stopListeningInternal();
+        super.handleOnPause();
+    }
+
+    @Override
+    protected void handleOnDestroy() {
+        stopListeningInternal();
+        super.handleOnDestroy();
+    }
+}
+`;
+  fs.writeFileSync(path.join(javaAppDir, "QiblaCompassPlugin.java"), qiblaCompassJava, "utf8");
+
   const mainActivityJava = `package com.emoeslife.app;
 
 import android.content.Intent;
@@ -1046,6 +1256,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(ApkInstallerPlugin.class);
+        registerPlugin(QiblaCompassPlugin.class);
         super.onCreate(savedInstanceState);
         handleUpdateIntent(getIntent());
         ApkUpdateScheduler.ensureScheduled(getApplicationContext());
@@ -1060,6 +1271,20 @@ public class MainActivity extends BridgeActivity {
 }
 `;
   fs.writeFileSync(path.join(javaAppDir, "MainActivity.java"), mainActivityJava, "utf8");
-  console.log("Generated ApkInstallerPlugin, background ApkUpdateChecker/JobService/Receiver, and MainActivity.");
+  console.log("Generated ApkInstallerPlugin, QiblaCompassPlugin, background ApkUpdateChecker/JobService/Receiver, and MainActivity.");
+}
+
+// Copy notification WAV sounds to android/app/src/main/res/raw/
+const resRawDir = path.join(rootDir, "android", "app", "src", "main", "res", "raw");
+const publicSoundDir = path.join(rootDir, "public", "assets", "sounds");
+if (fs.existsSync(publicSoundDir)) {
+  fs.mkdirSync(resRawDir, { recursive: true });
+  for (const wavName of ["notif_shalat.wav", "notif_update.wav"]) {
+    const srcWav = path.join(publicSoundDir, wavName);
+    if (fs.existsSync(srcWav)) {
+      fs.copyFileSync(srcWav, path.join(resRawDir, wavName));
+    }
+  }
+  console.log("Copied notification sound assets to android/app/src/main/res/raw/.");
 }
 

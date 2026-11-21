@@ -6,7 +6,7 @@ import type {
   StructuredBlock,
 } from "../types/emoeslife";
 
-// Diurutkan berjenjang dari kitab pengetahuan dasar hingga tingkat lanjut
+// Diurutkan berjenjang & menonjolkan 10 kitab utama pada halaman awal
 export const LOCAL_BOOKS: LocalBookMeta[] = [
   {
     file: "",
@@ -17,6 +17,22 @@ export const LOCAL_BOOKS: LocalBookMeta[] = [
     source: "local",
   },
   {
+    file: "",
+    slug: "tijan-darori",
+    title: "Tijan Daruri",
+    category: "Aqidah",
+    format: "tijan-darori",
+    source: "local",
+  },
+  {
+    file: "",
+    slug: "qathrul-ghaits",
+    title: "Qathrul Ghaits",
+    category: "Aqidah",
+    format: "qathrul-ghaits",
+    source: "local",
+  },
+  {
     file: "safinah-reading-library.json",
     slug: "safinah-reading-library",
     title: "Safinah An-Najah",
@@ -24,7 +40,38 @@ export const LOCAL_BOOKS: LocalBookMeta[] = [
     format: "structured",
     source: "local",
   },
-  { file: "sullamut-taufiq.json", slug: "sullamut-taufiq", title: "Sullamut Taufiq", category: "Fiqih", source: "local" },
+  {
+    file: "",
+    slug: "kasyifatus-saja",
+    title: "Kasyifatus Saja",
+    category: "Fiqih",
+    format: "turats",
+    source: "local",
+  },
+  {
+    file: "",
+    slug: "bahjatul-wasail",
+    title: "Bahjatul Wasa'il",
+    category: "Fiqih",
+    format: "turats",
+    source: "local",
+  },
+  {
+    file: "",
+    slug: "qarib",
+    title: "Fathul Qarib Al-Mujib",
+    category: "Fiqih",
+    format: "turats",
+    source: "local",
+  },
+  {
+    file: "",
+    slug: "fathul-muin",
+    title: "Fathul Mu’in",
+    category: "Fiqih",
+    format: "turats",
+    source: "local",
+  },
   {
     file: "",
     slug: "ajurumiyyah",
@@ -33,6 +80,15 @@ export const LOCAL_BOOKS: LocalBookMeta[] = [
     format: "jurumiyah",
     source: "local",
   },
+  {
+    file: "",
+    slug: "alhikam",
+    title: "Al-Hikam Al-Atha'iyyah",
+    category: "Tasawuf",
+    format: "turats",
+    source: "local",
+  },
+  { file: "sullamut-taufiq.json", slug: "sullamut-taufiq", title: "Sullamut Taufiq", category: "Fiqih", source: "local" },
   {
     file: "",
     slug: "imriti",
@@ -76,7 +132,6 @@ export const LOCAL_BOOKS: LocalBookMeta[] = [
   },
   { file: "arbain.json", slug: "arbain", title: "Arba’in Nawawi", category: "Hadis", source: "local" },
   { file: "bidayatul.json", slug: "bidayatul", title: "Bidayatul Hidayah", category: "Tasawuf", source: "local" },
-  { file: "qarib.json", slug: "qarib", title: "Fathul Qarib", category: "Fiqih", source: "local" },
   { file: "bulughul.json", slug: "bulughul", title: "Bulughul Maram", category: "Hadis", source: "local" },
   { file: "riyadhus.json", slug: "riyadhus", title: "Riyadhus Shalihin", category: "Hadis", source: "local" },
   { file: "izar.json", slug: "izar", title: "Fathul Izar", category: "Keluarga", source: "local" },
@@ -89,7 +144,6 @@ export const LOCAL_BOOKS: LocalBookMeta[] = [
     format: "uqudulujain",
     source: "local",
   },
-  { file: "alhikam.json", slug: "alhikam", title: "Al-Hikam", category: "Tasawuf", source: "local" },
   { file: "futuhul.json", slug: "futuhul", title: "Futuhul Ghaib", category: "Tasawuf", source: "local" },
   { file: "jalalain.json", slug: "jalalain", title: "Tafsir Jalalain", category: "Tafsir", source: "local" },
   { file: "muwatta.json", slug: "muwatta", title: "Muwatta Imam Malik", category: "Hadis", source: "local" },
@@ -149,13 +203,18 @@ export function chunkText(text: string, target = CHUNK_TARGET_CHARS): string[] {
 }
 
 export const KITAB_ARABIC_TITLES: Record<string, string> = {
+  "tijan-darori": "تِيْجَانُ الدَّرَارِي",
+  "qathrul-ghaits": "قَطْرُ الْغَيْثِ",
   "safinah-reading-library": "سَفِيْنَةُ النَّجَاةِ",
+  "kasyifatus-saja": "كَاشِفَةُ السَّجَا",
+  "bahjatul-wasail": "بَهْجَةُ الْوَسَائِلِ",
   "sullamut-taufiq": "سُلَّمُ التَّوْفِيْقِ",
   taklim: "تَعْلِيْمُ الْمُتَعَلِّمِ",
   nashoihul: "نَصَائِحُ الْعِبَادِ",
   arbain: "الْأَرْبَعُوْنَ النَّوَوِيَّةُ",
   bidayatul: "بِدَايَةُ الْهِدَايَةِ",
-  qarib: "فَتْحُ الْقَرِيْبِ",
+  qarib: "فَتْحُ الْقَرِيْبِ الْمُجِيْبِ",
+  "fathul-muin": "فَتْحُ الْمُعِيْنِ",
   bulughul: "بُلُوْغُ الْمَرَامِ",
   riyadhus: "رِيَاضُ الصَّالِحِيْنَ",
   izar: "فَتْحُ الْإِزَارِ",

@@ -8,9 +8,18 @@ import {
   RefreshCw,
   RotateCcw,
   RotateCw,
+  ShieldCheck,
   Smartphone,
 } from "lucide-react";
-import { getCurrentCoordinates, type GeoCoords } from "../services/locationService";
+import {
+  getCurrentCoordinates,
+  requestLocationPermissionNow,
+  type GeoCoords,
+} from "../services/locationService";
+import {
+  isNativeQiblaCompassAvailable,
+  startNativeQiblaCompass,
+} from "../services/qiblaCompass";
 import {
   calculateDistanceToKaabahKm,
   calculateQiblaBearing,
@@ -87,6 +96,7 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
   const [selectedPresetId, setSelectedPresetId] = useState<string>(initialLoc.presetId);
   const [gpsLoading, setGpsLoading] = useState<boolean>(false);
   const [gpsMessage, setGpsMessage] = useState<string>("");
+  const [locationPermissionDenied, setLocationPermissionDenied] = useState<boolean>(false);
 
   const [sensorState, setSensorState] = useState<SensorState>("checking");
   const [sensorAbsolute, setSensorAbsolute] = useState<boolean>(false);
@@ -95,6 +105,7 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
 
   const dialRotationRef = useRef<number>(0);
   const smoothedHeadingRef = useRef<number | null>(null);
+  const webListenersCleanupRef = useRef<(() => void) | null>(null);
 
   const qiblaBearing = useMemo(() => calculateQiblaBearing(coords), [coords]);
   const distanceKm = useMemo(() => calculateDistanceToKaabahKm(coords), [coords]);
@@ -102,24 +113,44 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
 
   const detectGpsLocation = useCallback(async (userTriggered = false) => {
     setGpsLoading(true);
+    setLocationPermissionDenied(false);
     if (userTriggered) {
-      setGpsMessage("Mengambil koordinat GPS akurat…");
+      setGpsMessage("Meminta izin & mengambil koordinat GPS akurat…");
     }
     try {
+      const permitted = await requestLocationPermissionNow();
+      if (!permitted) {
+        setLocationPermissionDenied(true);
+        setGpsMessage(
+          "Izin lokasi diperlukan agar arah kiblat tepat sesuai posisi Anda. Ketuk 'Izinkan & Deteksi GPS' atau pilih kota manual di bawah."
+        );
+        return;
+      }
+
       const detected = await getCurrentCoordinates({
         enableHighAccuracy: true,
         timeout: 12000,
-        maximumAge: 60000,
+        maximumAge: 0,
       });
       setCoords(detected);
       setLocationSource("gps");
       setLocationLabel("Lokasi GPS Perangkat");
       setSelectedPresetId("");
+      setLocationPermissionDenied(false);
       setGpsMessage("");
-    } catch {
-      if (userTriggered) {
+    } catch (err) {
+      const code =
+        typeof err === "object" && err !== null && "code" in err
+          ? (err as { code?: number }).code
+          : undefined;
+      if (code === 1) {
+        setLocationPermissionDenied(true);
         setGpsMessage(
-          "GPS tidak tersedia atau izin lokasi ditolak. Menggunakan kota acuan yang dipilih."
+          "Izin lokasi ditolak. Aktifkan izin lokasi di browser/pengaturan perangkat atau pilih kota acuan di bawah."
+        );
+      } else if (userTriggered) {
+        setGpsMessage(
+          "GPS belum merespons. Pastikan layanan lokasi aktif atau pilih kota acuan di bawah."
         );
       }
     } finally {
@@ -138,7 +169,6 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
     let smoothed = normalized;
     if (prev !== null) {
       const diff = getSignedAngleDelta(normalized, prev);
-      // Light smoothing suppresses sensor jitter while staying responsive
       smoothed = normalizeDegrees(prev + diff * 0.32);
     }
     smoothedHeadingRef.current = smoothed;
@@ -153,7 +183,12 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
     setSensorState("active");
   }, []);
 
-  const attachOrientationListeners = useCallback(() => {
+  const attachWebOrientationListeners = useCallback(() => {
+    if (webListenersCleanupRef.current) {
+      webListenersCleanupRef.current();
+      webListenersCleanupRef.current = null;
+    }
+
     if (typeof window === "undefined" || !("DeviceOrientationEvent" in window)) {
       setSensorState("unavailable");
       return () => undefined;
@@ -174,7 +209,6 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
     const handleStandard = (event: DeviceOrientationEvent) => {
       const orientEvent = event as OrientationEventWithWebkit;
 
-      // iOS Safari exposes magnetic/true heading directly on webkitCompassHeading
       if (
         typeof orientEvent.webkitCompassHeading === "number" &&
         Number.isFinite(orientEvent.webkitCompassHeading)
@@ -200,33 +234,20 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
 
     const fallbackTimer = window.setTimeout(() => {
       if (!receivedAnyReading) {
-        setSensorState("unavailable");
+        setSensorState((prev) => (prev === "active" ? prev : "unavailable"));
       }
-    }, 1800);
+    }, 2000);
 
-    return () => {
+    const cleanup = () => {
       window.clearTimeout(fallbackTimer);
       window.removeEventListener("deviceorientationabsolute", handleAbsolute, true);
       window.removeEventListener("deviceorientation", handleStandard, true);
     };
+    webListenersCleanupRef.current = cleanup;
+    return cleanup;
   }, [applyHeadingSample]);
 
-  useEffect(() => {
-    if (typeof window === "undefined" || !("DeviceOrientationEvent" in window)) {
-      setSensorState("unavailable");
-      return undefined;
-    }
-
-    const OrientationCtor = window.DeviceOrientationEvent as DeviceOrientationStaticWithPerm;
-    if (typeof OrientationCtor.requestPermission === "function") {
-      setSensorState("needs-permission");
-      return undefined;
-    }
-
-    return attachOrientationListeners();
-  }, [attachOrientationListeners]);
-
-  const handleRequestCompassPermission = async () => {
+  const handleRequestCompassPermission = useCallback(async () => {
     if (typeof window === "undefined" || !("DeviceOrientationEvent" in window)) {
       setSensorState("unavailable");
       return;
@@ -237,15 +258,93 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
         const result = await OrientationCtor.requestPermission();
         if (result === "granted") {
           setSensorState("checking");
-          attachOrientationListeners();
+          attachWebOrientationListeners();
         } else {
           setSensorState("unavailable");
         }
       } catch {
-        setSensorState("unavailable");
+        setSensorState("needs-permission");
       }
+      return;
     }
-  };
+    attachWebOrientationListeners();
+  }, [attachWebOrientationListeners]);
+
+  useEffect(() => {
+    let active = true;
+    let stopNative: (() => Promise<void>) | null = null;
+    let removeWebFallback: (() => void) | null = null;
+
+    const initCompass = async () => {
+      // 1. Prioritize native Android SensorManager compass when running inside APK
+      if (isNativeQiblaCompassAvailable()) {
+        const session = await startNativeQiblaCompass((reading) => {
+          if (!active) return;
+          applyHeadingSample(reading.heading, reading.absolute);
+        });
+        if (session.available && active) {
+          stopNative = session.stop;
+          return;
+        }
+      }
+
+      if (!active || typeof window === "undefined") return;
+
+      // 2. Request web sensor permissions cleanly (Chrome Permissions API hint + iOS requestPermission)
+      if ("permissions" in navigator && typeof navigator.permissions?.query === "function") {
+        void Promise.allSettled([
+          navigator.permissions.query({ name: "magnetometer" as PermissionName }),
+          navigator.permissions.query({ name: "accelerometer" as PermissionName }),
+        ]);
+      }
+
+      if (!("DeviceOrientationEvent" in window)) {
+        setSensorState("unavailable");
+        return;
+      }
+
+      const OrientationCtor = window.DeviceOrientationEvent as DeviceOrientationStaticWithPerm;
+      if (typeof OrientationCtor.requestPermission === "function") {
+        // Attempt immediate request on page open; iOS requires gesture if this rejects
+        try {
+          const result = await OrientationCtor.requestPermission();
+          if (!active) return;
+          if (result === "granted") {
+            removeWebFallback = attachWebOrientationListeners();
+            return;
+          }
+          setSensorState("needs-permission");
+        } catch {
+          if (active) setSensorState("needs-permission");
+        }
+        return;
+      }
+
+      removeWebFallback = attachWebOrientationListeners();
+    };
+
+    void initCompass();
+
+    return () => {
+      active = false;
+      if (stopNative) void stopNative();
+      if (removeWebFallback) removeWebFallback();
+      if (webListenersCleanupRef.current) {
+        webListenersCleanupRef.current();
+        webListenersCleanupRef.current = null;
+      }
+    };
+  }, [applyHeadingSample, attachWebOrientationListeners]);
+
+  // If iOS blocked requestPermission() before user gesture, auto-trigger cleanly on first tap anywhere
+  useEffect(() => {
+    if (sensorState !== "needs-permission") return undefined;
+    const onFirstTap = () => {
+      void handleRequestCompassPermission();
+    };
+    window.addEventListener("pointerdown", onFirstTap, { once: true });
+    return () => window.removeEventListener("pointerdown", onFirstTap);
+  }, [sensorState, handleRequestCompassPermission]);
 
   const handlePresetChange = (presetId: string) => {
     const found = INDONESIA_QIBLA_PRESETS.find((item) => item.id === presetId);
@@ -254,6 +353,7 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
     setCoords({ latitude: found.latitude, longitude: found.longitude });
     setLocationLabel(found.label);
     setLocationSource("preset");
+    setLocationPermissionDenied(false);
     setGpsMessage("");
   };
 
@@ -270,7 +370,6 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
     []
   );
 
-  // Precomputed compass ticks (every 5 degrees, major every 30)
   const compassTicks = useMemo(() => {
     const ticks: Array<{ deg: number; major: boolean; medium: boolean }> = [];
     for (let deg = 0; deg < 360; deg += 5) {
@@ -290,7 +389,7 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
         <button
           type="button"
           onClick={onBackHome}
-          className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-[#dce4df] bg-white px-3.5 text-xs font-semibold text-[#134a35] shadow-xs transition-colors hover:border-[#134a35] hover:bg-[#f4f8f5] dark:border-slate-700 dark:bg-[#111A27] dark:text-[#E2B354] dark:hover:border-[#E2B354]"
+          className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-[var(--theme-border-strong)] bg-[var(--theme-card)] px-3.5 text-xs font-semibold text-[var(--theme-primary)] shadow-xs transition-colors hover:border-[var(--theme-primary)] hover:bg-[var(--theme-tint-bg)]"
         >
           <ArrowLeft className="h-4 w-4 shrink-0" />
           <span>Kembali ke Beranda</span>
@@ -300,46 +399,52 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
           type="button"
           onClick={() => void detectGpsLocation(true)}
           disabled={gpsLoading}
-          className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-[#134a35] px-3.5 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#0e3928] disabled:opacity-60 dark:bg-[#E2B354] dark:text-[#0B111A] dark:hover:bg-[#d1a444]"
+          className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-[var(--theme-primary)] px-3.5 text-xs font-semibold text-[var(--theme-primary-text)] shadow-xs transition-colors hover:bg-[var(--theme-primary-hover)] disabled:opacity-60"
         >
           {gpsLoading ? (
             <RefreshCw className="h-4 w-4 shrink-0 animate-spin" />
           ) : (
             <LocateFixed className="h-4 w-4 shrink-0" />
           )}
-          <span>{gpsLoading ? "Mendeteksi GPS…" : "Deteksi Lokasi GPS"}</span>
+          <span>
+            {gpsLoading
+              ? "Mendeteksi GPS…"
+              : locationPermissionDenied
+                ? "Izinkan & Deteksi GPS"
+                : "Deteksi Lokasi GPS"}
+          </span>
         </button>
       </div>
 
       {/* Hero Header Card */}
-      <section className="rounded-3xl border border-[#dce4df] bg-white p-4 shadow-xs sm:p-6 dark:border-slate-800 dark:bg-[#111A27]">
+      <section className="rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-4 shadow-xs sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#cde2d7] bg-[#ebf5ef] text-[#134a35] dark:border-[#1f4235] dark:bg-[#142b23] dark:text-[#74d6ab]">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--theme-tint-border)] bg-[var(--theme-tint-bg)] text-[var(--theme-tint-text)]">
               <Compass className="h-5 w-5" />
             </span>
             <div>
-              <p className="text-[11px] font-semibold tracking-wider text-[#9c7d3c] uppercase dark:text-[#E2B354]">
+              <p className="text-[11px] font-semibold tracking-wider text-[var(--theme-accent)] uppercase">
                 Ibadah Sehari-hari · Penunjuk Kiblat
               </p>
-              <h1 className="font-display mt-0.5 text-xl font-semibold text-[#103d2c] sm:text-2xl dark:text-white">
+              <h1 className="font-display mt-0.5 text-xl font-semibold text-[var(--theme-heading)] sm:text-2xl">
                 Arah Kiblat Ka’bah
               </h1>
-              <p className="mt-1 text-xs leading-relaxed text-[#5e6a62] dark:text-slate-300">
-                Menghitung sudut azimuth lingkaran besar menuju Masjidil Haram Makkah serta
-                menggunakan kompas perangkat secara langsung bila tersedia.
+              <p className="mt-1 text-xs leading-relaxed text-[var(--theme-muted)]">
+                Menghitung sudut azimuth lingkaran besar menuju Masjidil Haram Makkah dengan izin
+                lokasi GPS &amp; sensor kompas langsung.
               </p>
             </div>
           </div>
 
-          <div className="shrink-0 rounded-2xl border border-[#e2e8e4] bg-[#f7faf8] px-3.5 py-2.5 dark:border-slate-800 dark:bg-[#0D1520]">
-            <p className="text-[10px] font-semibold tracking-wider text-[#6d7971] uppercase dark:text-slate-400">
+          <div className="shrink-0 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card-alt)] px-3.5 py-2.5">
+            <p className="text-[10px] font-semibold tracking-wider text-[var(--theme-muted)] uppercase">
               Lokasi Acuan
             </p>
-            <p className="mt-0.5 text-xs font-semibold text-[#103d2c] dark:text-white">
+            <p className="mt-0.5 text-xs font-semibold text-[var(--theme-heading)]">
               {locationLabel}
             </p>
-            <p className="font-mono-tabular mt-0.5 text-[11px] text-[#5e6a62] dark:text-slate-400">
+            <p className="font-mono-tabular mt-0.5 text-[11px] text-[var(--theme-muted)]">
               {coords.latitude.toFixed(4)}°, {coords.longitude.toFixed(4)}°
               {locationSource === "gps" ? " · GPS" : " · Kota"}
             </p>
@@ -347,9 +452,19 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
         </div>
 
         {gpsMessage && (
-          <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200">
-            {gpsMessage}
-          </p>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200">
+            <span>{gpsMessage}</span>
+            {locationPermissionDenied && (
+              <button
+                type="button"
+                onClick={() => void detectGpsLocation(true)}
+                className="inline-flex min-h-[34px] shrink-0 items-center gap-1.5 rounded-lg bg-[var(--theme-primary)] px-3 text-[11px] font-semibold text-[var(--theme-primary-text)]"
+              >
+                <ShieldCheck className="h-3.5 w-3.5" />
+                <span>Minta Izin Lokasi</span>
+              </button>
+            )}
+          </div>
         )}
 
         {/* Compass Dial & Guidance Section */}
@@ -357,25 +472,23 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
           {/* Interactive SVG Compass */}
           <div className="flex flex-col items-center justify-center lg:col-span-6">
             <div className="relative flex w-full max-w-[300px] flex-col items-center sm:max-w-[320px]">
-              {/* Top fixed lubber indicator representing the top edge of the phone */}
               <div className="mb-1.5 flex flex-col items-center" aria-hidden="true">
-                <span className="text-[10px] font-bold tracking-wider text-[#9c7d3c] uppercase dark:text-[#E2B354]">
+                <span className="text-[10px] font-bold tracking-wider text-[var(--theme-accent)] uppercase">
                   {sensorState === "active" ? "Arah Depan Ponsel" : "Utara Peta (0°)"}
                 </span>
                 <svg width="16" height="10" viewBox="0 0 16 10" className="mt-0.5">
                   <path
                     d="M8 10L1 1H15L8 10Z"
-                    fill={isAligned ? "#16a34a" : "#C5932C"}
+                    fill={isAligned ? "#16a34a" : "var(--theme-accent, #C5932C)"}
                   />
                 </svg>
               </div>
 
-              {/* Compass Dial SVG */}
               <div
                 className={`relative aspect-square w-full rounded-full p-2 transition-shadow duration-300 ${
                   isAligned
                     ? "ring-4 ring-emerald-500/35 dark:ring-emerald-400/35"
-                    : "ring-1 ring-[#dce4df] dark:ring-slate-700"
+                    : "ring-1 ring-[var(--theme-border-strong)]"
                 }`}
               >
                 <svg
@@ -391,7 +504,6 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
                     </radialGradient>
                   </defs>
 
-                  {/* Base dial circle */}
                   <circle
                     cx="160"
                     cy="160"
@@ -410,7 +522,6 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
                     strokeDasharray="3 4"
                   />
 
-                  {/* Subtle center alignment crosshair */}
                   <circle
                     cx="160"
                     cy="160"
@@ -420,7 +531,6 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
                     strokeWidth="1"
                   />
 
-                  {/* Rotating Compass Rose + Fixed Qibla Vector on the Rose */}
                   <g
                     style={{
                       transform: `rotate(${sensorState === "active" ? dialRotation : 0}deg)`,
@@ -431,7 +541,6 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
                           : "transform 300ms ease-out",
                     }}
                   >
-                    {/* Degree ticks */}
                     {compassTicks.map((t) => {
                       const innerR = t.major ? 136 : t.medium ? 140 : 144;
                       const outerR = 150;
@@ -460,15 +569,7 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
                       );
                     })}
 
-                    {/* Cardinal labels */}
-                    <text
-                      x="160"
-                      y="38"
-                      textAnchor="middle"
-                      fontSize="14"
-                      fontWeight="700"
-                      fill="#dc2626"
-                    >
+                    <text x="160" y="38" textAnchor="middle" fontSize="14" fontWeight="700" fill="#dc2626">
                       U
                     </text>
                     <text
@@ -502,56 +603,25 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
                       B
                     </text>
 
-                    {/* Intercardinal hints */}
-                    <text
-                      x="244"
-                      y="79"
-                      textAnchor="middle"
-                      fontSize="9.5"
-                      fontWeight="600"
-                      fill="var(--tashrif-muted, #6a766e)"
-                    >
+                    <text x="244" y="79" textAnchor="middle" fontSize="9.5" fontWeight="600" fill="var(--tashrif-muted, #6a766e)">
                       TL
                     </text>
-                    <text
-                      x="244"
-                      y="249"
-                      textAnchor="middle"
-                      fontSize="9.5"
-                      fontWeight="600"
-                      fill="var(--tashrif-muted, #6a766e)"
-                    >
+                    <text x="244" y="249" textAnchor="middle" fontSize="9.5" fontWeight="600" fill="var(--tashrif-muted, #6a766e)">
                       TG
                     </text>
-                    <text
-                      x="76"
-                      y="249"
-                      textAnchor="middle"
-                      fontSize="9.5"
-                      fontWeight="600"
-                      fill="var(--tashrif-muted, #6a766e)"
-                    >
+                    <text x="76" y="249" textAnchor="middle" fontSize="9.5" fontWeight="600" fill="var(--tashrif-muted, #6a766e)">
                       BD
                     </text>
-                    <text
-                      x="76"
-                      y="79"
-                      textAnchor="middle"
-                      fontSize="9.5"
-                      fontWeight="600"
-                      fill="var(--tashrif-muted, #6a766e)"
-                    >
+                    <text x="76" y="79" textAnchor="middle" fontSize="9.5" fontWeight="600" fill="var(--tashrif-muted, #6a766e)">
                       BL
                     </text>
 
-                    {/* Qibla Bearing Vector & Stylized Ka'bah Emblem */}
                     <g
                       style={{
                         transform: `rotate(${qiblaBearing}deg)`,
                         transformOrigin: "160px 160px",
                       }}
                     >
-                      {/* Tail counterweight */}
                       <line
                         x1="160"
                         y1="160"
@@ -562,25 +632,19 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
                         strokeLinecap="round"
                         strokeOpacity="0.45"
                       />
-
-                      {/* Active golden/emerald Qibla pointer shaft */}
                       <line
                         x1="160"
                         y1="160"
                         x2="160"
                         y2="68"
-                        stroke={isAligned ? "#16a34a" : "#C5932C"}
+                        stroke={isAligned ? "#16a34a" : "var(--theme-accent, #C5932C)"}
                         strokeWidth="4"
                         strokeLinecap="round"
                       />
-
-                      {/* Arrow head */}
                       <polygon
                         points="160,46 150,68 170,68"
-                        fill={isAligned ? "#16a34a" : "#C5932C"}
+                        fill={isAligned ? "#16a34a" : "var(--theme-accent, #C5932C)"}
                       />
-
-                      {/* Ka'bah emblem badge along Qibla vector */}
                       <g transform="translate(148, 86)">
                         <rect
                           x="0"
@@ -589,24 +653,21 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
                           height="24"
                           rx="5"
                           fill="#111827"
-                          stroke="#E2B354"
+                          stroke="var(--theme-accent, #E2B354)"
                           strokeWidth="1.75"
                         />
-                        {/* Kiswah gold band */}
-                        <rect x="2" y="6.5" width="20" height="3" fill="#E2B354" />
-                        {/* Door detail */}
-                        <rect x="10" y="13.5" width="4" height="7" rx="0.7" fill="#E2B354" />
+                        <rect x="2" y="6.5" width="20" height="3" fill="var(--theme-accent, #E2B354)" />
+                        <rect x="10" y="13.5" width="4" height="7" rx="0.7" fill="var(--theme-accent, #E2B354)" />
                       </g>
                     </g>
                   </g>
 
-                  {/* Center Pivot */}
                   <circle
                     cx="160"
                     cy="160"
                     r="8"
-                    fill={isAligned ? "#16a34a" : "#134a35"}
-                    stroke="#E2B354"
+                    fill={isAligned ? "#16a34a" : "var(--theme-primary, #134a35)"}
+                    stroke="var(--theme-accent, #E2B354)"
                     strokeWidth="2.5"
                   />
                 </svg>
@@ -616,22 +677,21 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
 
           {/* Right Column: Live Guidance + Key Measurements */}
           <div className="space-y-3.5 lg:col-span-6">
-            {/* Accessible Direction Status Banner */}
             {sensorState === "active" && angleDelta !== null ? (
               <div
                 role="status"
                 className={`flex items-start gap-3 rounded-2xl border p-3.5 ${
                   isAligned
                     ? "border-emerald-300 bg-emerald-50 text-emerald-950 dark:border-emerald-700/70 dark:bg-emerald-950/50 dark:text-emerald-100"
-                    : "border-[#e6d7b3] bg-[#fdf9ee] text-[#5e4412] dark:border-amber-800/60 dark:bg-amber-950/35 dark:text-amber-100"
+                    : "border-[var(--theme-tint-border)] bg-[var(--theme-tint-bg)] text-[var(--theme-heading)]"
                 }`}
               >
                 {isAligned ? (
                   <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
                 ) : angleDelta > 0 ? (
-                  <RotateCw className="mt-0.5 h-5 w-5 shrink-0 text-[#9c7d3c] dark:text-[#E2B354]" />
+                  <RotateCw className="mt-0.5 h-5 w-5 shrink-0 text-[var(--theme-accent)]" />
                 ) : (
-                  <RotateCcw className="mt-0.5 h-5 w-5 shrink-0 text-[#9c7d3c] dark:text-[#E2B354]" />
+                  <RotateCcw className="mt-0.5 h-5 w-5 shrink-0 text-[var(--theme-accent)]" />
                 )}
                 <div>
                   <p className="text-sm font-semibold">
@@ -651,33 +711,33 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
                 </div>
               </div>
             ) : sensorState === "needs-permission" ? (
-              <div className="rounded-2xl border border-[#e6d7b3] bg-[#fdf9ee] p-3.5 dark:border-amber-800/60 dark:bg-amber-950/35">
-                <p className="text-xs font-semibold text-[#5e4412] dark:text-amber-100">
+              <div className="rounded-2xl border border-[var(--theme-tint-border)] bg-[var(--theme-tint-bg)] p-3.5">
+                <p className="text-xs font-semibold text-[var(--theme-heading)]">
                   Izin sensor kompas diperlukan
                 </p>
-                <p className="mt-1 text-xs leading-relaxed text-[#71551c] dark:text-amber-200/90">
-                  Perangkat iOS/Safari memerlukan konfirmasi untuk mengakses sensor orientasi kompas
-                  secara langsung.
+                <p className="mt-1 text-xs leading-relaxed text-[var(--theme-muted)]">
+                  Ketuk tombol di bawah untuk mengizinkan akses sensor kompas secara langsung di
+                  perangkat ini.
                 </p>
                 <button
                   type="button"
-                  onClick={handleRequestCompassPermission}
-                  className="mt-2.5 inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-[#134a35] px-4 text-xs font-semibold text-white dark:bg-[#E2B354] dark:text-[#0B111A]"
+                  onClick={() => void handleRequestCompassPermission()}
+                  className="mt-2.5 inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-[var(--theme-primary)] px-4 text-xs font-semibold text-[var(--theme-primary-text)] hover:bg-[var(--theme-primary-hover)]"
                 >
                   <Compass className="h-4 w-4" />
-                  <span>Aktifkan Kompas Langsung</span>
+                  <span>Izinkan &amp; Aktifkan Kompas</span>
                 </button>
               </div>
             ) : (
-              <div className="flex items-start gap-3 rounded-2xl border border-[#dce4df] bg-[#f7faf8] p-3.5 dark:border-slate-800 dark:bg-[#0D1520]">
-                <Navigation className="mt-0.5 h-5 w-5 shrink-0 text-[#134a35] dark:text-[#E2B354]" />
+              <div className="flex items-start gap-3 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card-alt)] p-3.5">
+                <Navigation className="mt-0.5 h-5 w-5 shrink-0 text-[var(--theme-primary)]" />
                 <div>
-                  <p className="text-sm font-semibold text-[#103d2c] dark:text-white">
+                  <p className="text-sm font-semibold text-[var(--theme-heading)]">
                     Mode Peta Utara-Atas ({qiblaBearing.toFixed(1)}° {cardinal.label})
                   </p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-[#5e6a62] dark:text-slate-300">
-                    Sensor magnetometer tidak terdeteksi pada perangkat ini. Gunakan sudut{" "}
-                    <strong className="font-mono-tabular text-[#103d2c] dark:text-white">
+                  <p className="mt-0.5 text-xs leading-relaxed text-[var(--theme-muted)]">
+                    Sensor magnetometer tidak aktif pada perangkat/browser ini. Gunakan sudut{" "}
+                    <strong className="font-mono-tabular text-[var(--theme-heading)]">
                       {qiblaBearing.toFixed(1)}°
                     </strong>{" "}
                     dari arah Utara sejati sebagai patokan.
@@ -686,49 +746,47 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
               </div>
             )}
 
-            {/* Key Quantitative Readouts */}
             <div className="grid grid-cols-2 gap-2.5">
-              <div className="rounded-2xl border border-[#e2e8e4] bg-[#f8fbf9] p-3.5 dark:border-slate-800 dark:bg-[#0D1520]">
-                <p className="text-[11px] font-semibold text-[#6d7971] dark:text-slate-400">
+              <div className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card-alt)] p-3.5">
+                <p className="text-[11px] font-semibold text-[var(--theme-muted)]">
                   Sudut Azimuth Kiblat
                 </p>
-                <p className="font-mono-tabular mt-1 text-xl font-bold text-[#103d2c] sm:text-2xl dark:text-white">
+                <p className="font-mono-tabular mt-1 text-xl font-bold text-[var(--theme-heading)] sm:text-2xl">
                   {qiblaBearing.toFixed(1)}°
                 </p>
-                <p className="mt-0.5 text-xs font-medium text-[#134a35] dark:text-[#E2B354]">
+                <p className="mt-0.5 text-xs font-medium text-[var(--theme-primary)]">
                   {cardinal.label} ({cardinal.short}) dari Utara
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-[#e2e8e4] bg-[#f8fbf9] p-3.5 dark:border-slate-800 dark:bg-[#0D1520]">
-                <p className="text-[11px] font-semibold text-[#6d7971] dark:text-slate-400">
+              <div className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card-alt)] p-3.5">
+                <p className="text-[11px] font-semibold text-[var(--theme-muted)]">
                   Jarak ke Ka’bah
                 </p>
-                <p className="font-mono-tabular mt-1 text-xl font-bold text-[#103d2c] sm:text-2xl dark:text-white">
+                <p className="font-mono-tabular mt-1 text-xl font-bold text-[var(--theme-heading)] sm:text-2xl">
                   {Math.round(distanceKm).toLocaleString("id-ID")} km
                 </p>
-                <p className="mt-0.5 text-xs text-[#5e6a62] dark:text-slate-300">
+                <p className="mt-0.5 text-xs text-[var(--theme-muted)]">
                   Masjidil Haram, Makkah
                 </p>
               </div>
             </div>
 
             {deviceHeading !== null && (
-              <div className="flex items-center justify-between rounded-2xl border border-[#e2e8e4] bg-white px-3.5 py-2.5 dark:border-slate-800 dark:bg-[#0D1520]">
-                <span className="text-xs font-medium text-[#5e6a62] dark:text-slate-300">
+              <div className="flex items-center justify-between rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] px-3.5 py-2.5">
+                <span className="text-xs font-medium text-[var(--theme-muted)]">
                   Arah hadap perangkat saat ini
                 </span>
-                <span className="font-mono-tabular text-sm font-bold text-[#103d2c] dark:text-[#E2B354]">
+                <span className="font-mono-tabular text-sm font-bold text-[var(--theme-primary)]">
                   {Math.round(deviceHeading)}° ({getCardinalDirectionId(deviceHeading).short})
                 </span>
               </div>
             )}
 
-            {/* City Fallback Selector */}
-            <div className="rounded-2xl border border-[#e2e8e4] bg-white p-3.5 dark:border-slate-800 dark:bg-[#0D1520]">
+            <div className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-3.5">
               <label
                 htmlFor="qibla-city-preset"
-                className="mb-1.5 block text-xs font-semibold text-[#103d2c] dark:text-white"
+                className="mb-1.5 block text-xs font-semibold text-[var(--theme-heading)]"
               >
                 Pilih Kota Acuan Manual (bila tanpa GPS)
               </label>
@@ -742,11 +800,10 @@ export const QiblaView: React.FC<QiblaViewProps> = ({ onBackHome }) => {
               />
             </div>
 
-            {/* Calibration Tips */}
-            <div className="flex items-start gap-2.5 rounded-2xl border border-[#e8eeea] bg-[#f8fbf9] p-3 text-xs text-[#5e6a62] dark:border-slate-800 dark:bg-[#0D1520] dark:text-slate-300">
-              <Smartphone className="mt-0.5 h-4 w-4 shrink-0 text-[#134a35] dark:text-[#E2B354]" />
+            <div className="flex items-start gap-2.5 rounded-2xl border border-[var(--theme-border-soft)] bg-[var(--theme-card-alt)] p-3 text-xs text-[var(--theme-muted)]">
+              <Smartphone className="mt-0.5 h-4 w-4 shrink-0 text-[var(--theme-primary)]" />
               <p className="leading-relaxed">
-                <strong className="font-semibold text-[#103d2c] dark:text-white">
+                <strong className="font-semibold text-[var(--theme-heading)]">
                   Tips kalibrasi:
                 </strong>{" "}
                 Letakkan ponsel datar sejajar lantai, jauhkan dari magnet casing atau benda logam,

@@ -765,7 +765,7 @@ export const LocalKitabView: React.FC<LocalKitabViewProps> = ({
                           background: "transparent",
                           border: "none",
                         }}
-                        className="block w-full cursor-pointer px-3.5 py-3 transition-colors hover:bg-emerald-900/5 dark:hover:bg-amber-400/5"
+                        className="block w-full cursor-pointer px-3.5 py-3 transition-colors hover:bg-[var(--tashrif-dropdown-hover)]"
                       >
                         <ArabicTextBlock value={item.arabic} badge={pointNo} />
                       </button>
@@ -811,7 +811,7 @@ export const LocalKitabView: React.FC<LocalKitabViewProps> = ({
                     background: "transparent",
                     border: "none",
                   }}
-                  className="block w-full cursor-pointer space-y-2.5 px-3.5 py-3 transition-colors hover:bg-emerald-900/5 dark:hover:bg-amber-400/5"
+                  className="block w-full cursor-pointer space-y-2.5 px-3.5 py-3 transition-colors hover:bg-[var(--tashrif-dropdown-hover)]"
                 >
                   {structuredParts.before.map((block, bIdx) => (
                     <StructuredBlockRenderer key={bIdx} block={block} />
@@ -850,7 +850,7 @@ export const LocalKitabView: React.FC<LocalKitabViewProps> = ({
                       background: "transparent",
                       border: "none",
                     }}
-                    className="block w-full cursor-pointer space-y-3 px-3.5 py-3.5 transition-colors hover:bg-emerald-900/5 dark:hover:bg-amber-400/5"
+                    className="block w-full cursor-pointer space-y-3 px-3.5 py-3.5 transition-colors hover:bg-[var(--tashrif-dropdown-hover)]"
                   >
                     {arabicParagraphs.map((para, pIdx) => (
                       <ArabicTextBlock

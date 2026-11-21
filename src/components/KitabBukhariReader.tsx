@@ -238,7 +238,7 @@ export const KitabBukhariReader: React.FC<KitabBukhariReaderProps> = ({
                       background: "transparent",
                       border: "none",
                     }}
-                    className="block w-full cursor-pointer px-3.5 py-3 transition-colors hover:bg-emerald-900/5 dark:hover:bg-amber-400/5"
+                    className="block w-full cursor-pointer px-3.5 py-3 transition-colors hover:bg-[var(--tashrif-dropdown-hover)]"
                   >
                     <p
                       dir="rtl"

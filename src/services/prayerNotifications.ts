@@ -2,10 +2,13 @@ import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import type { DailyPrayerSchedule, PrayerLocation } from "../types/emoeslife";
 import { PRAYERS } from "../utils/prayerEngine";
+import { playNotificationSound } from "./notificationAudio";
 
 export const PRAYER_NOTIF_STORAGE_KEY = "em-prayer-notif-enabled-v1";
 const PRAYER_NOTIF_LAST_FIRED_KEY = "em-prayer-notif-last-fired-v1";
-const PRAYER_CHANNEL_ID = "jadwal-shalat";
+const LEGACY_PRAYER_CHANNEL_ID = "jadwal-shalat";
+const PRAYER_CHANNEL_ID = "jadwal-shalat-v2";
+const PRAYER_SOUND_RES = "notif_shalat.wav";
 const PRAYER_ID_MIN = 510000;
 const PRAYER_ID_MAX = 510199;
 
@@ -57,13 +60,14 @@ function parseScheduleDate(
 async function ensureChannel(): Promise<void> {
   if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "android") return;
   try {
+    await LocalNotifications.deleteChannel({ id: LEGACY_PRAYER_CHANNEL_ID }).catch(() => undefined);
     await LocalNotifications.createChannel({
       id: PRAYER_CHANNEL_ID,
       name: "Pengingat Waktu Shalat",
-      description: "Notifikasi otomatis saat memasuki waktu shalat fardhu",
+      description: "Notifikasi bersuara otomatis saat memasuki waktu shalat fardhu",
       importance: 4,
       visibility: 1,
-      sound: "default",
+      sound: PRAYER_SOUND_RES,
       vibration: true,
     });
   } catch {
@@ -168,6 +172,7 @@ export async function syncPrayerNotifications(
       title: string;
       body: string;
       channelId: string;
+      sound: string;
       schedule: { at: Date; allowWhileIdle: boolean };
     }> = [];
 
@@ -194,6 +199,7 @@ export async function syncPrayerNotifications(
             title: `Masuk Waktu ${prayer.label}`,
             body: `Pukul ${hhmm} ${location.zone} · Wilayah ${location.label}. Mari tunaikan shalat ${prayer.label}.`,
             channelId: PRAYER_CHANNEL_ID,
+            sound: PRAYER_SOUND_RES,
             schedule: {
               at: fireAt,
               allowWhileIdle: true,
@@ -247,6 +253,8 @@ export function triggerWebPrayerNotificationIfDue(
     const title = `Masuk Waktu ${prayer.label}`;
     const body = `Pukul ${prayerTime} ${location.zone} · Wilayah ${location.label}. Mari tunaikan shalat ${prayer.label}.`;
 
+    playNotificationSound("prayer");
+
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.ready
         .then((reg) =>
@@ -255,13 +263,24 @@ export function triggerWebPrayerNotificationIfDue(
             icon: "/assets/app-icon/icon.png",
             badge: "/assets/app-icon/icon.png",
             tag: fireKey,
+            silent: false,
           })
         )
         .catch(() => {
-          new Notification(title, { body, icon: "/assets/app-icon/icon.png", tag: fireKey });
+          new Notification(title, {
+            body,
+            icon: "/assets/app-icon/icon.png",
+            tag: fireKey,
+            silent: false,
+          });
         });
     } else {
-      new Notification(title, { body, icon: "/assets/app-icon/icon.png", tag: fireKey });
+      new Notification(title, {
+        body,
+        icon: "/assets/app-icon/icon.png",
+        tag: fireKey,
+        silent: false,
+      });
     }
     return;
   }

@@ -328,8 +328,13 @@ const MapWorkspace: React.FC<MapWorkspaceProps> = ({
     map.panTo(selectedPlace.location);
   }, [map, selectedPlace]);
 
+  const rootStyle =
+    typeof window !== "undefined" ? getComputedStyle(document.documentElement) : null;
+  const themePrimaryHex = rootStyle?.getPropertyValue("--theme-primary").trim() || "#134a35";
+  const themeAccentHex = rootStyle?.getPropertyValue("--theme-accent").trim() || "#9c7d3c";
+
   return (
-    <div className="relative h-[340px] w-full overflow-hidden rounded-2xl border border-[#dce4df] bg-[#eef4f0] shadow-xs sm:h-[420px] dark:border-slate-800 dark:bg-[#0F1722]">
+    <div className="relative h-[340px] w-full overflow-hidden rounded-2xl border border-[var(--theme-border-strong)] bg-[var(--theme-card-alt)] shadow-xs sm:h-[420px]">
       <GoogleMap
         mapId="DEMO_MAP_ID"
         internalUsageAttributionIds={["gmp_mcp_codeassist_v1_aistudio"]}
@@ -352,7 +357,7 @@ const MapWorkspace: React.FC<MapWorkspaceProps> = ({
 
         {results.map((item) => {
           const isSelected = item.id === selectedId;
-          const pinColor = item.kind === "mushala" ? "#9c7d3c" : "#134a35";
+          const pinColor = item.kind === "mushala" ? themeAccentHex : themePrimaryHex;
           return (
             <AdvancedMarker
               key={item.id}
@@ -393,7 +398,7 @@ const MapWorkspace: React.FC<MapWorkspaceProps> = ({
                   href={selectedPlace.mapsUri}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-2 inline-flex items-center gap-1 rounded-lg bg-[#134a35] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[#0e3928]"
+                  className="mt-2 inline-flex items-center gap-1 rounded-lg bg-[var(--theme-primary)] px-2.5 py-1 text-[11px] font-semibold text-[var(--theme-primary-text)] hover:bg-[var(--theme-primary-hover)]"
                 >
                   <Navigation className="h-3 w-3" />
                   <span>Petunjuk Arah</span>
@@ -413,9 +418,9 @@ const MapWorkspace: React.FC<MapWorkspaceProps> = ({
               onCenterChange({ lat: c.lat(), lng: c.lng() });
             }
           }}
-          className="absolute bottom-3 left-1/2 z-10 inline-flex min-h-[36px] -translate-x-1/2 items-center gap-1.5 rounded-full border border-[#dce4df] bg-white/95 px-3.5 text-xs font-semibold text-[#103d2c] shadow-md backdrop-blur-xs transition-colors hover:bg-[#f2f6f4] dark:border-slate-700 dark:bg-[#111A27]/95 dark:text-white"
+          className="absolute bottom-3 left-1/2 z-10 inline-flex min-h-[36px] -translate-x-1/2 items-center gap-1.5 rounded-full border border-[var(--theme-border-strong)] bg-[var(--theme-card)]/95 px-3.5 text-xs font-semibold text-[var(--theme-heading)] shadow-md backdrop-blur-xs transition-colors hover:bg-[var(--theme-card-alt)]"
         >
-          <RefreshCw className="h-3.5 w-3.5 text-[#134a35] dark:text-[#E2B354]" />
+          <RefreshCw className="h-3.5 w-3.5 text-[var(--theme-primary)]" />
           <span>Cari di area peta ini</span>
         </button>
       )}
@@ -556,17 +561,17 @@ export const NearbyMosquesView: React.FC<NearbyMosquesViewProps> = ({ onBackHome
   return (
     <div className="mx-auto max-w-6xl space-y-5 px-4 pt-4 sm:px-6">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e2e8e4] pb-4 dark:border-slate-800">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--theme-border)] pb-4">
         <div>
-          <p className="text-[11px] font-semibold tracking-wider text-[#9c7d3c] uppercase dark:text-[#E2B354]">
+          <p className="text-[11px] font-semibold tracking-wider text-[var(--theme-accent)] uppercase">
             Pencari Lokasi Ibadah
           </p>
-          <h1 className="font-display mt-0.5 text-xl font-semibold text-[#103d2c] sm:text-2xl dark:text-white">
+          <h1 className="font-display mt-0.5 text-xl font-semibold text-[var(--theme-heading)] sm:text-2xl">
             Masjid &amp; Mushala Terdekat
           </h1>
-          <p className="mt-0.5 text-xs text-[#5e6a62] dark:text-slate-300">
+          <p className="mt-0.5 text-xs text-[var(--theme-muted)]">
             Titik pusat:{" "}
-            <strong className="text-[#103d2c] dark:text-white">
+            <strong className="text-[var(--theme-heading)]">
               {locationLabel ||
                 (geoLoading ? "Mendeteksi lokasi GPS…" : "Menunggu izin lokasi atau pencarian wilayah")}
             </strong>
@@ -576,7 +581,7 @@ export const NearbyMosquesView: React.FC<NearbyMosquesViewProps> = ({ onBackHome
         <button
           type="button"
           onClick={onBackHome}
-          className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-[#dce4df] bg-white px-3 text-xs font-semibold text-[#174231] hover:bg-[#f2f6f4] dark:border-slate-700 dark:bg-[#111A27] dark:text-slate-200 dark:hover:bg-[#162233]"
+          className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-[var(--theme-border-strong)] bg-[var(--theme-card)] px-3 text-xs font-semibold text-[var(--theme-nav-muted)] hover:bg-[var(--theme-card-alt)]"
         >
           <ArrowLeft className="h-4 w-4" />
           <span>Beranda</span>
@@ -584,23 +589,23 @@ export const NearbyMosquesView: React.FC<NearbyMosquesViewProps> = ({ onBackHome
       </div>
 
       {/* Location Consent + Filter Controls */}
-      <div className="space-y-3 rounded-2xl border border-[#e2e8e4] bg-white p-3.5 shadow-xs sm:p-4 dark:border-slate-800 dark:bg-[#111A27]">
+      <div className="space-y-3 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-3.5 shadow-xs sm:p-4">
         <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between">
           <form onSubmit={handleSearchSubmit} className="flex flex-1 gap-2">
             <label className="relative flex min-h-[40px] flex-1 items-center">
-              <Search className="pointer-events-none absolute left-3 h-4 w-4 text-[#7c745f] dark:text-slate-400" />
+              <Search className="pointer-events-none absolute left-3 h-4 w-4 text-[var(--theme-muted)]" />
               <input
                 type="search"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Cari masjid, mushala, atau nama kota/kecamatan…"
                 aria-label="Cari masjid, mushala, atau wilayah"
-                className="min-h-[40px] w-full rounded-xl border border-[#dce4df] bg-white pr-3 pl-9 text-xs text-[#1d2c24] outline-none focus:border-[#134a35] sm:text-sm dark:border-slate-700 dark:bg-[#162131] dark:text-slate-100 dark:focus:border-[#E2B354]"
+                className="min-h-[40px] w-full rounded-xl border border-[var(--theme-border-strong)] bg-[var(--theme-card-alt)] pr-3 pl-9 text-xs text-[var(--theme-ink)] outline-none focus:border-[var(--theme-primary)] focus:bg-[var(--theme-card)] sm:text-sm"
               />
             </label>
             <button
               type="submit"
-              className="min-h-[40px] shrink-0 rounded-xl bg-[#134a35] px-4 text-xs font-semibold text-white hover:bg-[#0e3928] dark:bg-[#E2B354] dark:text-[#0B111A]"
+              className="min-h-[40px] shrink-0 rounded-xl bg-[var(--theme-primary)] px-4 text-xs font-semibold text-[var(--theme-primary-text)] hover:bg-[var(--theme-primary-hover)]"
             >
               Cari
             </button>
@@ -610,7 +615,7 @@ export const NearbyMosquesView: React.FC<NearbyMosquesViewProps> = ({ onBackHome
             type="button"
             onClick={requestUserLocation}
             disabled={geoLoading}
-            className="inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-xl border border-[#134a35] bg-[#ebf5ef] px-3.5 text-xs font-semibold text-[#134a35] transition-colors hover:bg-[#dceee3] disabled:opacity-60 dark:border-[#E2B354] dark:bg-[#1D2B3E] dark:text-[#E2B354]"
+            className="inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-xl border border-[var(--theme-tint-border)] bg-[var(--theme-tint-bg)] px-3.5 text-xs font-semibold text-[var(--theme-tint-text)] transition-colors hover:bg-[var(--theme-tint-hover)] disabled:opacity-60"
           >
             {geoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Compass className="h-4 w-4" />}
             <span>{geoLoading ? "Mendeteksi…" : "Gunakan Lokasi Saya"}</span>
@@ -618,7 +623,7 @@ export const NearbyMosquesView: React.FC<NearbyMosquesViewProps> = ({ onBackHome
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-          <div className="inline-flex rounded-xl border border-[#dce4df] bg-[#f4f7f5] p-0.5 dark:border-slate-700 dark:bg-[#162131]">
+          <div className="inline-flex rounded-xl border border-[var(--theme-border-strong)] bg-[var(--theme-card-alt)] p-0.5">
             {(
               [
                 { id: "all", label: "Semua" },
@@ -632,8 +637,8 @@ export const NearbyMosquesView: React.FC<NearbyMosquesViewProps> = ({ onBackHome
                 onClick={() => setFilter(opt.id)}
                 className={`min-h-[32px] rounded-lg px-3 text-xs font-semibold transition-colors ${
                   filter === opt.id
-                    ? "bg-[#134a35] text-white dark:bg-[#E2B354] dark:text-[#0B111A]"
-                    : "text-[#354c3e] dark:text-slate-300"
+                    ? "bg-[var(--theme-primary)] text-[var(--theme-primary-text)]"
+                    : "text-[var(--theme-nav-muted)]"
                 }`}
               >
                 {opt.label}
@@ -641,7 +646,7 @@ export const NearbyMosquesView: React.FC<NearbyMosquesViewProps> = ({ onBackHome
             ))}
           </div>
 
-          <div className="inline-flex items-center gap-1 rounded-xl border border-[#dce4df] bg-[#f4f7f5] p-0.5 dark:border-slate-700 dark:bg-[#162131]">
+          <div className="inline-flex items-center gap-1 rounded-xl border border-[var(--theme-border-strong)] bg-[var(--theme-card-alt)] p-0.5">
             {[1000, 3000, 5000].map((r) => (
               <button
                 key={r}
@@ -649,8 +654,8 @@ export const NearbyMosquesView: React.FC<NearbyMosquesViewProps> = ({ onBackHome
                 onClick={() => setRadiusMeters(r)}
                 className={`font-mono-tabular min-h-[32px] rounded-lg px-2.5 text-xs font-semibold transition-colors ${
                   radiusMeters === r
-                    ? "bg-[#134a35] text-white dark:bg-[#E2B354] dark:text-[#0B111A]"
-                    : "text-[#354c3e] dark:text-slate-300"
+                    ? "bg-[var(--theme-primary)] text-[var(--theme-primary-text)]"
+                    : "text-[var(--theme-nav-muted)]"
                 }`}
               >
                 {r / 1000} km
@@ -666,19 +671,19 @@ export const NearbyMosquesView: React.FC<NearbyMosquesViewProps> = ({ onBackHome
 
       {/* Main Content */}
       {configLoading ? (
-        <div className="flex min-h-[260px] items-center justify-center rounded-2xl border border-[#e2e8e4] bg-white p-8 dark:border-slate-800 dark:bg-[#111A27]">
-          <div className="flex items-center gap-2 text-sm text-[#5e6a62] dark:text-slate-300">
-            <Loader2 className="h-4 w-4 animate-spin text-[#134a35] dark:text-[#E2B354]" />
+        <div className="flex min-h-[260px] items-center justify-center rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-8">
+          <div className="flex items-center gap-2 text-sm text-[var(--theme-muted)]">
+            <Loader2 className="h-4 w-4 animate-spin text-[var(--theme-primary)]" />
             <span>Menyiapkan peta Google Maps…</span>
           </div>
         </div>
       ) : !apiKey ? (
-        <div className="rounded-2xl border border-[#e2e8e4] bg-white p-6 text-center shadow-xs dark:border-slate-800 dark:bg-[#111A27]">
-          <MapPin className="mx-auto h-9 w-9 text-[#134a35] dark:text-[#E2B354]" />
-          <h2 className="font-display mt-3 text-lg font-semibold text-[#103d2c] dark:text-white">
+        <div className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-6 text-center shadow-xs">
+          <MapPin className="mx-auto h-9 w-9 text-[var(--theme-primary)]" />
+          <h2 className="font-display mt-3 text-lg font-semibold text-[var(--theme-heading)]">
             Buka Pencarian di Google Maps
           </h2>
-          <p className="mx-auto mt-1 max-w-md text-xs text-[#5e6a62] dark:text-slate-300">
+          <p className="mx-auto mt-1 max-w-md text-xs text-[var(--theme-muted)]">
             Peta interaktif memerlukan kunci Google Maps Platform. Anda tetap dapat langsung membuka
             pencarian masjid dan mushala melalui Google Maps.
           </p>
@@ -686,7 +691,7 @@ export const NearbyMosquesView: React.FC<NearbyMosquesViewProps> = ({ onBackHome
             href={externalFallbackUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-4 inline-flex min-h-[42px] items-center gap-2 rounded-xl bg-[#134a35] px-5 text-xs font-semibold text-white hover:bg-[#0e3928] dark:bg-[#E2B354] dark:text-[#0B111A]"
+            className="mt-4 inline-flex min-h-[42px] items-center gap-2 rounded-xl bg-[var(--theme-primary)] px-5 text-xs font-semibold text-[var(--theme-primary-text)] hover:bg-[var(--theme-primary-hover)]"
           >
             <span>Buka di Google Maps</span>
             <ExternalLink className="h-4 w-4" />
@@ -703,35 +708,35 @@ export const NearbyMosquesView: React.FC<NearbyMosquesViewProps> = ({ onBackHome
           )}
 
           {!center ? (
-            <div className="rounded-2xl border border-[#e2e8e4] bg-white p-7 text-center shadow-xs dark:border-slate-800 dark:bg-[#111A27]">
+            <div className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-7 text-center shadow-xs">
               {geoLoading || pendingManualQuery ? (
                 <div className="flex flex-col items-center justify-center gap-2.5 py-6">
-                  <Loader2 className="h-7 w-7 animate-spin text-[#134a35] dark:text-[#E2B354]" />
-                  <p className="text-sm font-medium text-[#103d2c] dark:text-white">
+                  <Loader2 className="h-7 w-7 animate-spin text-[var(--theme-primary)]" />
+                  <p className="text-sm font-medium text-[var(--theme-heading)]">
                     {pendingManualQuery
                       ? `Mencari area "${pendingManualQuery}"…`
                       : "Meminta izin lokasi perangkat Anda…"}
                   </p>
-                  <p className="max-w-md text-xs text-[#5e6a62] dark:text-slate-400">
+                  <p className="max-w-md text-xs text-[var(--theme-muted)]">
                     Izinkan akses lokasi agar kami dapat menampilkan masjid dan mushala terdekat di sekitar Anda.
                   </p>
                 </div>
               ) : (
                 <div className="mx-auto max-w-md py-4">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#ebf5ef] text-[#134a35] dark:bg-[#18283B] dark:text-[#E2B354]">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--theme-tint-bg)] text-[var(--theme-tint-text)]">
                     <MapPin className="h-6 w-6" />
                   </div>
-                  <h2 className="font-display mt-3 text-lg font-semibold text-[#103d2c] dark:text-white">
+                  <h2 className="font-display mt-3 text-lg font-semibold text-[var(--theme-heading)]">
                     {geoStatus === "denied" ? "Izin Lokasi Belum Aktif" : "Tentukan Lokasi Terlebih Dahulu"}
                   </h2>
-                  <p className="mt-1.5 text-xs leading-relaxed text-[#5e6a62] dark:text-slate-300">
+                  <p className="mt-1.5 text-xs leading-relaxed text-[var(--theme-muted)]">
                     Aplikasi tidak menampilkan lokasi default apabila GPS tidak diizinkan. Aktifkan
                     izin lokasi perangkat Anda atau ketik nama kota/kecamatan pada kolom pencarian di atas.
                   </p>
                   <button
                     type="button"
                     onClick={requestUserLocation}
-                    className="mt-4 inline-flex min-h-[42px] items-center gap-2 rounded-xl bg-[#134a35] px-5 text-xs font-semibold text-white hover:bg-[#0e3928] dark:bg-[#E2B354] dark:text-[#0B111A]"
+                    className="mt-4 inline-flex min-h-[42px] items-center gap-2 rounded-xl bg-[var(--theme-primary)] px-5 text-xs font-semibold text-[var(--theme-primary-text)] hover:bg-[var(--theme-primary-hover)]"
                   >
                     <Compass className="h-4 w-4" />
                     <span>Minta Izin Lokasi (GPS)</span>
@@ -764,14 +769,14 @@ export const NearbyMosquesView: React.FC<NearbyMosquesViewProps> = ({ onBackHome
 
               <section
                 aria-label="Daftar masjid dan mushala terdekat"
-                className="flex max-h-[420px] flex-col rounded-2xl border border-[#e2e8e4] bg-white p-3.5 shadow-xs lg:col-span-5 dark:border-slate-800 dark:bg-[#111A27]"
+                className="flex max-h-[420px] flex-col rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-3.5 shadow-xs lg:col-span-5"
               >
-                <div className="flex items-center justify-between border-b border-[#e8eeea] pb-2.5 dark:border-slate-800">
-                  <h2 className="text-sm font-semibold text-[#103d2c] dark:text-white">
+                <div className="flex items-center justify-between border-b border-[var(--theme-border-soft)] pb-2.5">
+                  <h2 className="text-sm font-semibold text-[var(--theme-heading)]">
                     Daftar Terdekat ({results.length})
                   </h2>
                   {loading && (
-                    <span className="inline-flex items-center gap-1 text-xs text-[#606c64] dark:text-slate-400">
+                    <span className="inline-flex items-center gap-1 text-xs text-[var(--theme-muted)]">
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       Memuat…
                     </span>
@@ -785,14 +790,14 @@ export const NearbyMosquesView: React.FC<NearbyMosquesViewProps> = ({ onBackHome
                       href={externalFallbackUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-[#134a35] px-3.5 py-2 text-xs font-semibold text-white dark:bg-[#E2B354] dark:text-[#0B111A]"
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-[var(--theme-primary)] px-3.5 py-2 text-xs font-semibold text-[var(--theme-primary-text)] hover:bg-[var(--theme-primary-hover)]"
                     >
                       <span>Cari di Google Maps</span>
                       <ExternalLink className="h-3.5 w-3.5" />
                     </a>
                   </div>
                 ) : results.length === 0 && !loading ? (
-                  <p className="py-8 text-center text-xs text-[#606c64] dark:text-slate-400">
+                  <p className="py-8 text-center text-xs text-[var(--theme-muted)]">
                     Belum ada masjid atau mushala yang cocok pada radius {radiusMeters / 1000} km.
                     Coba perluas radius atau geser peta.
                   </p>
@@ -805,8 +810,8 @@ export const NearbyMosquesView: React.FC<NearbyMosquesViewProps> = ({ onBackHome
                           key={item.id}
                           className={`rounded-xl border p-3 transition-colors ${
                             isSelected
-                              ? "border-[#134a35] bg-[#f2f8f4] dark:border-[#E2B354] dark:bg-[#18263A]"
-                              : "border-[#e8eeea] bg-white hover:bg-[#f8fbf9] dark:border-slate-800 dark:bg-[#131D2B] dark:hover:bg-[#172334]"
+                              ? "border-[var(--theme-primary)] bg-[var(--theme-tint-bg)]"
+                              : "border-[var(--theme-border-soft)] bg-[var(--theme-card)] hover:bg-[var(--theme-card-alt)]"
                           }`}
                         >
                           <button
@@ -820,39 +825,39 @@ export const NearbyMosquesView: React.FC<NearbyMosquesViewProps> = ({ onBackHome
                                   <span
                                     className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
                                       item.kind === "mushala"
-                                        ? "bg-[#fbf5e6] text-[#8d6820] dark:bg-[#272011] dark:text-[#E2B354]"
-                                        : "bg-[#ebf5ef] text-[#134a35] dark:bg-[#142b23] dark:text-[#74d6ab]"
+                                        ? "border border-[var(--theme-tint-border)] bg-[var(--theme-card-alt)] text-[var(--theme-accent)]"
+                                        : "bg-[var(--theme-tint-bg)] text-[var(--theme-tint-text)]"
                                     }`}
                                   >
                                     {item.kind === "mushala" ? "Mushala" : "Masjid"}
                                   </span>
                                   {typeof item.rating === "number" && (
-                                    <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-[#7c745f] dark:text-slate-300">
+                                    <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-[var(--theme-muted)]">
                                       <Star className="h-3 w-3 fill-[#e2b354] text-[#e2b354]" />
                                       {item.rating.toFixed(1)}
                                     </span>
                                   )}
                                 </div>
-                                <h3 className="mt-1 text-xs font-semibold text-[#103d2c] sm:text-sm dark:text-white">
+                                <h3 className="mt-1 text-xs font-semibold text-[var(--theme-heading)] sm:text-sm">
                                   {item.name}
                                 </h3>
-                                <p className="mt-0.5 line-clamp-2 text-[11px] text-[#5e6a62] dark:text-slate-400">
+                                <p className="mt-0.5 line-clamp-2 text-[11px] text-[var(--theme-muted)]">
                                   {item.address}
                                 </p>
                               </div>
-                              <span className="font-mono-tabular shrink-0 rounded-lg bg-[#eef4f0] px-2 py-1 text-[11px] font-semibold text-[#134a35] dark:bg-[#1D2B3E] dark:text-[#E2B354]">
+                              <span className="font-mono-tabular shrink-0 rounded-lg bg-[var(--theme-tint-bg)] px-2 py-1 text-[11px] font-semibold text-[var(--theme-tint-text)]">
                                 {formatDistance(item.distanceMeters)}
                               </span>
                             </div>
                           </button>
 
                           {item.mapsUri && (
-                            <div className="mt-2 flex justify-end border-t border-[#e8eeea] pt-2 dark:border-slate-800/80">
+                            <div className="mt-2 flex justify-end border-t border-[var(--theme-border-soft)] pt-2">
                               <a
                                 href={item.mapsUri}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#134a35] hover:underline dark:text-[#E2B354]"
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--theme-primary)] hover:underline"
                               >
                                 <Navigation className="h-3 w-3" />
                                 <span>Petunjuk Arah di Google Maps</span>

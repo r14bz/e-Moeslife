@@ -2,6 +2,7 @@ const STORAGE_KEYS: Record<string, string> = {
   page: "tahlil-page",
   pageLayout: "etahlil-page-layout-v1",
   theme: "etahlil-theme",
+  colorTheme: "e-moeslife:color-theme-v1",
   fontSize: "etahlil-font-size",
   ttsVoice: "etahlil-tts-voice-v1",
   quranLastRead: "e-moeslife:quran-last-v1",

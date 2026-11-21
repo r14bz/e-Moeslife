@@ -166,7 +166,7 @@ export const DownloadView: React.FC<DownloadViewProps> = ({ localBooks, onNaviga
     {
       icon: <HardDriveDownload className="h-5 w-5" />,
       title: `${localBooks.length} Kitab Kuning Lokal`,
-      desc: "Termasuk Sullamut Taufiq, Safinah An-Najah, Fathul Qarib, Ta'lim Muta'allim, Al-Hikam, dan lainnya.",
+      desc: "Termasuk Tijan Daruri, Qathrul Ghaits, Kasyifatus Saja, Fathul Qarib Al-Mujib, Fathul Mu'in, Al-Hikam Al-Atha'iyyah, dan lainnya.",
     },
     {
       icon: <Volume2 className="h-5 w-5" />,
@@ -198,7 +198,7 @@ export const DownloadView: React.FC<DownloadViewProps> = ({ localBooks, onNaviga
         <button
           type="button"
           onClick={() => onNavigate({ view: "home" })}
-          className="inline-flex min-h-[38px] items-center gap-2 rounded-xl border border-[#e2e8e4] bg-white px-3 text-xs font-semibold text-[#103d2c] shadow-xs transition-colors hover:bg-[#f4f7f5] dark:border-slate-800 dark:bg-[#111A27] dark:text-slate-200 dark:hover:bg-[#192638]"
+          className="inline-flex min-h-[38px] items-center gap-2 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-card)] px-3 text-xs font-semibold text-[var(--theme-heading)] shadow-xs transition-colors hover:bg-[var(--theme-card-alt)]"
         >
           <ArrowLeft className="h-4 w-4" />
           <span>Kembali ke Beranda</span>
@@ -208,7 +208,7 @@ export const DownloadView: React.FC<DownloadViewProps> = ({ localBooks, onNaviga
           href="/download.html"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-[#e2e8e4] bg-white px-3 text-xs font-semibold text-[#5e6a62] shadow-xs transition-colors hover:border-[#134a35] hover:text-[#103d2c] dark:border-slate-800 dark:bg-[#111A27] dark:text-slate-300 dark:hover:border-[#E2B354] dark:hover:text-[#E2B354]"
+          className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-card)] px-3 text-xs font-semibold text-[var(--theme-muted)] shadow-xs transition-colors hover:border-[var(--theme-primary)] hover:text-[var(--theme-heading)]"
         >
           <span>Buka versi tautan publik</span>
           <ExternalLink className="h-3.5 w-3.5" />
@@ -216,7 +216,7 @@ export const DownloadView: React.FC<DownloadViewProps> = ({ localBooks, onNaviga
       </div>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden rounded-3xl border border-[#0f3b2a] bg-gradient-to-br from-[#0d3025] via-[#144734] to-[#1e5c45] p-6 text-white shadow-sm sm:p-8 dark:border-slate-800 dark:from-[#0C1522] dark:via-[#122033] dark:to-[#182B42]">
+      <section className="relative overflow-hidden rounded-3xl border border-[var(--theme-hero-border)] bg-gradient-to-br from-[var(--theme-primary-from)] via-[var(--theme-primary-via)] to-[var(--theme-primary-to)] p-6 text-white shadow-sm sm:p-8">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 opacity-20 mix-blend-luminosity"
@@ -228,12 +228,12 @@ export const DownloadView: React.FC<DownloadViewProps> = ({ localBooks, onNaviga
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full border border-[#e2b354]/25"
+          className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full border border-white/15"
         />
 
         <div className="relative grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-center">
           <div className="space-y-4 lg:col-span-7">
-            <div className="inline-flex items-center gap-2 rounded-lg border border-[#e2b354]/35 bg-[#e2b354]/10 px-3 py-1 text-[11px] font-semibold tracking-wider text-[#f3d99d] uppercase">
+            <div className="inline-flex items-center gap-2 rounded-lg border border-white/25 bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-wider text-[var(--theme-hero-eyebrow)] uppercase">
               <Smartphone className="h-3.5 w-3.5" />
               <span>Aplikasi Web Progresif (PWA)</span>
             </div>
@@ -242,7 +242,7 @@ export const DownloadView: React.FC<DownloadViewProps> = ({ localBooks, onNaviga
               Pasang e-Moeslife langsung di perangkatmu.
             </h1>
 
-            <p className="max-w-2xl text-sm leading-relaxed text-[#e3ebe5] sm:text-base dark:text-slate-300">
+            <p className="max-w-2xl text-sm leading-relaxed text-[var(--theme-hero-sub)] sm:text-base">
               Untuk saat ini, distribusi aplikasi e-Moeslife menggunakan <strong>file PWA</strong>{" "}
               sebagai pengganti file APK sementara. Lebih ringan, aman tanpa perlu izin sumber tidak
               dikenal, pembaruan kitab otomatis, dan tetap dapat dibuka saat offline.
@@ -359,17 +359,17 @@ export const DownloadView: React.FC<DownloadViewProps> = ({ localBooks, onNaviga
       {/* Platform Installation Steps */}
       <section
         id="pwa-platform-guide"
-        className="rounded-3xl border border-[#e2e8e4] bg-white p-5 shadow-xs sm:p-6 dark:border-slate-800 dark:bg-[#111A27]"
+        className="rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-5 shadow-xs sm:p-6"
       >
-        <div className="flex flex-col justify-between gap-3 border-b border-[#e8eeea] pb-4 sm:flex-row sm:items-end dark:border-slate-800">
+        <div className="flex flex-col justify-between gap-3 border-b border-[var(--theme-border-soft)] pb-4 sm:flex-row sm:items-end">
           <div>
-            <p className="text-[11px] font-semibold tracking-wider text-[#9c7d3c] uppercase dark:text-[#E2B354]">
+            <p className="text-[11px] font-semibold tracking-wider text-[var(--theme-accent)] uppercase">
               Panduan Pemasangan PWA
             </p>
-            <h2 className="font-display mt-0.5 text-xl font-semibold text-[#103d2c] sm:text-2xl dark:text-white">
+            <h2 className="font-display mt-0.5 text-xl font-semibold text-[var(--theme-heading)] sm:text-2xl">
               {activeGuide.label}
             </h2>
-            <p className="mt-1 text-xs text-[#5e6a62] dark:text-slate-300">{activeGuide.subtitle}</p>
+            <p className="mt-1 text-xs text-[var(--theme-muted)]">{activeGuide.subtitle}</p>
           </div>
 
           <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Pilih perangkat">
@@ -390,8 +390,8 @@ export const DownloadView: React.FC<DownloadViewProps> = ({ localBooks, onNaviga
                   onClick={() => setSelectedGuide(tab.id)}
                   className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-xl px-3 text-xs font-semibold transition-colors ${
                     active
-                      ? "bg-[#134a35] text-white dark:bg-[#E2B354] dark:text-[#0B111A]"
-                      : "border border-[#dce4df] bg-white text-[#354c3e] hover:bg-[#f4f7f5] dark:border-slate-700 dark:bg-[#162131] dark:text-slate-300"
+                      ? "bg-[var(--theme-primary)] text-[var(--theme-primary-text)]"
+                      : "border border-[var(--theme-border-strong)] bg-[var(--theme-card)] text-[var(--theme-nav-muted)] hover:bg-[var(--theme-card-alt)]"
                   }`}
                 >
                   {tab.icon}
@@ -406,14 +406,14 @@ export const DownloadView: React.FC<DownloadViewProps> = ({ localBooks, onNaviga
           {activeGuide.steps.map((step, idx) => (
             <div
               key={step.title}
-              className="flex items-start gap-3 rounded-2xl border border-[#e8eeea] bg-[#f8faf9] p-4 dark:border-slate-800 dark:bg-[#152030]"
+              className="flex items-start gap-3 rounded-2xl border border-[var(--theme-border-soft)] bg-[var(--theme-card-alt)] p-4"
             >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#e3efe8] text-xs font-bold text-[#134a35] dark:bg-[#1D3557] dark:text-[#E2B354]">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--theme-tint-bg)] text-xs font-bold text-[var(--theme-tint-text)]">
                 {idx + 1}
               </span>
               <div>
-                <h3 className="text-sm font-semibold text-[#103d2c] dark:text-white">{step.title}</h3>
-                <p className="mt-1 text-xs leading-relaxed text-[#5e6a62] dark:text-slate-300">
+                <h3 className="text-sm font-semibold text-[var(--theme-heading)]">{step.title}</h3>
+                <p className="mt-1 text-xs leading-relaxed text-[var(--theme-muted)]">
                   {step.desc}
                 </p>
               </div>
@@ -425,12 +425,12 @@ export const DownloadView: React.FC<DownloadViewProps> = ({ localBooks, onNaviga
       {/* Updated Features Grid */}
       <section aria-labelledby="heading-pwa-features">
         <div className="mb-3">
-          <p className="text-[11px] font-semibold tracking-wider text-[#9c7d3c] uppercase dark:text-[#E2B354]">
+          <p className="text-[11px] font-semibold tracking-wider text-[var(--theme-accent)] uppercase">
             Kelengkapan Ruang Baca
           </p>
           <h2
             id="heading-pwa-features"
-            className="font-display mt-0.5 text-xl font-semibold text-[#103d2c] sm:text-2xl dark:text-white"
+            className="font-display mt-0.5 text-xl font-semibold text-[var(--theme-heading)] sm:text-2xl"
           >
             Semua bacaan & kitab dalam satu aplikasi
           </h2>
@@ -440,13 +440,13 @@ export const DownloadView: React.FC<DownloadViewProps> = ({ localBooks, onNaviga
           {features.map((item) => (
             <article
               key={item.title}
-              className="rounded-2xl border border-[#e2e8e4] bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-[#111A27]"
+              className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-4 shadow-xs"
             >
-              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-[#e6efe9] text-[#134a35] dark:bg-[#182942] dark:text-[#E2B354]">
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--theme-tint-bg)] text-[var(--theme-tint-text)]">
                 {item.icon}
               </div>
-              <h3 className="text-sm font-semibold text-[#103d2c] dark:text-white">{item.title}</h3>
-              <p className="mt-1 text-xs leading-relaxed text-[#5e6a62] dark:text-slate-300">
+              <h3 className="text-sm font-semibold text-[var(--theme-heading)]">{item.title}</h3>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--theme-muted)]">
                 {item.desc}
               </p>
             </article>

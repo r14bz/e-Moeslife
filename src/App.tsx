@@ -4,11 +4,13 @@ import type {
   AppRoute,
   ClassicPage,
   CollectionKind,
+  ColorThemeId,
   FontSizeScale,
   LocalBookMeta,
   ThemeMode,
 } from "./types/emoeslife";
 import { readJsonPreference, readPreference, writeJsonPreference, writePreference } from "./services/preferences";
+import { DEFAULT_COLOR_THEME, getThemeMetaColor, isColorThemeId } from "./utils/colorThemes";
 import {
   applyDzikirOverrides,
   findCollectionStart,
@@ -71,6 +73,15 @@ const BukhariKitabPage = lazy(() =>
 const UqudulujainKitabPage = lazy(() =>
   import("./components/UqudulujainKitabPage").then((m) => ({ default: m.UqudulujainKitabPage }))
 );
+const TuratsKitabPage = lazy(() =>
+  import("./components/TuratsKitabPage").then((m) => ({ default: m.TuratsKitabPage }))
+);
+const QathrulGhaitsKitabPage = lazy(() =>
+  import("./components/QathrulGhaitsKitabPage").then((m) => ({ default: m.QathrulGhaitsKitabPage }))
+);
+const TijanDaroriKitabPage = lazy(() =>
+  import("./components/TijanDaroriKitabPage").then((m) => ({ default: m.TijanDaroriKitabPage }))
+);
 const ApiKitabView = lazy(() =>
   import("./components/ApiKitabView").then((m) => ({ default: m.ApiKitabView }))
 );
@@ -108,6 +119,10 @@ export function App() {
   const [theme, setTheme] = useState<ThemeMode>(() =>
     readPreference("theme") === "dark" ? "dark" : "light"
   );
+  const [colorTheme, setColorTheme] = useState<ColorThemeId>(() => {
+    const saved = readPreference("colorTheme", DEFAULT_COLOR_THEME);
+    return isColorThemeId(saved) ? saved : DEFAULT_COLOR_THEME;
+  });
   const [fontSize, setFontSize] = useState<FontSizeScale>(() => {
     const saved = readPreference("fontSize", "normal") as FontSizeScale;
     return FONT_SIZES.includes(saved) ? saved : "normal";
@@ -251,6 +266,18 @@ export function App() {
   }, [theme]);
 
   useEffect(() => {
+    document.documentElement.dataset.colorTheme = colorTheme;
+    writePreference("colorTheme", colorTheme);
+  }, [colorTheme]);
+
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) {
+      meta.setAttribute("content", getThemeMetaColor(colorTheme, theme));
+    }
+  }, [colorTheme, theme]);
+
+  useEffect(() => {
     document.documentElement.dataset.fontSize = fontSize;
     writePreference("fontSize", fontSize);
   }, [fontSize]);
@@ -315,6 +342,9 @@ export function App() {
       nextRoute.view !== "nashoihul-kitab" &&
       nextRoute.view !== "bukhari-kitab" &&
       nextRoute.view !== "uqudulujain-kitab" &&
+      nextRoute.view !== "turats-kitab" &&
+      nextRoute.view !== "qathrul-ghaits-kitab" &&
+      nextRoute.view !== "tijan-darori-kitab" &&
       nextRoute.view !== "api-kitab"
     ) {
       setFocusMode(false);
@@ -456,6 +486,35 @@ export function App() {
         navigate({ view: "uqudulujain-kitab", babId });
         return;
       }
+      if (book.format === "turats") {
+        navigate({
+          view: "turats-kitab",
+          slug: book.slug as
+            | "qarib"
+            | "fathul-muin"
+            | "kasyifatus-saja"
+            | "bahjatul-wasail"
+            | "alhikam",
+          babIndex: chapterIndex,
+        });
+        return;
+      }
+      if (book.format === "qathrul-ghaits") {
+        navigate({
+          view: "qathrul-ghaits-kitab",
+          lembaranIndex: chapterIndex,
+        });
+        return;
+      }
+      if (book.format === "tijan-darori") {
+        let babId: string | undefined;
+        if (typeof chapterIndex === "number") {
+          const { tijanDaroriData } = await import("./data/tijan-darori");
+          babId = tijanDaroriData[chapterIndex]?.id;
+        }
+        navigate({ view: "tijan-darori-kitab", babId });
+        return;
+      }
       if (book.source === "local") {
         navigate({ view: "local-kitab", slug: book.slug, chapterIndex });
       } else {
@@ -491,11 +550,13 @@ export function App() {
       <AppShell
         route={route}
         theme={theme}
+        colorTheme={colorTheme}
         fontSize={fontSize}
         focusMode={focusMode}
         onNavigate={navigate}
         onOpenClassicToc={handleOpenClassicToc}
         onChangeFontSize={setFontSize}
+        onChangeColorTheme={setColorTheme}
         onToggleTheme={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
         onCheckApkUpdate={isNativeAndroidApp() ? handleManualApkUpdateCheck : undefined}
       >
@@ -661,6 +722,37 @@ export function App() {
 
       {route.view === "uqudulujain-kitab" && (
         <UqudulujainKitabPage
+          initialBabId={route.babId}
+          focusMode={focusMode}
+          onToggleFocus={() => setFocusMode((f) => !f)}
+          onBackToLibrary={() => navigate({ view: "kitab-hub" })}
+          onGoHome={() => navigate({ view: "home" })}
+        />
+      )}
+
+      {route.view === "turats-kitab" && (
+        <TuratsKitabPage
+          slug={route.slug}
+          initialBabIndex={route.babIndex}
+          focusMode={focusMode}
+          onToggleFocus={() => setFocusMode((f) => !f)}
+          onBackToLibrary={() => navigate({ view: "kitab-hub" })}
+          onGoHome={() => navigate({ view: "home" })}
+        />
+      )}
+
+      {route.view === "qathrul-ghaits-kitab" && (
+        <QathrulGhaitsKitabPage
+          initialIndex={route.lembaranIndex}
+          focusMode={focusMode}
+          onToggleFocus={() => setFocusMode((f) => !f)}
+          onBackToLibrary={() => navigate({ view: "kitab-hub" })}
+          onGoHome={() => navigate({ view: "home" })}
+        />
+      )}
+
+      {route.view === "tijan-darori-kitab" && (
+        <TijanDaroriKitabPage
           initialBabId={route.babId}
           focusMode={focusMode}
           onToggleFocus={() => setFocusMode((f) => !f)}

@@ -837,7 +837,7 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
                         className={`flex min-h-[42px] w-full items-start gap-2 rounded-lg px-3 py-2 text-left text-xs transition-colors ${
                           isActive
                             ? "font-bold"
-                            : "hover:bg-emerald-900/5 dark:hover:bg-amber-400/5"
+                            : "hover:bg-[var(--tashrif-dropdown-hover)]"
                         }`}
                       >
                         <span className="font-mono-tabular shrink-0 opacity-80">
@@ -1195,7 +1195,7 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
                         className={`flex min-h-[42px] w-full items-start gap-2 rounded-lg px-3 py-2 text-left text-xs transition-colors ${
                           isActive
                             ? "font-bold"
-                            : "hover:bg-emerald-900/5 dark:hover:bg-amber-400/5"
+                            : "hover:bg-[var(--tashrif-dropdown-hover)]"
                         }`}
                       >
                         <span className="font-mono-tabular shrink-0 opacity-80">
@@ -1425,7 +1425,7 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
                           : { color: "var(--tashrif-text)" }
                       }
                       className={`flex min-h-[46px] w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left transition-colors ${
-                        isSelected ? "" : "hover:bg-emerald-900/5 dark:hover:bg-amber-400/5"
+                        isSelected ? "" : "hover:bg-[var(--tashrif-dropdown-hover)]"
                       }`}
                     >
                       <div className="flex min-w-0 items-center gap-2.5">
@@ -1678,7 +1678,7 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
                                   type="checkbox"
                                   checked={showLatin}
                                   onChange={(e) => setShowLatin(e.target.checked)}
-                                  className="h-4 w-4 accent-[#134a35] dark:accent-[#E2B354]"
+                                  className="h-4 w-4 accent-[var(--theme-primary)]"
                                 />
                                 <span>Latin</span>
                               </label>
@@ -1687,7 +1687,7 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
                                   type="checkbox"
                                   checked={showTranslation}
                                   onChange={(e) => setShowTranslation(e.target.checked)}
-                                  className="h-4 w-4 accent-[#134a35] dark:accent-[#E2B354]"
+                                  className="h-4 w-4 accent-[var(--theme-primary)]"
                                 />
                                 <span>Terjemahan</span>
                               </label>

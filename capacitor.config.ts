@@ -14,6 +14,7 @@ const config: CapacitorConfig = {
     LocalNotifications: {
       smallIcon: "ic_stat_emoeslife",
       iconColor: "#009950",
+      sound: "notif_shalat.wav",
     },
   },
 };

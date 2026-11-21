@@ -2,6 +2,7 @@ import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { requestStartupPermissionsOnLaunch } from "./locationService";
 import { markNativeVersionNotified } from "./apkInstaller";
+import { playNotificationSound } from "./notificationAudio";
 
 export const RELEASES_TAG_API_URL =
   "https://api.github.com/repos/r14bz/e-Moeslife/releases/tags/v2.0-android";
@@ -12,7 +13,9 @@ export const DEFAULT_APK_DOWNLOAD_URL =
 
 const DISMISSED_VERSION_SESSION_KEY = "emoeslife-apk-dismissed-version-session";
 const NOTIFIED_VERSION_STORAGE_KEY = "emoeslife-apk-notified-version";
-const UPDATE_CHANNEL_ID = "pembaruan-aplikasi";
+const LEGACY_UPDATE_CHANNEL_ID = "pembaruan-aplikasi";
+const UPDATE_CHANNEL_ID = "pembaruan-aplikasi-v2";
+const UPDATE_SOUND_RES = "notif_update.wav";
 export const APK_UPDATE_NOTIFICATION_ID = 519901;
 
 export const INSTALLED_APK_VERSION_CODE =
@@ -307,13 +310,14 @@ export async function notifyApkUpdateAvailable(release: ApkReleaseInfo): Promise
     if (perm.display !== "granted") return;
 
     try {
+      await LocalNotifications.deleteChannel({ id: LEGACY_UPDATE_CHANNEL_ID }).catch(() => undefined);
       await LocalNotifications.createChannel({
         id: UPDATE_CHANNEL_ID,
         name: "Pembaruan Aplikasi",
-        description: "Pemberitahuan otomatis saat versi terbaru e-Moeslife tersedia",
+        description: "Pemberitahuan otomatis bersuara saat versi terbaru e-Moeslife tersedia",
         importance: 4,
         visibility: 1,
-        sound: "default",
+        sound: UPDATE_SOUND_RES,
         vibration: true,
       });
     } catch {
@@ -334,6 +338,7 @@ export async function notifyApkUpdateAvailable(release: ApkReleaseInfo): Promise
           largeBody: largeLines.length > 0 ? largeLines.join("\n") : summary,
           summaryText: `Versi v${release.versionName}`,
           channelId: UPDATE_CHANNEL_ID,
+          sound: UPDATE_SOUND_RES,
           extra: {
             type: "apk-update",
             versionCode: release.versionCode,
@@ -341,6 +346,8 @@ export async function notifyApkUpdateAvailable(release: ApkReleaseInfo): Promise
         },
       ],
     });
+
+    playNotificationSound("update");
 
     localStorage.setItem(NOTIFIED_VERSION_STORAGE_KEY, String(release.versionCode));
     void markNativeVersionNotified(release.versionCode);

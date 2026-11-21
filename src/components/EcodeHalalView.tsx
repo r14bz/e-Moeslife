@@ -275,7 +275,7 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
         <button
           type="button"
           onClick={onBackHome}
-          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-[#dce4df] bg-white px-3.5 text-xs font-semibold text-[#103d2c] shadow-xs transition-colors hover:bg-[#f4f7f5] dark:border-slate-800 dark:bg-[#111A27] dark:text-slate-200 dark:hover:bg-[#192638]"
+          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-[var(--theme-border-strong)] bg-[var(--theme-card)] px-3.5 text-xs font-semibold text-[var(--theme-heading)] shadow-xs transition-colors hover:bg-[var(--theme-card-alt)]"
         >
           <ArrowLeft className="h-4 w-4" />
           <span>Beranda</span>
@@ -284,7 +284,7 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
         <button
           type="button"
           onClick={() => setReloadTick((t) => t + 1)}
-          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-[#dce4df] bg-white px-3.5 text-xs font-semibold text-[#354c3e] shadow-xs transition-colors hover:border-[#134a35] hover:text-[#103d2c] dark:border-slate-800 dark:bg-[#111A27] dark:text-slate-300 dark:hover:border-[#E2B354] dark:hover:text-[#E2B354]"
+          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-[var(--theme-border-strong)] bg-[var(--theme-card)] px-3.5 text-xs font-semibold text-[var(--theme-nav-muted)] shadow-xs transition-colors hover:border-[var(--theme-primary)] hover:text-[var(--theme-primary)]"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
           <span>Muat Ulang</span>
@@ -292,22 +292,22 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
       </div>
 
       {/* Hero Header */}
-      <section className="rounded-2xl border border-[#0f3b2a] bg-gradient-to-br from-[#0f3d2b] via-[#134a35] to-[#1b5e44] p-5 text-white shadow-xs sm:p-6 dark:border-[#243B55] dark:from-[#102336] dark:via-[#152D46] dark:to-[#1B3A59]">
+      <section className="rounded-2xl border border-[var(--theme-hero-border)] bg-gradient-to-br from-[var(--theme-primary-from)] via-[var(--theme-primary-via)] to-[var(--theme-primary-to)] p-5 text-white shadow-xs sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="max-w-2xl">
-            <p className="text-[11px] font-semibold tracking-wider text-[#f3d99d] uppercase dark:text-[#E2B354]">
+            <p className="text-[11px] font-semibold tracking-wider text-[var(--theme-hero-eyebrow)] uppercase">
               Panduan Konsumsi Muslim
             </p>
             <h1 className="font-display mt-1 text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
               Cek Status Halal E-Code
             </h1>
-            <p className="mt-1.5 text-xs leading-relaxed text-[#e3ebe5] sm:text-sm dark:text-slate-300">
+            <p className="mt-1.5 text-xs leading-relaxed text-[var(--theme-hero-sub)] sm:text-sm">
               Periksa kode bahan tambahan pangan (E100–E1521) pada label kemasan makanan atau minuman
               untuk mengetahui status kehalalannya: Halal, Diragukan (Syubhat), atau Haram.
             </p>
           </div>
 
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#e6c98e]/35 bg-white/10 text-[#f3d99d]">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-[var(--theme-hero-eyebrow)]">
             <ShieldCheck className="h-6 w-6" />
           </div>
         </div>
@@ -321,14 +321,14 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
             onClick={() => handleStatusSelect("")}
             className={`rounded-2xl border p-3.5 text-left transition-colors ${
               statusFilter === ""
-                ? "border-[#134a35] bg-[#f4f8f5] dark:border-[#E2B354] dark:bg-[#162336]"
-                : "border-[#e2e8e4] bg-white hover:border-[#b7d3c3] dark:border-slate-800 dark:bg-[#111A27]"
+                ? "border-[var(--theme-primary)] bg-[var(--theme-tint-bg)]"
+                : "border-[var(--theme-border)] bg-[var(--theme-card)] hover:border-[var(--theme-tint-border)]"
             }`}
           >
-            <span className="block text-[11px] font-medium text-[#5e6a62] dark:text-slate-400">
+            <span className="block text-[11px] font-medium text-[var(--theme-muted)]">
               Total Kode E
             </span>
-            <span className="font-mono-tabular mt-1 block text-xl font-bold text-[#103d2c] sm:text-2xl dark:text-white">
+            <span className="font-mono-tabular mt-1 block text-xl font-bold text-[var(--theme-heading)] sm:text-2xl">
               {summary.total}
             </span>
           </button>
@@ -339,14 +339,14 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
             className={`rounded-2xl border p-3.5 text-left transition-colors ${
               statusFilter === "Halal"
                 ? "border-emerald-600 bg-emerald-50/70 dark:border-emerald-500 dark:bg-emerald-950/40"
-                : "border-[#e2e8e4] bg-white hover:border-emerald-300 dark:border-slate-800 dark:bg-[#111A27]"
+                : "border-[var(--theme-border)] bg-[var(--theme-card)] hover:border-emerald-400"
             }`}
           >
             <span className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
               <CheckCircle2 className="h-3.5 w-3.5" />
               <span>Halal</span>
             </span>
-            <span className="font-mono-tabular mt-1 block text-xl font-bold text-[#103d2c] sm:text-2xl dark:text-white">
+            <span className="font-mono-tabular mt-1 block text-xl font-bold text-[var(--theme-heading)] sm:text-2xl">
               {summary.halal}
             </span>
           </button>
@@ -357,14 +357,14 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
             className={`rounded-2xl border p-3.5 text-left transition-colors ${
               statusFilter === "Doubtful"
                 ? "border-amber-600 bg-amber-50/70 dark:border-amber-500 dark:bg-amber-950/40"
-                : "border-[#e2e8e4] bg-white hover:border-amber-300 dark:border-slate-800 dark:bg-[#111A27]"
+                : "border-[var(--theme-border)] bg-[var(--theme-card)] hover:border-amber-400"
             }`}
           >
             <span className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
               <AlertTriangle className="h-3.5 w-3.5" />
               <span>Diragukan</span>
             </span>
-            <span className="font-mono-tabular mt-1 block text-xl font-bold text-[#103d2c] sm:text-2xl dark:text-white">
+            <span className="font-mono-tabular mt-1 block text-xl font-bold text-[var(--theme-heading)] sm:text-2xl">
               {summary.doubtful}
             </span>
           </button>
@@ -375,14 +375,14 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
             className={`rounded-2xl border p-3.5 text-left transition-colors ${
               statusFilter === "Haram"
                 ? "border-rose-600 bg-rose-50/70 dark:border-rose-500 dark:bg-rose-950/40"
-                : "border-[#e2e8e4] bg-white hover:border-rose-300 dark:border-slate-800 dark:bg-[#111A27]"
+                : "border-[var(--theme-border)] bg-[var(--theme-card)] hover:border-rose-400"
             }`}
           >
             <span className="flex items-center gap-1.5 text-[11px] font-semibold text-rose-700 dark:text-rose-300">
               <XCircle className="h-3.5 w-3.5" />
               <span>Haram</span>
             </span>
-            <span className="font-mono-tabular mt-1 block text-xl font-bold text-[#103d2c] sm:text-2xl dark:text-white">
+            <span className="font-mono-tabular mt-1 block text-xl font-bold text-[var(--theme-heading)] sm:text-2xl">
               {summary.haram}
             </span>
           </button>
@@ -390,17 +390,17 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
       )}
 
       {/* Search & Filters */}
-      <section className="space-y-3 rounded-2xl border border-[#e2e8e4] bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-[#111A27]">
+      <section className="space-y-3 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-4 shadow-xs">
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-12">
           <div className="relative lg:col-span-7">
-            <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-[#6d7971] dark:text-slate-400" />
+            <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-[var(--theme-muted)]" />
             <input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Cari kode E atau nama bahan (mis. E120, E441, gelatin, lecithin)…"
               aria-label="Cari kode E atau nama bahan"
-              className="min-h-[44px] w-full rounded-xl border border-[#dce4df] bg-[#f8faf9] pr-10 pl-10 text-xs text-[#1d2c24] outline-none placeholder:text-[#7f8b83] focus:border-[#134a35] focus:bg-white sm:text-sm dark:border-slate-700 dark:bg-[#152030] dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:border-[#E2B354]"
+              className="min-h-[44px] w-full rounded-xl border border-[var(--theme-border-strong)] bg-[var(--theme-card-alt)] pr-10 pl-10 text-xs text-[var(--theme-ink)] outline-none placeholder:text-[var(--theme-muted)] focus:border-[var(--theme-primary)] focus:bg-[var(--theme-card)] sm:text-sm"
             />
             {query && (
               <button
@@ -411,7 +411,7 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
                   setPage(1);
                 }}
                 aria-label="Hapus pencarian"
-                className="absolute top-1/2 right-2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#5e6a62] hover:bg-black/5 dark:text-slate-400 dark:hover:bg-white/10"
+                className="absolute top-1/2 right-2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[var(--theme-muted)] hover:bg-black/5 dark:hover:bg-white/10"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -432,11 +432,11 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
         </div>
 
         {/* Status Segmented Tabs & Quick E-Codes */}
-        <div className="flex flex-col gap-2.5 border-t border-[#edf2ef] pt-3 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800">
+        <div className="flex flex-col gap-2.5 border-t border-[var(--theme-border-soft)] pt-3 sm:flex-row sm:items-center sm:justify-between">
           <div
             role="tablist"
             aria-label="Filter status kehalalan"
-            className="flex flex-wrap gap-1 rounded-xl bg-[#f4f7f5] p-1 dark:bg-[#152030]"
+            className="flex flex-wrap gap-1 rounded-xl bg-[var(--theme-card-alt)] p-1"
           >
             {(
               [
@@ -456,8 +456,8 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
                   onClick={() => handleStatusSelect(opt.id)}
                   className={`min-h-[36px] rounded-lg px-3 text-xs font-semibold whitespace-nowrap transition-colors ${
                     active
-                      ? "bg-[#134a35] text-white shadow-xs dark:bg-[#E2B354] dark:text-[#0B111A]"
-                      : "text-[#354c3e] hover:text-[#103d2c] dark:text-slate-300 dark:hover:text-white"
+                      ? "bg-[var(--theme-primary)] text-[var(--theme-primary-text)] shadow-xs"
+                      : "text-[var(--theme-nav-muted)] hover:text-[var(--theme-heading)]"
                   }`}
                 >
                   {opt.label}
@@ -467,7 +467,7 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] font-medium text-[#5e6a62] dark:text-slate-400">
+            <span className="text-[11px] font-medium text-[var(--theme-muted)]">
               Cek cepat:
             </span>
             {QUICK_CODES.map((sample) => (
@@ -476,7 +476,7 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
                 type="button"
                 onClick={() => void handleQuickCodeClick(sample.code)}
                 title={sample.hint}
-                className="font-mono-tabular min-h-[34px] rounded-lg border border-[#dce4df] bg-white px-2.5 text-[11px] font-semibold text-[#134a35] transition-colors hover:border-[#134a35] hover:bg-[#f4f8f5] dark:border-slate-700 dark:bg-[#162131] dark:text-[#E2B354] dark:hover:border-[#E2B354]"
+                className="font-mono-tabular min-h-[34px] rounded-lg border border-[var(--theme-border-strong)] bg-[var(--theme-card)] px-2.5 text-[11px] font-semibold text-[var(--theme-primary)] transition-colors hover:border-[var(--theme-primary)] hover:bg-[var(--theme-tint-bg)]"
               >
                 {sample.code}
               </button>
@@ -509,7 +509,7 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
           <button
             type="button"
             onClick={() => setReloadTick((t) => t + 1)}
-            className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-[#134a35] px-4 text-xs font-semibold text-white hover:bg-[#0e3928] dark:bg-[#E2B354] dark:text-[#0B111A]"
+            className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-[var(--theme-primary)] px-4 text-xs font-semibold text-[var(--theme-primary-text)] hover:bg-[var(--theme-primary-hover)]"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             <span>Coba Lagi</span>
@@ -519,9 +519,9 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
 
       {/* Loading State */}
       {loading && (
-        <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 rounded-2xl border border-[#e2e8e4] bg-white p-8 dark:border-slate-800 dark:bg-[#111A27]">
-          <Loader2 className="h-6 w-6 animate-spin text-[#134a35] dark:text-[#E2B354]" />
-          <p className="text-xs font-medium text-[#5e6a62] dark:text-slate-400">
+        <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-8">
+          <Loader2 className="h-6 w-6 animate-spin text-[var(--theme-primary)]" />
+          <p className="text-xs font-medium text-[var(--theme-muted)]">
             Memuat data status halal E-Code…
           </p>
         </div>
@@ -530,7 +530,7 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
       {/* Results Grid */}
       {!loading && !error && (
         <>
-          <div className="flex items-center justify-between text-xs text-[#5e6a62] dark:text-slate-400">
+          <div className="flex items-center justify-between text-xs text-[var(--theme-muted)]">
             <span>
               {debouncedQuery
                 ? `Hasil pencarian "${debouncedQuery}"`
@@ -542,11 +542,11 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
           </div>
 
           {displayedItems.length === 0 ? (
-            <div className="rounded-2xl border border-[#e2e8e4] bg-white p-8 text-center dark:border-slate-800 dark:bg-[#111A27]">
-              <p className="text-sm font-semibold text-[#103d2c] dark:text-white">
+            <div className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-8 text-center">
+              <p className="text-sm font-semibold text-[var(--theme-heading)]">
                 Tidak ada E-Code yang cocok
               </p>
-              <p className="mt-1 text-xs text-[#5e6a62] dark:text-slate-400">
+              <p className="mt-1 text-xs text-[var(--theme-muted)]">
                 Coba kata kunci lain seperti <span className="font-mono-tabular">E120</span>,{" "}
                 <span className="font-mono-tabular">E441</span>, atau reset filter status dan kategori.
               </p>
@@ -560,22 +560,22 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
                     key={`${item.code}-${item.name}`}
                     type="button"
                     onClick={() => void openItemDetail(item)}
-                    className="group flex flex-col justify-between gap-2.5 rounded-2xl border border-[#e2e8e4] bg-white p-4 text-left shadow-xs transition-all duration-150 hover:-translate-y-0.5 hover:border-[#134a35] hover:shadow-sm dark:border-slate-800 dark:bg-[#111A27] dark:hover:border-[#E2B354]"
+                    className="group flex flex-col justify-between gap-2.5 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-4 text-left shadow-xs transition-all duration-150 hover:-translate-y-0.5 hover:border-[var(--theme-primary)] hover:shadow-sm"
                   >
                     <div className="flex w-full items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2 text-xs">
-                          <span className="font-mono-tabular font-bold text-[#134a35] dark:text-[#E2B354]">
+                          <span className="font-mono-tabular font-bold text-[var(--theme-primary)]">
                             {item.code}
                           </span>
-                          <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">
+                          <span aria-hidden="true" className="text-[var(--theme-border-strong)]">
                             ·
                           </span>
-                          <span className="truncate text-[#5e6a62] dark:text-slate-400">
+                          <span className="truncate text-[var(--theme-muted)]">
                             {item.type}
                           </span>
                         </div>
-                        <h2 className="mt-1 text-sm font-semibold text-[#103d2c] group-hover:text-[#134a35] sm:text-base dark:text-white dark:group-hover:text-[#E2B354]">
+                        <h2 className="mt-1 text-sm font-semibold text-[var(--theme-heading)] group-hover:text-[var(--theme-primary)] sm:text-base">
                           {item.name}
                         </h2>
                       </div>
@@ -589,14 +589,14 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
                     </div>
 
                     {(item.halalReason || item.description) && (
-                      <p className="line-clamp-2 text-xs leading-relaxed text-[#5e6a62] dark:text-slate-300">
+                      <p className="line-clamp-2 text-xs leading-relaxed text-[var(--theme-muted)]">
                         {item.halalReason || item.description}
                       </p>
                     )}
 
-                    <div className="flex w-full items-center justify-between border-t border-[#f0f4f1] pt-2 text-[11px] text-[#6d7971] dark:border-slate-800/80 dark:text-slate-400">
+                    <div className="flex w-full items-center justify-between border-t border-[var(--theme-border-soft)] pt-2 text-[11px] text-[var(--theme-muted)]">
                       <span>{item.source ? `Sumber: ${item.source}` : "Ketuk untuk detail lengkap"}</span>
-                      <span className="font-semibold text-[#134a35] dark:text-[#E2B354]">
+                      <span className="font-semibold text-[var(--theme-primary)]">
                         Detail →
                       </span>
                     </div>
@@ -608,18 +608,18 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
 
           {/* Pagination */}
           {meta.totalPages > 1 && (
-            <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#e2e8e4] bg-white px-4 py-3 dark:border-slate-800 dark:bg-[#111A27]">
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] px-4 py-3">
               <button
                 type="button"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-[#dce4df] bg-[#f8faf9] px-3.5 text-xs font-semibold text-[#103d2c] transition-colors hover:bg-[#edf3ef] disabled:opacity-40 dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200"
+                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-[var(--theme-border-strong)] bg-[var(--theme-card-alt)] px-3.5 text-xs font-semibold text-[var(--theme-heading)] transition-colors hover:bg-[var(--theme-tint-bg)] disabled:opacity-40"
               >
                 <ChevronLeft className="h-4 w-4" />
                 <span>Sebelumnya</span>
               </button>
 
-              <span className="font-mono-tabular text-xs font-semibold text-[#5e6a62] dark:text-slate-300">
+              <span className="font-mono-tabular text-xs font-semibold text-[var(--theme-muted)]">
                 Halaman {page} / {meta.totalPages}
               </span>
 
@@ -627,7 +627,7 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
                 type="button"
                 disabled={page >= meta.totalPages}
                 onClick={() => setPage((p) => Math.min(meta.totalPages, p + 1))}
-                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-[#134a35] px-3.5 text-xs font-semibold text-white transition-colors hover:bg-[#0e3928] disabled:opacity-40 dark:bg-[#E2B354] dark:text-[#0B111A]"
+                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-[var(--theme-primary)] px-3.5 text-xs font-semibold text-[var(--theme-primary-text)] transition-colors hover:bg-[var(--theme-primary-hover)] disabled:opacity-40"
               >
                 <span>Berikutnya</span>
                 <ChevronRight className="h-4 w-4" />
@@ -647,13 +647,13 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
           aria-labelledby="ecode-detail-title"
         >
           <div
-            className="w-full max-w-lg overflow-hidden rounded-t-3xl border border-[#dce4df] bg-white shadow-2xl sm:rounded-3xl dark:border-slate-700 dark:bg-[#111A27]"
+            className="w-full max-w-lg overflow-hidden rounded-t-3xl border border-[var(--theme-border-strong)] bg-[var(--theme-card)] shadow-2xl sm:rounded-3xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-3 border-b border-[#e8eeea] bg-[#f6f9f7] px-5 py-4 dark:border-slate-800 dark:bg-[#152030]">
+            <div className="flex items-start justify-between gap-3 border-b border-[var(--theme-border-soft)] bg-[var(--theme-card-alt)] px-5 py-4">
               <div className="min-w-0">
-                <div className="flex items-center gap-2 text-xs text-[#5e6a62] dark:text-slate-400">
-                  <span className="font-mono-tabular font-bold text-[#134a35] dark:text-[#E2B354]">
+                <div className="flex items-center gap-2 text-xs text-[var(--theme-muted)]">
+                  <span className="font-mono-tabular font-bold text-[var(--theme-primary)]">
                     {selectedItem.code}
                   </span>
                   <span aria-hidden="true">·</span>
@@ -661,7 +661,7 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
                 </div>
                 <h2
                   id="ecode-detail-title"
-                  className="font-display mt-0.5 text-xl font-semibold text-[#103d2c] dark:text-white"
+                  className="font-display mt-0.5 text-xl font-semibold text-[var(--theme-heading)]"
                 >
                   {selectedItem.name}
                 </h2>
@@ -671,7 +671,7 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
                 type="button"
                 onClick={() => setSelectedItem(null)}
                 aria-label="Tutup detail E-Code"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#dce4df] bg-white text-[#354c3e] hover:bg-[#edf3ef] dark:border-slate-700 dark:bg-[#111A27] dark:text-slate-300"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--theme-border-strong)] bg-[var(--theme-card)] text-[var(--theme-nav-muted)] hover:bg-[var(--theme-tint-bg)]"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -695,7 +695,7 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
               })()}
 
               {detailLoading && (
-                <div className="flex items-center gap-2 text-xs text-[#5e6a62] dark:text-slate-400">
+                <div className="flex items-center gap-2 text-xs text-[var(--theme-muted)]">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   <span>Memuat detail tambahan…</span>
                 </div>
@@ -703,10 +703,10 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
 
               {selectedItem.description && (
                 <div>
-                  <h3 className="text-xs font-semibold tracking-wide text-[#5e6a62] uppercase dark:text-slate-400">
+                  <h3 className="text-xs font-semibold tracking-wide text-[var(--theme-muted)] uppercase">
                     Keterangan &amp; Fungsi Bahan
                   </h3>
-                  <p className="mt-1 text-sm leading-relaxed text-[#1d2c24] dark:text-slate-200">
+                  <p className="mt-1 text-sm leading-relaxed text-[var(--theme-ink)]">
                     {selectedItem.description}
                   </p>
                 </div>
@@ -714,10 +714,10 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
 
               {selectedItem.source && (
                 <div>
-                  <h3 className="text-xs font-semibold tracking-wide text-[#5e6a62] uppercase dark:text-slate-400">
+                  <h3 className="text-xs font-semibold tracking-wide text-[var(--theme-muted)] uppercase">
                     Kemungkinan Sumber Bahan
                   </h3>
-                  <p className="mt-1 text-sm leading-relaxed text-[#1d2c24] dark:text-slate-200">
+                  <p className="mt-1 text-sm leading-relaxed text-[var(--theme-ink)]">
                     {selectedItem.source}
                   </p>
                 </div>
@@ -725,20 +725,20 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
 
               {selectedItem.note && (
                 <div>
-                  <h3 className="text-xs font-semibold tracking-wide text-[#5e6a62] uppercase dark:text-slate-400">
+                  <h3 className="text-xs font-semibold tracking-wide text-[var(--theme-muted)] uppercase">
                     Catatan Tambahan
                   </h3>
-                  <p className="mt-1 text-sm leading-relaxed text-[#1d2c24] dark:text-slate-200">
+                  <p className="mt-1 text-sm leading-relaxed text-[var(--theme-ink)]">
                     {selectedItem.note}
                   </p>
                 </div>
               )}
 
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#e8eeea] pt-4 dark:border-slate-800">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--theme-border-soft)] pt-4">
                 <button
                   type="button"
                   onClick={() => void handleCopyItem(selectedItem)}
-                  className="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl border border-[#dce4df] bg-[#f8faf9] px-4 text-xs font-semibold text-[#103d2c] hover:bg-[#edf3ef] dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200"
+                  className="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl border border-[var(--theme-border-strong)] bg-[var(--theme-card-alt)] px-4 text-xs font-semibold text-[var(--theme-heading)] hover:bg-[var(--theme-tint-bg)]"
                 >
                   {copiedCode === selectedItem.code ? (
                     <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -751,7 +751,7 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedItem(null)}
-                  className="min-h-[42px] rounded-xl bg-[#134a35] px-5 text-xs font-semibold text-white hover:bg-[#0e3928] dark:bg-[#E2B354] dark:text-[#0B111A]"
+                  className="min-h-[42px] rounded-xl bg-[var(--theme-primary)] px-5 text-xs font-semibold text-[var(--theme-primary-text)] hover:bg-[var(--theme-primary-hover)]"
                 >
                   Tutup
                 </button>

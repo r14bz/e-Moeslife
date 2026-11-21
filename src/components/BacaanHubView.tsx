@@ -288,7 +288,7 @@ export const BacaanHubView: React.FC<BacaanHubViewProps> = ({
                       type="button"
                       onClick={() => onOpenSectionIndex(i)}
                       style={{ borderBottom: "1px solid var(--tashrif-border-cell)" }}
-                      className="flex min-h-[46px] w-full items-center justify-between gap-3 px-4 py-2.5 text-left transition-colors last:border-b-0 hover:bg-emerald-900/5 dark:hover:bg-amber-400/5"
+                      className="flex min-h-[46px] w-full items-center justify-between gap-3 px-4 py-2.5 text-left transition-colors last:border-b-0 hover:bg-[var(--tashrif-dropdown-hover)]"
                     >
                       <div className="flex min-w-0 items-center gap-3">
                         <span

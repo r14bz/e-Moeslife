@@ -41,6 +41,8 @@ export default defineConfig(() => {
           "assets/logo-text.webp",
           "assets/collection-icon.webp",
           "assets/mosque-banner.webp",
+          "assets/sounds/notif_shalat.wav",
+          "assets/sounds/notif_update.wav",
         ],
         manifest: {
           id: "/",

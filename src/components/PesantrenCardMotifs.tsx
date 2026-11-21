@@ -6,6 +6,7 @@ import {
   Droplets,
   HandHeart,
   Library,
+  MapPin,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
@@ -22,6 +23,7 @@ export type CollectionIconId =
   | "tafsir"
   | "qibla"
   | "ecode"
+  | "mosque"
   | "kitab";
 
 interface CollectionVisualStyle {
@@ -92,89 +94,85 @@ export const COLLECTION_VISUALS: Record<CollectionIconId, CollectionVisualStyle>
   tahlil: {
     subtitle: "Tawasul, tahlil & doa",
     boxClass:
-      "border-[#cde2d7] bg-[#ebf5ef] text-[#134a35] dark:border-[#1f4235] dark:bg-[#142b23] dark:text-[#74d6ab]",
-    arrowClass:
-      "bg-[#eef5f1] text-[#134a35] dark:bg-[#182942] dark:text-[#E2B354]",
+      "border-[var(--theme-tint-border)] bg-[var(--theme-tint-bg)] text-[var(--theme-tint-text)]",
+    arrowClass: "bg-[var(--theme-tint-bg)] text-[var(--theme-tint-text)]",
     icon: <RubElHizbIcon className="h-5 w-5" />,
   },
   yasin: {
     subtitle: "83 ayat & keutamaan",
     boxClass:
       "border-[#e8d9b4] bg-[#fbf5e6] text-[#8d6820] dark:border-[#42351b] dark:bg-[#272011] dark:text-[#E2B354]",
-    arrowClass:
-      "bg-[#f8f3e6] text-[#8d6820] dark:bg-[#182942] dark:text-[#E2B354]",
+    arrowClass: "bg-[var(--theme-tint-bg)] text-[var(--theme-tint-text)]",
     icon: <MushafOpenIcon className="h-5 w-5" />,
   },
   rahman: {
     subtitle: "78 ayat · Arab & arti",
     boxClass:
       "border-[#e8d9b4] bg-[#fbf5e6] text-[#8d6820] dark:border-[#42351b] dark:bg-[#272011] dark:text-[#E2B354]",
-    arrowClass:
-      "bg-[#f8f3e6] text-[#8d6820] dark:bg-[#182942] dark:text-[#E2B354]",
+    arrowClass: "bg-[var(--theme-tint-bg)] text-[var(--theme-tint-text)]",
     icon: <Sparkles className="h-5 w-5" />,
   },
   "wudhu-shalat": {
     subtitle: "Tata cara, niat & Qunut",
     boxClass:
-      "border-[#cce0dd] bg-[#ecf5f4] text-[#184f4a] dark:border-[#1e3e3d] dark:bg-[#122828] dark:text-[#6ecbc3]",
-    arrowClass:
-      "bg-[#eef5f4] text-[#184f4a] dark:bg-[#182942] dark:text-[#E2B354]",
+      "border-[var(--theme-tint-border)] bg-[var(--theme-tint-bg)] text-[var(--theme-tint-text)]",
+    arrowClass: "bg-[var(--theme-tint-bg)] text-[var(--theme-tint-text)]",
     icon: <Droplets className="h-5 w-5" />,
   },
   dzikir: {
     subtitle: "Wirid seusai shalat",
     boxClass:
-      "border-[#cde2d7] bg-[#ebf5ef] text-[#134a35] dark:border-[#1f4235] dark:bg-[#142b23] dark:text-[#74d6ab]",
-    arrowClass:
-      "bg-[#eef5f1] text-[#134a35] dark:bg-[#182942] dark:text-[#E2B354]",
+      "border-[var(--theme-tint-border)] bg-[var(--theme-tint-bg)] text-[var(--theme-tint-text)]",
+    arrowClass: "bg-[var(--theme-tint-bg)] text-[var(--theme-tint-text)]",
     icon: <TasbihIcon className="h-5 w-5" />,
   },
   doa: {
     subtitle: "Do'a pilihan harian",
     boxClass:
       "border-[#cce0dd] bg-[#ecf5f4] text-[#184f4a] dark:border-[#1e3e3d] dark:bg-[#122828] dark:text-[#6ecbc3]",
-    arrowClass:
-      "bg-[#eef5f4] text-[#184f4a] dark:bg-[#182942] dark:text-[#E2B354]",
+    arrowClass: "bg-[var(--theme-tint-bg)] text-[var(--theme-tint-text)]",
     icon: <HandHeart className="h-5 w-5" />,
   },
   quran: {
     subtitle: "30 juz + audio qari",
     boxClass:
       "border-[#e8d9b4] bg-[#fbf5e6] text-[#8d6820] dark:border-[#42351b] dark:bg-[#272011] dark:text-[#E2B354]",
-    arrowClass:
-      "bg-[#f8f3e6] text-[#8d6820] dark:bg-[#182942] dark:text-[#E2B354]",
+    arrowClass: "bg-[var(--theme-tint-bg)] text-[var(--theme-tint-text)]",
     icon: <BookOpen className="h-5 w-5" />,
   },
   tafsir: {
     subtitle: "Tafsir per surah",
     boxClass:
       "border-[#cce0dd] bg-[#ecf5f4] text-[#184f4a] dark:border-[#1e3e3d] dark:bg-[#122828] dark:text-[#6ecbc3]",
-    arrowClass:
-      "bg-[#eef5f4] text-[#184f4a] dark:bg-[#182942] dark:text-[#E2B354]",
+    arrowClass: "bg-[var(--theme-tint-bg)] text-[var(--theme-tint-text)]",
     icon: <BookMarked className="h-5 w-5" />,
   },
   qibla: {
     subtitle: "Kompas arah Ka'bah",
     boxClass:
-      "border-[#cde2d7] bg-[#ebf5ef] text-[#134a35] dark:border-[#1f4235] dark:bg-[#142b23] dark:text-[#74d6ab]",
-    arrowClass:
-      "bg-[#eef5f1] text-[#134a35] dark:bg-[#182942] dark:text-[#E2B354]",
+      "border-[var(--theme-tint-border)] bg-[var(--theme-tint-bg)] text-[var(--theme-tint-text)]",
+    arrowClass: "bg-[var(--theme-tint-bg)] text-[var(--theme-tint-text)]",
     icon: <Compass className="h-5 w-5" />,
   },
   ecode: {
     subtitle: "Cek bahan E100–E1521",
     boxClass:
       "border-[#e8d9b4] bg-[#fbf5e6] text-[#8d6820] dark:border-[#42351b] dark:bg-[#272011] dark:text-[#E2B354]",
-    arrowClass:
-      "bg-[#f8f3e6] text-[#8d6820] dark:bg-[#182942] dark:text-[#E2B354]",
+    arrowClass: "bg-[var(--theme-tint-bg)] text-[var(--theme-tint-text)]",
     icon: <ShieldCheck className="h-5 w-5" />,
   },
-  kitab: {
-    subtitle: "24 kitab & syarah",
+  mosque: {
+    subtitle: "Cari terdekat · Maps",
     boxClass:
-      "border-[#0f3b2a] bg-[#134a35] text-[#f3d896] dark:border-[#c99b3c] dark:bg-[#E2B354] dark:text-[#0B111A]",
-    arrowClass:
-      "bg-[#eef5f1] text-[#134a35] dark:bg-[#182942] dark:text-[#E2B354]",
+      "border-[#cce0dd] bg-[#ecf5f4] text-[#184f4a] dark:border-[#1e3e3d] dark:bg-[#122828] dark:text-[#6ecbc3]",
+    arrowClass: "bg-[var(--theme-tint-bg)] text-[var(--theme-tint-text)]",
+    icon: <MapPin className="h-5 w-5" />,
+  },
+  kitab: {
+    subtitle: "Koleksi kitab & syarah",
+    boxClass:
+      "border-[var(--theme-hero-border)] bg-[var(--theme-primary)] text-[var(--theme-primary-text)]",
+    arrowClass: "bg-[var(--theme-tint-bg)] text-[var(--theme-tint-text)]",
     icon: <Library className="h-5 w-5" />,
   },
 };

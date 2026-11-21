@@ -31,7 +31,7 @@ export const AlfiyahBaitCard: React.FC<AlfiyahBaitCardProps> = ({
           background: "transparent",
           border: "none",
         }}
-        className="cursor-pointer items-stretch transition-colors hover:bg-emerald-900/5 dark:hover:bg-amber-400/5"
+        className="cursor-pointer items-stretch transition-colors hover:bg-[var(--tashrif-dropdown-hover)]"
       >
         {/* Kolom Kanan: Shadr */}
         <div

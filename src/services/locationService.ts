@@ -113,3 +113,25 @@ export async function getCurrentCoordinates(options?: {
     longitude: position.coords.longitude,
   };
 }
+
+export async function requestLocationPermissionNow(): Promise<boolean> {
+  if (Capacitor.isNativePlatform()) {
+    try {
+      if (startupPromptPromise) {
+        await startupPromptPromise.catch(() => undefined);
+      }
+      const status = await Geolocation.checkPermissions();
+      if (status.location === "granted" || status.coarseLocation === "granted") {
+        return true;
+      }
+      const requested = await Geolocation.requestPermissions({
+        permissions: ["location", "coarseLocation"],
+      });
+      return requested.location === "granted" || requested.coarseLocation === "granted";
+    } catch {
+      return false;
+    }
+  }
+  return true;
+}
+

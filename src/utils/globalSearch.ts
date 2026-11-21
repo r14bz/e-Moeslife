@@ -56,7 +56,16 @@ interface IndexedChapter {
   displayText: string;
 }
 
-const HEAVY_SLUGS = new Set(["bulughul", "muwatta", "jalalain", "muslim", "riyadhus"]);
+const HEAVY_SLUGS = new Set([
+  "bulughul",
+  "muwatta",
+  "jalalain",
+  "muslim",
+  "riyadhus",
+  "qarib",
+  "fathul-muin",
+  "kasyifatus-saja",
+]);
 
 // Module-level caches for instant repeated searches
 const kitabChapterCache: Record<string, IndexedChapter[]> = {};
@@ -289,6 +298,66 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
     return indexed;
   }
 
+  if (book.format === "turats") {
+    const { loadTuratsBook } = await import("./turatsLoader");
+    const turatsSlug = book.slug as
+      | "qarib"
+      | "fathul-muin"
+      | "kasyifatus-saja"
+      | "bahjatul-wasail"
+      | "alhikam";
+    const kitab = await loadTuratsBook(turatsSlug);
+    const indexed: IndexedChapter[] = (kitab.daftarBab || []).map((bab) => {
+      const text = bab.paragraf.map((p) => `${p.arab} ${p.arti}`).join(" ");
+      const title = `${bab.nomorBab}. ${bab.judulLatin}`;
+      const displayText = `${bab.judulArab} · ${bab.rentangHalaman} · ${text}`;
+      return {
+        title,
+        displayText,
+        searchText: `${title} ${bab.judulArab} ${text}`.toLocaleLowerCase("id"),
+      };
+    });
+    kitabChapterCache[book.slug] = indexed;
+    return indexed;
+  }
+
+  if (book.format === "qathrul-ghaits") {
+    const { kitabQathrulGhaits } = await import("../data/qathrulGhaits");
+    const indexed: IndexedChapter[] = kitabQathrulGhaits.daftarLembaran.map((lembaran) => {
+      const text = lembaran.paragraf.map((p) => `${p.arab} ${p.arti}`).join(" ");
+      const title = `${lembaran.nomorLembaran}. ${lembaran.judulLatin}`;
+      const displayText = `${lembaran.judulArab} · ${text}`;
+      return {
+        title,
+        displayText,
+        searchText: `${title} ${lembaran.judulArab} ${text}`.toLocaleLowerCase("id"),
+      };
+    });
+    kitabChapterCache[book.slug] = indexed;
+    return indexed;
+  }
+
+  if (book.format === "tijan-darori") {
+    const { tijanDaroriData } = await import("../data/tijan-darori");
+    const indexed: IndexedChapter[] = tijanDaroriData.map((bab) => {
+      const itemsText = bab.items
+        .map(
+          (item) =>
+            `${item.judul} ${item.kelompokSifat || ""} ${item.lawanSifat || ""} ${item.matanArab} ${item.terjemahMatan} ${item.syarahArab || ""} ${item.penjelasanSyarah}`
+        )
+        .join(" ");
+      const title = `${bab.nomorBab}. ${bab.judulBab}`;
+      const displayText = `${bab.judulBabArab} · ${bab.deskripsiSingkat} · ${itemsText}`;
+      return {
+        title,
+        displayText,
+        searchText: `${title} ${bab.judulBabArab} ${bab.deskripsiSingkat} ${itemsText}`.toLocaleLowerCase("id"),
+      };
+    });
+    kitabChapterCache[book.slug] = indexed;
+    return indexed;
+  }
+
   if (book.source !== "local" || !book.file) return [];
 
   const res = await fetch(`/data/${book.file}`, { signal });
@@ -414,11 +483,11 @@ export function runInstantGlobalSearch({
     return { kitab: [], quran: [], doa: [], guide: [], classic: [] };
   }
 
-  const kitab: KitabSearchMatch[] = [];
+  const kitabMap = new Map<string, KitabSearchMatch>();
   for (const book of books) {
     const titleHit = `${book.title} ${book.category}`.toLocaleLowerCase("id").includes(q);
     if (titleHit) {
-      kitab.push({
+      kitabMap.set(`${book.slug}:0`, {
         book,
         chapterIndex: 0,
         chapterTitle: book.category,
@@ -432,7 +501,7 @@ export function runInstantGlobalSearch({
       for (let i = 0; i < cached.length && bookMatches < 2; i += 1) {
         const ch = cached[i];
         if (ch.title.toLocaleLowerCase("id").includes(q)) {
-          kitab.push({
+          kitabMap.set(`${book.slug}:${i}`, {
             book,
             chapterIndex: i,
             chapterTitle: ch.title,
@@ -441,7 +510,7 @@ export function runInstantGlobalSearch({
           });
           bookMatches += 1;
         } else if (ch.searchText.includes(q)) {
-          kitab.push({
+          kitabMap.set(`${book.slug}:${i}`, {
             book,
             chapterIndex: i,
             chapterTitle: ch.title,
@@ -453,6 +522,7 @@ export function runInstantGlobalSearch({
       }
     }
   }
+  const kitab = Array.from(kitabMap.values());
 
   const guide = guideDataCache ? searchGuideData(guideDataCache, q) : [];
 

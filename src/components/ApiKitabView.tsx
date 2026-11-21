@@ -140,7 +140,7 @@ export const ApiKitabView: React.FC<ApiKitabViewProps> = ({
       {/* Top Action Bar */}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2.5 sm:mb-4">
         {focusMode ? (
-          <p className="min-w-0 truncate text-xs font-semibold text-[#5e6a62] dark:text-slate-400">
+          <p className="min-w-0 truncate text-xs font-semibold text-[var(--theme-muted)]">
             Mode Fokus · {title}
           </p>
         ) : (
@@ -148,7 +148,7 @@ export const ApiKitabView: React.FC<ApiKitabViewProps> = ({
             <button
               type="button"
               onClick={onBackToLibrary}
-              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-[#dce4df] bg-[#ffffff] px-3 text-xs font-semibold text-[#174231] hover:bg-[#edf2ef] dark:border-slate-800 dark:bg-[#111A27] dark:text-slate-200"
+              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-[var(--theme-border-strong)] bg-[var(--theme-card)] px-3 text-xs font-semibold text-[var(--theme-nav-muted)] hover:bg-[var(--theme-card-alt)]"
             >
               <ArrowLeft className="h-4 w-4" />
               <span>Perpustakaan</span>
@@ -157,7 +157,7 @@ export const ApiKitabView: React.FC<ApiKitabViewProps> = ({
             <button
               type="button"
               onClick={onGoHome}
-              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-[#dce4df] bg-[#ffffff] px-3 text-xs font-semibold text-[#174231] hover:bg-[#edf2ef] dark:border-slate-800 dark:bg-[#111A27] dark:text-slate-200"
+              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-[var(--theme-border-strong)] bg-[var(--theme-card)] px-3 text-xs font-semibold text-[var(--theme-nav-muted)] hover:bg-[var(--theme-card-alt)]"
             >
               <Home className="h-4 w-4" />
               <span>Beranda</span>
@@ -166,7 +166,7 @@ export const ApiKitabView: React.FC<ApiKitabViewProps> = ({
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}
-              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-[#dce4df] bg-[#ffffff] px-3 text-xs font-semibold text-[#174231] lg:hidden dark:border-slate-800 dark:bg-[#111A27] dark:text-slate-200"
+              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-[var(--theme-border-strong)] bg-[var(--theme-card)] px-3 text-xs font-semibold text-[var(--theme-nav-muted)] lg:hidden"
             >
               <List className="h-4 w-4" />
               <span>Daftar Bab ({chapters.length})</span>
@@ -181,8 +181,8 @@ export const ApiKitabView: React.FC<ApiKitabViewProps> = ({
             title={focusMode ? "Keluar mode fokus" : "Mode fokus membaca"}
             className={`inline-flex items-center gap-1.5 rounded-xl font-semibold transition-colors ${
               focusMode
-                ? "min-h-[36px] border border-[#dce4df] bg-[#ffffff] px-3 text-xs text-[#174231] hover:bg-[#edf2ef] dark:border-slate-700 dark:bg-[#111A27] dark:text-[#E2B354]"
-                : "min-h-[40px] bg-[#134a35] px-3 text-xs text-[#ffffff] hover:bg-[#0e3928] dark:bg-[#E2B354] dark:text-[#0B111A]"
+                ? "min-h-[36px] border border-[var(--theme-border-strong)] bg-[var(--theme-card)] px-3 text-xs text-[var(--theme-primary)] hover:bg-[var(--theme-card-alt)]"
+                : "min-h-[40px] bg-[var(--theme-primary)] px-3 text-xs text-[var(--theme-primary-text)] hover:bg-[var(--theme-primary-hover)]"
             }`}
           >
             {focusMode ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
@@ -209,25 +209,25 @@ export const ApiKitabView: React.FC<ApiKitabViewProps> = ({
 
         {!focusMode && (
           <aside
-            className={`fixed inset-y-0 left-0 z-50 flex w-80 flex-col border-r border-[#e2e8e4] bg-[#ffffff] p-4 transition-transform duration-200 lg:sticky lg:top-20 lg:z-10 lg:max-h-[calc(100vh-100px)] lg:w-auto lg:translate-x-0 lg:rounded-2xl lg:border ${
+            className={`fixed inset-y-0 left-0 z-50 flex w-80 flex-col border-r border-[var(--theme-border)] bg-[var(--theme-card)] p-4 transition-transform duration-200 lg:sticky lg:top-20 lg:z-10 lg:max-h-[calc(100vh-100px)] lg:w-auto lg:translate-x-0 lg:rounded-2xl lg:border ${
               drawerOpen ? "translate-x-0" : "-translate-x-full"
-            } dark:border-slate-800 dark:bg-[#111A27]`}
+            }`}
           >
-            <div className="flex items-start justify-between gap-2 border-b border-[#e8eeea] pb-3 dark:border-slate-800">
+            <div className="flex items-start justify-between gap-2 border-b border-[var(--theme-border-soft)] pb-3">
               <div>
-                <p className="text-[11px] font-semibold tracking-wider text-[#9c7d3c] uppercase dark:text-[#E2B354]">
+                <p className="text-[11px] font-semibold tracking-wider text-[var(--theme-accent)] uppercase">
                   Katalog Online
                 </p>
-                <h2 className="font-display mt-0.5 text-base font-semibold text-[#103d2c] dark:text-white">
+                <h2 className="font-display mt-0.5 text-base font-semibold text-[var(--theme-heading)]">
                   {title}
                 </h2>
-                <p className="text-xs text-[#7c745f] dark:text-slate-400">{chapters.length} bab</p>
+                <p className="text-xs text-[var(--theme-muted)]">{chapters.length} bab</p>
               </div>
               <button
                 type="button"
                 onClick={() => setDrawerOpen(false)}
                 aria-label="Tutup daftar bab"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#dce4df] text-[#174231] lg:hidden dark:border-slate-700 dark:text-slate-300"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--theme-border-strong)] text-[var(--theme-nav-muted)] lg:hidden"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -243,8 +243,8 @@ export const ApiKitabView: React.FC<ApiKitabViewProps> = ({
                     onClick={() => openChapter(ch, idx, chapters)}
                     className={`flex min-h-[38px] w-full items-start gap-2 rounded-xl px-3 py-2 text-left text-xs transition-colors ${
                       isActive
-                        ? "bg-[#134a35] font-semibold text-[#ffffff] dark:bg-[#1D3557]"
-                        : "text-[#354c3e] hover:bg-[#edf2ef] dark:text-slate-300 dark:hover:bg-[#172334]"
+                        ? "bg-[var(--theme-sidebar-active)] font-semibold text-[var(--theme-sidebar-active-text)]"
+                        : "text-[var(--theme-nav-muted)] hover:bg-[var(--theme-tint-bg)]"
                     }`}
                   >
                     <span className="font-mono-tabular shrink-0 opacity-70">
@@ -263,12 +263,12 @@ export const ApiKitabView: React.FC<ApiKitabViewProps> = ({
           <article
             ref={readingCardRef}
             key={`${slug}-${activeIndex}-${chapterLoading ? "loading" : "ready"}`}
-            className={`scroll-mt-20 rounded-2xl border border-[#e2e8e4] bg-[#ffffff] shadow-xs dark:border-slate-800 dark:bg-[#111A27] page-enter-${
+            className={`scroll-mt-20 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] shadow-xs page-enter-${
               chapterLoading ? "fade" : turnDir
             } ${focusMode ? "p-4 sm:p-8" : "p-5 sm:p-7"}`}
           >
             {(loading || chapterLoading) && (
-              <p className="py-12 text-center text-sm text-[#766f5d] dark:text-slate-400">Memuat data kitab…</p>
+              <p className="py-12 text-center text-sm text-[var(--theme-muted)]">Memuat data kitab…</p>
             )}
 
             {error && !loading && (
@@ -279,17 +279,17 @@ export const ApiKitabView: React.FC<ApiKitabViewProps> = ({
 
             {!loading && !chapterLoading && !error && activeEntry && (
               <>
-                <div className="border-b border-[#e8eeea] pb-4 dark:border-slate-800">
+                <div className="border-b border-[var(--theme-border-soft)] pb-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-[#7c745f] dark:text-slate-400">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--theme-muted)]">
                         <span>{title}</span>
                         <span aria-hidden="true">·</span>
                         <span>
                           Bab {activeIndex + 1} dari {currentList.length}
                         </span>
                       </div>
-                      <h1 className="font-display mt-1.5 text-xl font-semibold text-[#103d2c] sm:text-2xl dark:text-white">
+                      <h1 className="font-display mt-1.5 text-xl font-semibold text-[var(--theme-heading)] sm:text-2xl">
                         {activeEntry.title || `Bab ${activeIndex + 1}`}
                       </h1>
                     </div>
@@ -301,7 +301,7 @@ export const ApiKitabView: React.FC<ApiKitabViewProps> = ({
                         onClick={() => openChapter(currentList[activeIndex - 1], activeIndex - 1, currentList)}
                         aria-label="Bab sebelumnya"
                         title="Bab sebelumnya"
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#dce4df] bg-[#f4f7f5] text-[#174231] transition-colors hover:bg-[#e6ede9] disabled:opacity-35 dark:border-slate-700 dark:bg-[#162131] dark:text-slate-200"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--theme-border-strong)] bg-[var(--theme-card-alt)] text-[var(--theme-nav-muted)] transition-colors hover:bg-[var(--theme-tint-bg)] disabled:opacity-35"
                       >
                         <ChevronLeft className="h-4 w-4" />
                       </button>
@@ -311,7 +311,7 @@ export const ApiKitabView: React.FC<ApiKitabViewProps> = ({
                         onClick={() => openChapter(currentList[activeIndex + 1], activeIndex + 1, currentList)}
                         aria-label="Bab berikutnya"
                         title="Bab berikutnya"
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#134a35] text-[#ffffff] transition-colors hover:bg-[#0e3928] disabled:opacity-35 dark:bg-[#E2B354] dark:text-[#0B111A]"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--theme-primary)] text-[var(--theme-primary-text)] transition-colors hover:bg-[var(--theme-primary-hover)] disabled:opacity-35"
                       >
                         <ChevronRight className="h-4 w-4" />
                       </button>
@@ -323,23 +323,23 @@ export const ApiKitabView: React.FC<ApiKitabViewProps> = ({
                   <p
                     lang="ar"
                     dir="rtl"
-                    className="arabic-reader-text mt-5 whitespace-pre-wrap text-right text-[#1c2b23] dark:text-[#EDF2F7]"
+                    className="arabic-reader-text mt-5 whitespace-pre-wrap text-right text-[var(--tashrif-ink)]"
                   >
                     {arabicText}
                   </p>
                 )}
                 {latinText && (
-                  <p className="latin-reader-text mt-4 whitespace-pre-wrap text-[#7a6d56] italic dark:text-slate-400">
+                  <p className="latin-reader-text mt-4 whitespace-pre-wrap text-[var(--theme-muted)] italic">
                     {latinText}
                   </p>
                 )}
                 {indoText && (
-                  <p className="prose-reader-text mt-4 whitespace-pre-wrap text-[#2e3e34] dark:text-slate-300">
+                  <p className="prose-reader-text mt-4 whitespace-pre-wrap text-[var(--theme-ink)]">
                     {indoText}
                   </p>
                 )}
                 {refText && (
-                  <p className="mt-4 text-xs text-[#7c745f] dark:text-slate-400">Referensi: {refText}</p>
+                  <p className="mt-4 text-xs text-[var(--theme-muted)]">Referensi: {refText}</p>
                 )}
               </>
             )}
