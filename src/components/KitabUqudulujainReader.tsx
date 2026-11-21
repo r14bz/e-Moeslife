@@ -15,6 +15,7 @@ export const KitabUqudulujainReader: React.FC<KitabUqudulujainReaderProps> = ({
   const [selectedBabId, setSelectedBabId] = useState<number>(initialBabId || defaultBabId);
   const [openAllArti, setOpenAllArti] = useState<boolean>(false);
   const [openItemIds, setOpenItemIds] = useState<Record<number, boolean>>({});
+  const [turnDir, setTurnDir] = useState<"next" | "prev" | "fade">("fade");
   const readingCardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -23,6 +24,7 @@ export const KitabUqudulujainReader: React.FC<KitabUqudulujainReaderProps> = ({
       : defaultBabId;
     setSelectedBabId(valid);
     setOpenItemIds({});
+    setTurnDir("fade");
   }, [initialBabId, defaultBabId]);
 
   const currentBabIndex = useMemo(
@@ -40,6 +42,16 @@ export const KitabUqudulujainReader: React.FC<KitabUqudulujainReaderProps> = ({
   };
 
   const handleSelectBab = (id: number) => {
+    const nextIndex = semuaBabUqudulujain.findIndex((b) => b.id === id);
+    setTurnDir(
+      nextIndex >= 0 && currentBabIndex >= 0
+        ? nextIndex > currentBabIndex
+          ? "next"
+          : nextIndex < currentBabIndex
+            ? "prev"
+            : "fade"
+        : "fade"
+    );
     setSelectedBabId(id);
     setOpenItemIds({});
     scrollToReadingCard();
@@ -156,6 +168,7 @@ export const KitabUqudulujainReader: React.FC<KitabUqudulujainReaderProps> = ({
       {/* Bingkai Utama Kitab dengan Double Border */}
       {activeBab && (
         <div
+          key={activeBab.id}
           ref={readingCardRef}
           style={{
             marginBottom: "0.95rem",
@@ -163,7 +176,7 @@ export const KitabUqudulujainReader: React.FC<KitabUqudulujainReaderProps> = ({
             border: "4px double var(--tashrif-border-strong)",
             borderRadius: "0.75rem",
           }}
-          className="scroll-mt-20 overflow-hidden shadow-xs"
+          className={`scroll-mt-20 overflow-hidden shadow-xs page-enter-${turnDir}`}
         >
           <div
             style={{

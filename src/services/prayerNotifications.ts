@@ -2,13 +2,26 @@ import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import type { DailyPrayerSchedule, PrayerLocation } from "../types/emoeslife";
 import { PRAYERS } from "../utils/prayerEngine";
-import { playNotificationSound } from "./notificationAudio";
+import {
+  playNotificationSound,
+  type NotificationSoundKind,
+} from "./notificationAudio";
+
+export type PrayerNotificationSoundMode = "adzan" | "chime";
 
 export const PRAYER_NOTIF_STORAGE_KEY = "em-prayer-notif-enabled-v1";
+export const PRAYER_SOUND_MODE_KEY = "em-prayer-sound-mode-v1";
 const PRAYER_NOTIF_LAST_FIRED_KEY = "em-prayer-notif-last-fired-v1";
+
 const LEGACY_PRAYER_CHANNEL_ID = "jadwal-shalat";
-const PRAYER_CHANNEL_ID = "jadwal-shalat-v2";
-const PRAYER_SOUND_RES = "notif_shalat.wav";
+const CHIME_CHANNEL_ID = "jadwal-shalat-v2";
+const ADZAN_CHANNEL_ID = "jadwal-shalat-adzan-v1";
+const ADZAN_SUBUH_CHANNEL_ID = "jadwal-shalat-adzan-subuh-v1";
+
+const CHIME_SOUND_RES = "notif_shalat.wav";
+const ADZAN_SOUND_RES = "adzan.mp3";
+const ADZAN_SUBUH_SOUND_RES = "adzan_subuh.mp3";
+
 const PRAYER_ID_MIN = 510000;
 const PRAYER_ID_MAX = 510199;
 
@@ -27,6 +40,27 @@ export function setPrayerNotificationsEnabled(enabled: boolean): void {
   } catch {
     // ignore storage failures
   }
+}
+
+export function getPrayerSoundMode(): PrayerNotificationSoundMode {
+  try {
+    const saved = localStorage.getItem(PRAYER_SOUND_MODE_KEY);
+    return saved === "chime" ? "chime" : "adzan";
+  } catch {
+    return "adzan";
+  }
+}
+
+export function setPrayerSoundMode(mode: PrayerNotificationSoundMode): void {
+  try {
+    localStorage.setItem(PRAYER_SOUND_MODE_KEY, mode);
+  } catch {
+    // ignore storage failures
+  }
+}
+
+export function getAdzanSoundKindForPrayer(prayerKey: string): NotificationSoundKind {
+  return prayerKey === "subuh" ? "adzan_subuh" : "adzan";
 }
 
 function getZoneOffset(zone: PrayerLocation["zone"]): string {
@@ -57,17 +91,38 @@ function parseScheduleDate(
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-async function ensureChannel(): Promise<void> {
+async function ensureChannels(): Promise<void> {
   if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "android") return;
   try {
     await LocalNotifications.deleteChannel({ id: LEGACY_PRAYER_CHANNEL_ID }).catch(() => undefined);
+
     await LocalNotifications.createChannel({
-      id: PRAYER_CHANNEL_ID,
-      name: "Pengingat Waktu Shalat",
-      description: "Notifikasi bersuara otomatis saat memasuki waktu shalat fardhu",
+      id: ADZAN_CHANNEL_ID,
+      name: "Adzan Waktu Shalat",
+      description: "Suara adzan otomatis saat memasuki waktu shalat Dzuhur, Ashar, Maghrib, dan Isya",
       importance: 4,
       visibility: 1,
-      sound: PRAYER_SOUND_RES,
+      sound: ADZAN_SOUND_RES,
+      vibration: true,
+    });
+
+    await LocalNotifications.createChannel({
+      id: ADZAN_SUBUH_CHANNEL_ID,
+      name: "Adzan Waktu Subuh",
+      description: "Suara adzan Subuh otomatis saat memasuki waktu Subuh",
+      importance: 4,
+      visibility: 1,
+      sound: ADZAN_SUBUH_SOUND_RES,
+      vibration: true,
+    });
+
+    await LocalNotifications.createChannel({
+      id: CHIME_CHANNEL_ID,
+      name: "Nada Pengingat Shalat",
+      description: "Nada singkat pengingat otomatis saat memasuki waktu shalat fardhu",
+      importance: 4,
+      visibility: 1,
+      sound: CHIME_SOUND_RES,
       vibration: true,
     });
   } catch {
@@ -161,9 +216,10 @@ export async function syncPrayerNotifications(
       return { scheduledCount: 0, permission: "denied" };
     }
 
-    await ensureChannel();
+    await ensureChannels();
     await cancelScheduledPrayerNotifications();
 
+    const soundMode = getPrayerSoundMode();
     const zoneOffset = getZoneOffset(location.zone);
     const nowMs = Date.now();
     const horizonMs = nowMs + 7 * 24 * 60 * 60 * 1000;
@@ -173,6 +229,7 @@ export async function syncPrayerNotifications(
       body: string;
       channelId: string;
       sound: string;
+      extra: Record<string, string>;
       schedule: { at: Date; allowWhileIdle: boolean };
     }> = [];
 
@@ -193,13 +250,34 @@ export async function syncPrayerNotifications(
           const fireMs = fireAt.getTime();
           if (fireMs <= nowMs + 1000 || fireMs > horizonMs) continue;
 
+          const prayerKey = String(prayer.key);
+          const isSubuh = prayerKey === "subuh";
+          const channelId =
+            soundMode === "chime"
+              ? CHIME_CHANNEL_ID
+              : isSubuh
+              ? ADZAN_SUBUH_CHANNEL_ID
+              : ADZAN_CHANNEL_ID;
+          const sound =
+            soundMode === "chime"
+              ? CHIME_SOUND_RES
+              : isSubuh
+              ? ADZAN_SUBUH_SOUND_RES
+              : ADZAN_SOUND_RES;
+
           const hhmm = String(timeVal).trim().slice(0, 5);
           notifications.push({
             id: PRAYER_ID_MIN + slotIndex,
             title: `Masuk Waktu ${prayer.label}`,
             body: `Pukul ${hhmm} ${location.zone} · Wilayah ${location.label}. Mari tunaikan shalat ${prayer.label}.`,
-            channelId: PRAYER_CHANNEL_ID,
-            sound: PRAYER_SOUND_RES,
+            channelId,
+            sound,
+            extra: {
+              type: "prayer-time",
+              prayerKey,
+              prayerLabel: prayer.label,
+              soundMode,
+            },
             schedule: {
               at: fireAt,
               allowWhileIdle: true,
@@ -252,8 +330,15 @@ export function triggerWebPrayerNotificationIfDue(
 
     const title = `Masuk Waktu ${prayer.label}`;
     const body = `Pukul ${prayerTime} ${location.zone} · Wilayah ${location.label}. Mari tunaikan shalat ${prayer.label}.`;
+    const soundMode = getPrayerSoundMode();
+    const soundKind =
+      soundMode === "chime"
+        ? "prayer"
+        : getAdzanSoundKindForPrayer(String(prayer.key));
 
-    playNotificationSound("prayer");
+    void playNotificationSound(soundKind, {
+      label: soundMode === "chime" ? "" : `Adzan ${prayer.label}`,
+    });
 
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.ready

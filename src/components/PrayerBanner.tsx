@@ -1,16 +1,27 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Bell, BellOff, MapPin, Compass, X } from "lucide-react";
+import { Bell, BellOff, MapPin, Compass, X, Volume2, Play, Square } from "lucide-react";
 import type { DailyPrayerSchedule, PrayerLocation, SkyScene } from "../types/emoeslife";
 import { ThemedSelect } from "./ThemedSelect";
 import { PERMISSIONS_READY_EVENT } from "../services/locationService";
 import {
+  clearBlockedNotificationAudio,
+  getNotificationAudioState,
+  playNotificationSound,
+  stopNotificationAudio,
+  subscribeNotificationAudio,
+  type NotificationAudioState,
+} from "../services/notificationAudio";
+import {
   disablePrayerNotifications,
+  getPrayerSoundMode,
   isPrayerNotificationsEnabled,
   requestPrayerNotificationPermission,
   setPrayerNotificationsEnabled,
+  setPrayerSoundMode,
   syncPrayerNotifications,
   triggerWebPrayerNotificationIfDue,
   type MonthlyBatch,
+  type PrayerNotificationSoundMode,
 } from "../services/prayerNotifications";
 import {
   PRAYER_STORAGE_KEY,
@@ -243,6 +254,9 @@ export const PrayerBanner: React.FC = () => {
   const [dialogLoading, setDialogLoading] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [notifEnabled, setNotifEnabled] = useState<boolean>(() => isPrayerNotificationsEnabled());
+  const [soundMode, setSoundMode] = useState<PrayerNotificationSoundMode>(() => getPrayerSoundMode());
+  const [soundPanelOpen, setSoundPanelOpen] = useState(false);
+  const [audioState, setAudioState] = useState<NotificationAudioState>(() => getNotificationAudioState());
   const [notifFeedback, setNotifFeedback] = useState<string>("");
 
   const locationRef = useRef(location);
@@ -358,11 +372,15 @@ export const PrayerBanner: React.FC = () => {
     };
     window.addEventListener(PERMISSIONS_READY_EVENT, onPermissionsReady);
     document.addEventListener("visibilitychange", onVisibilityChange);
+    const unsubscribeAudio = subscribeNotificationAudio((next) => {
+      if (mounted) setAudioState(next);
+    });
 
     return () => {
       mounted = false;
       window.removeEventListener(PERMISSIONS_READY_EVENT, onPermissionsReady);
       document.removeEventListener("visibilitychange", onVisibilityChange);
+      unsubscribeAudio();
     };
   }, []);
 
@@ -598,6 +616,37 @@ export const PrayerBanner: React.FC = () => {
     window.setTimeout(() => setNotifFeedback(""), 4000);
   };
 
+  const handleChangeSoundMode = async (mode: PrayerNotificationSoundMode) => {
+    setPrayerSoundMode(mode);
+    setSoundMode(mode);
+    stopNotificationAudio();
+    clearBlockedNotificationAudio();
+    if (notifEnabled && locationRef.current && monthlyBatchesRef.current.length > 0) {
+      await syncPrayerNotifications(locationRef.current, monthlyBatchesRef.current);
+    }
+    setNotifFeedback(
+      mode === "adzan"
+        ? "Suara notifikasi shalat diatur ke Suara Adzan."
+        : "Suara notifikasi shalat diatur ke Nada Singkat."
+    );
+    window.setTimeout(() => setNotifFeedback(""), 3500);
+  };
+
+  const handleTogglePreviewSound = (kind: "adzan" | "adzan_subuh" | "prayer") => {
+    if (audioState.isPlaying && audioState.kind === kind) {
+      stopNotificationAudio();
+      return;
+    }
+    void playNotificationSound(kind, {
+      label:
+        kind === "adzan_subuh"
+          ? "Adzan Subuh"
+          : kind === "adzan"
+          ? "Adzan"
+          : "Nada Pengingat",
+    });
+  };
+
   const sceneStyle = SCENE_STYLES[scene];
   const isLightSky = sceneStyle.isLightSky;
 
@@ -757,6 +806,26 @@ export const PrayerBanner: React.FC = () => {
                 </button>
                 <button
                   type="button"
+                  onClick={() => setSoundPanelOpen((prev) => !prev)}
+                  aria-expanded={soundPanelOpen}
+                  title="Atur & tes suara adzan notifikasi shalat"
+                  className={`inline-flex min-h-[34px] items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-semibold backdrop-blur-sm transition-colors ${
+                    soundPanelOpen || audioState.isPlaying
+                      ? isLightSky
+                        ? "border-[var(--theme-primary)] bg-[var(--theme-primary)] text-[var(--theme-primary-text)]"
+                        : "border-[#F3D792]/80 bg-[#E2B354]/30 text-[#FFF4D2]"
+                      : isLightSky
+                      ? "border-[var(--theme-border-strong)] bg-white/75 text-[var(--theme-heading)] hover:bg-white/95 dark:border-white/25 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+                      : "border-white/25 bg-white/15 text-white hover:bg-white/25"
+                  }`}
+                >
+                  <Volume2 className="h-3 w-3" />
+                  <span className="hidden sm:inline">
+                    {soundMode === "adzan" ? "Suara Adzan" : "Nada Singkat"}
+                  </span>
+                </button>
+                <button
+                  type="button"
                   onClick={openLocationDialog}
                   className={`inline-flex min-h-[34px] items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-semibold backdrop-blur-sm transition-colors ${
                     isLightSky
@@ -770,6 +839,190 @@ export const PrayerBanner: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {audioState.isPlaying && (
+            <div
+              role="status"
+              className={`flex flex-wrap items-center justify-between gap-2 rounded-xl border px-3 py-2 text-[11px] backdrop-blur-sm ${
+                isLightSky
+                  ? "border-[var(--theme-tint-border)] bg-white/85 text-[var(--theme-heading)] dark:border-[#F3D792]/40 dark:bg-slate-900/60 dark:text-[#F4D99B]"
+                  : "border-[#F3D792]/50 bg-[#E2B354]/25 text-[#FFF7DE]"
+              }`}
+            >
+              <span className="inline-flex items-center gap-1.5 font-semibold">
+                <Volume2 className="h-3.5 w-3.5 animate-pulse" />
+                <span>Mengumandangkan {audioState.label || "Adzan"}…</span>
+              </span>
+              <button
+                type="button"
+                onClick={stopNotificationAudio}
+                className={`inline-flex min-h-[30px] items-center gap-1 rounded-lg px-2.5 text-[11px] font-semibold transition-colors ${
+                  isLightSky
+                    ? "bg-[var(--theme-primary)] text-[var(--theme-primary-text)] hover:bg-[var(--theme-primary-hover)]"
+                    : "bg-[#F4D99B] text-[#173526] hover:bg-white"
+                }`}
+              >
+                <Square className="h-3 w-3 fill-current" />
+                <span>Hentikan</span>
+              </button>
+            </div>
+          )}
+
+          {!audioState.isPlaying && audioState.blocked && audioState.blockedKind && (
+            <div
+              role="status"
+              className={`flex flex-wrap items-center justify-between gap-2 rounded-xl border px-3 py-2 text-[11px] backdrop-blur-sm ${
+                isLightSky
+                  ? "border-[var(--theme-tint-border)] bg-white/85 text-[var(--theme-heading)] dark:border-[#F3D792]/40 dark:bg-slate-900/60 dark:text-[#F4D99B]"
+                  : "border-[#F3D792]/50 bg-[#E2B354]/25 text-[#FFF7DE]"
+              }`}
+            >
+              <span className="font-semibold">
+                Waktu shalat telah tiba · Putar {audioState.blockedPrayerLabel || "Adzan"}
+              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (audioState.blockedKind) {
+                      void playNotificationSound(audioState.blockedKind, {
+                        label: audioState.blockedPrayerLabel || "Adzan",
+                      });
+                    }
+                  }}
+                  className={`inline-flex min-h-[30px] items-center gap-1 rounded-lg px-2.5 text-[11px] font-semibold transition-colors ${
+                    isLightSky
+                      ? "bg-[var(--theme-primary)] text-[var(--theme-primary-text)] hover:bg-[var(--theme-primary-hover)]"
+                      : "bg-[#F4D99B] text-[#173526] hover:bg-white"
+                  }`}
+                >
+                  <Play className="h-3 w-3 fill-current" />
+                  <span>Putar Adzan</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={clearBlockedNotificationAudio}
+                  aria-label="Tutup"
+                  className="inline-flex h-[30px] w-[30px] items-center justify-center rounded-lg border border-current/20 opacity-80 hover:opacity-100"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {soundPanelOpen && (
+            <div
+              className={`rounded-xl border p-3 text-xs backdrop-blur-md ${
+                isLightSky
+                  ? "border-[var(--theme-border-strong)] bg-white/88 text-[var(--theme-ink)] dark:border-white/20 dark:bg-slate-900/75 dark:text-slate-100"
+                  : "border-white/20 bg-slate-950/45 text-slate-100"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-semibold">Suara Notifikasi Shalat</p>
+                <button
+                  type="button"
+                  onClick={() => setSoundPanelOpen(false)}
+                  aria-label="Tutup pengaturan suara"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-current/15 opacity-75 hover:opacity-100"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => void handleChangeSoundMode("adzan")}
+                  className={`min-h-[34px] rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${
+                    soundMode === "adzan"
+                      ? isLightSky
+                        ? "border-[var(--theme-primary)] bg-[var(--theme-primary)] text-[var(--theme-primary-text)]"
+                        : "border-[#F3D792] bg-[#E2B354] text-[#173526]"
+                      : "border-current/15 bg-transparent opacity-80 hover:opacity-100"
+                  }`}
+                >
+                  Suara Adzan
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleChangeSoundMode("chime")}
+                  className={`min-h-[34px] rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${
+                    soundMode === "chime"
+                      ? isLightSky
+                        ? "border-[var(--theme-primary)] bg-[var(--theme-primary)] text-[var(--theme-primary-text)]"
+                        : "border-[#F3D792] bg-[#E2B354] text-[#173526]"
+                      : "border-current/15 bg-transparent opacity-80 hover:opacity-100"
+                  }`}
+                >
+                  Nada Singkat
+                </button>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                {soundMode === "adzan" ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleTogglePreviewSound("adzan")}
+                      className="inline-flex min-h-[32px] items-center gap-1.5 rounded-lg border border-current/20 bg-current/5 px-2.5 text-[11px] font-semibold hover:bg-current/10"
+                    >
+                      {audioState.isPlaying && audioState.kind === "adzan" ? (
+                        <>
+                          <Square className="h-3 w-3 fill-current" />
+                          <span>Hentikan Adzan</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-3 w-3 fill-current" />
+                          <span>Tes Adzan</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleTogglePreviewSound("adzan_subuh")}
+                      className="inline-flex min-h-[32px] items-center gap-1.5 rounded-lg border border-current/20 bg-current/5 px-2.5 text-[11px] font-semibold hover:bg-current/10"
+                    >
+                      {audioState.isPlaying && audioState.kind === "adzan_subuh" ? (
+                        <>
+                          <Square className="h-3 w-3 fill-current" />
+                          <span>Hentikan Adzan Subuh</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-3 w-3 fill-current" />
+                          <span>Tes Adzan Subuh</span>
+                        </>
+                      )}
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleTogglePreviewSound("prayer")}
+                    className="inline-flex min-h-[32px] items-center gap-1.5 rounded-lg border border-current/20 bg-current/5 px-2.5 text-[11px] font-semibold hover:bg-current/10"
+                  >
+                    {audioState.isPlaying && audioState.kind === "prayer" ? (
+                      <>
+                        <Square className="h-3 w-3 fill-current" />
+                        <span>Hentikan</span>
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-3 w-3 fill-current" />
+                        <span>Tes Nada Singkat</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+              <p className="mt-1.5 text-[10.5px] leading-relaxed opacity-80">
+                {soundMode === "adzan"
+                  ? "Saat notifikasi waktu shalat tiba, aplikasi memutar suara adzan sungguhan (khusus Subuh memutar Adzan Subuh)."
+                  : "Saat notifikasi waktu shalat tiba, aplikasi memutar nada pengingat singkat."}
+              </p>
+            </div>
+          )}
 
           {notifFeedback && (
             <p

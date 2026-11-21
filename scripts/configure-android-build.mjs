@@ -12,7 +12,7 @@ const versionCode = Number.parseInt(process.env.APK_VERSION_CODE || "1", 10);
 if (!Number.isSafeInteger(versionCode) || versionCode < 1) {
   throw new Error(`Invalid APK_VERSION_CODE: ${process.env.APK_VERSION_CODE}`);
 }
-const versionName = (process.env.APK_VERSION_NAME || `2.0.${versionCode}`).trim();
+const versionName = (process.env.APK_VERSION_NAME || `3.0.${versionCode}`).trim();
 
 let gradle = fs.readFileSync(appGradlePath, "utf8");
 
@@ -204,8 +204,9 @@ public final class ApkUpdateChecker {
     };
 
     private static final String[] ENDPOINTS = new String[] {
-        "https://api.github.com/repos/r14bz/e-Moeslife/releases/tags/v2.0-android",
-        "https://api.github.com/repos/r14bz/e-Moeslife/releases/latest"
+        "https://api.github.com/repos/r14bz/e-Moeslife/releases/tags/v3.0-android",
+        "https://api.github.com/repos/r14bz/e-Moeslife/releases/latest",
+        "https://api.github.com/repos/r14bz/e-Moeslife/releases/tags/v2.0-android"
     };
 
     private ApkUpdateChecker() {}
@@ -465,7 +466,7 @@ public final class ApkUpdateChecker {
 
                 if (remoteCode <= 0L) continue;
                 if (versionName.isEmpty()) {
-                    versionName = "2.0." + remoteCode;
+                    versionName = "3.0." + remoteCode;
                 }
 
                 long lastNotified = prefs.getLong(KEY_NOTIFIED_VERSION, 0L);
@@ -1274,17 +1275,17 @@ public class MainActivity extends BridgeActivity {
   console.log("Generated ApkInstallerPlugin, QiblaCompassPlugin, background ApkUpdateChecker/JobService/Receiver, and MainActivity.");
 }
 
-// Copy notification WAV sounds to android/app/src/main/res/raw/
+// Copy notification & Adzan sounds to android/app/src/main/res/raw/
 const resRawDir = path.join(rootDir, "android", "app", "src", "main", "res", "raw");
 const publicSoundDir = path.join(rootDir, "public", "assets", "sounds");
 if (fs.existsSync(publicSoundDir)) {
   fs.mkdirSync(resRawDir, { recursive: true });
-  for (const wavName of ["notif_shalat.wav", "notif_update.wav"]) {
-    const srcWav = path.join(publicSoundDir, wavName);
-    if (fs.existsSync(srcWav)) {
-      fs.copyFileSync(srcWav, path.join(resRawDir, wavName));
+  for (const soundName of ["notif_shalat.wav", "notif_update.wav", "adzan.mp3", "adzan_subuh.mp3"]) {
+    const srcSound = path.join(publicSoundDir, soundName);
+    if (fs.existsSync(srcSound)) {
+      fs.copyFileSync(srcSound, path.join(resRawDir, soundName));
     }
   }
-  console.log("Copied notification sound assets to android/app/src/main/res/raw/.");
+  console.log("Copied notification and Adzan sound assets to android/app/src/main/res/raw/.");
 }
 

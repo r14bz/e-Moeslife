@@ -76,7 +76,9 @@ export const TashrifKitabPage: React.FC<TashrifKitabPageProps> = ({
       </div>
 
       {/* Konten Kitab (tata letak asli dipertahankan utuh 100%) */}
-      {activeTab === "istilahi" ? <KitabTashrifReader /> : <TashrifLughawiView />}
+      <div key={activeTab} className="panel-enter-fade">
+        {activeTab === "istilahi" ? <KitabTashrifReader /> : <TashrifLughawiView />}
+      </div>
 
       <div className="mx-auto max-w-[980px] px-3 pb-6">
         <FooterDisclaimer variant="compact" />

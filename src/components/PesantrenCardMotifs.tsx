@@ -7,6 +7,7 @@ import {
   HandHeart,
   Library,
   MapPin,
+  ScrollText,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
@@ -15,6 +16,7 @@ import type { LocalBookMeta } from "../types/emoeslife";
 export type CollectionIconId =
   | "tahlil"
   | "yasin"
+  | "hadis"
   | "rahman"
   | "wudhu-shalat"
   | "dzikir"
@@ -105,6 +107,13 @@ export const COLLECTION_VISUALS: Record<CollectionIconId, CollectionVisualStyle>
     arrowClass: "bg-[var(--theme-tint-bg)] text-[var(--theme-tint-text)]",
     icon: <MushafOpenIcon className="h-5 w-5" />,
   },
+  hadis: {
+    subtitle: "Cari 10 kitab hadis",
+    boxClass:
+      "border-[#e8d9b4] bg-[#fbf5e6] text-[#8d6820] dark:border-[#42351b] dark:bg-[#272011] dark:text-[#E2B354]",
+    arrowClass: "bg-[var(--theme-tint-bg)] text-[var(--theme-tint-text)]",
+    icon: <ScrollText className="h-5 w-5" />,
+  },
   rahman: {
     subtitle: "78 ayat · Arab & arti",
     boxClass:
@@ -127,7 +136,7 @@ export const COLLECTION_VISUALS: Record<CollectionIconId, CollectionVisualStyle>
     icon: <TasbihIcon className="h-5 w-5" />,
   },
   doa: {
-    subtitle: "Do'a pilihan harian",
+    subtitle: "Do'a & dzikir harian",
     boxClass:
       "border-[#cce0dd] bg-[#ecf5f4] text-[#184f4a] dark:border-[#1e3e3d] dark:bg-[#122828] dark:text-[#6ecbc3]",
     arrowClass: "bg-[var(--theme-tint-bg)] text-[var(--theme-tint-text)]",

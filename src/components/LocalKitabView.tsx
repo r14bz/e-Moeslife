@@ -353,6 +353,7 @@ export const LocalKitabView: React.FC<LocalKitabViewProps> = ({
   const [openAllArti, setOpenAllArti] = useState(false);
   const [openItemIds, setOpenItemIds] = useState<Record<number, boolean>>({});
   const [renderedCount, setRenderedCount] = useState(0);
+  const [turnDir, setTurnDir] = useState<"next" | "prev" | "fade">("fade");
   const sentinelRef = useRef<HTMLParagraphElement | null>(null);
   const readingCardRef = useRef<HTMLDivElement | null>(null);
 
@@ -488,6 +489,7 @@ export const LocalKitabView: React.FC<LocalKitabViewProps> = ({
 
   const selectChapter = (idx: number) => {
     if (idx < 0 || idx >= chapters.length) return;
+    setTurnDir(idx > activeIndex ? "next" : idx < activeIndex ? "prev" : "fade");
     setActiveIndex(idx);
     setResumedFromSaved(false);
     setOpenItemIds({});
@@ -667,13 +669,14 @@ export const LocalKitabView: React.FC<LocalKitabViewProps> = ({
         {!loading && !error && activeChapter && (
           <div
             ref={readingCardRef}
+            key={`${book.slug}-${activeIndex}`}
             style={{
               marginBottom: "0.95rem",
               backgroundColor: "var(--tashrif-paper)",
               border: "4px double var(--tashrif-border-strong)",
               borderRadius: "0.75rem",
             }}
-            className="scroll-mt-20 overflow-hidden shadow-xs"
+            className={`scroll-mt-20 overflow-hidden shadow-xs page-enter-${turnDir}`}
           >
             {/* Header Bab */}
             <div

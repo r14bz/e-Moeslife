@@ -90,7 +90,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
     : 0;
 
   const secondaryCollections: Array<{ id: CollectionIconId; title: string; onClick: () => void }> = [
-    { id: "yasin", title: "Surah Yasin", onClick: () => onOpenCollection("yasin") },
+    { id: "hadis", title: "Pencarian Hadis", onClick: () => onNavigate({ view: "hadis" }) },
     {
       id: "wudhu-shalat",
       title: "Wudhu & Shalat",

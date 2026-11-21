@@ -5,9 +5,11 @@ import { markNativeVersionNotified } from "./apkInstaller";
 import { playNotificationSound } from "./notificationAudio";
 
 export const RELEASES_TAG_API_URL =
-  "https://api.github.com/repos/r14bz/e-Moeslife/releases/tags/v2.0-android";
+  "https://api.github.com/repos/r14bz/e-Moeslife/releases/tags/v3.0-android";
 export const RELEASES_LATEST_API_URL =
   "https://api.github.com/repos/r14bz/e-Moeslife/releases/latest";
+export const RELEASES_LEGACY_TAG_API_URL =
+  "https://api.github.com/repos/r14bz/e-Moeslife/releases/tags/v2.0-android";
 export const DEFAULT_APK_DOWNLOAD_URL =
   "https://github.com/r14bz/e-Moeslife/releases/latest/download/e-moeslife.apk";
 
@@ -21,7 +23,7 @@ export const APK_UPDATE_NOTIFICATION_ID = 519901;
 export const INSTALLED_APK_VERSION_CODE =
   Number.parseInt(import.meta.env.VITE_APK_VERSION_CODE || "0", 10) || 0;
 export const INSTALLED_APK_VERSION_NAME =
-  import.meta.env.VITE_APK_VERSION_NAME || "2.0.0";
+  import.meta.env.VITE_APK_VERSION_NAME || "3.0.0";
 
 export type ApkChangelogCategory = "fitur" | "keamanan" | "perbaikan" | "lainnya";
 
@@ -209,7 +211,7 @@ function parseReleaseMetadata(release: GitHubReleaseResponse): ApkReleaseInfo | 
 
   return {
     versionCode,
-    versionName: versionName || `2.0.${versionCode}`,
+    versionName: versionName || `3.0.${versionCode}`,
     signed,
     downloadUrl: apkAsset?.browser_download_url || DEFAULT_APK_DOWNLOAD_URL,
     sizeBytes: apkAsset?.size || 0,
@@ -242,7 +244,11 @@ export function dismissApkVersion(versionCode: number): void {
 }
 
 export async function fetchLatestApkRelease(): Promise<ApkReleaseInfo | null> {
-  const endpoints = [RELEASES_TAG_API_URL, RELEASES_LATEST_API_URL];
+  const endpoints = [
+    RELEASES_TAG_API_URL,
+    RELEASES_LATEST_API_URL,
+    RELEASES_LEGACY_TAG_API_URL,
+  ];
   for (const url of endpoints) {
     try {
       const res = await fetch(url, {

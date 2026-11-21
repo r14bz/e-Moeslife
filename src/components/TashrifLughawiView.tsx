@@ -6,6 +6,7 @@ import { FloatingPageNav } from './FloatingPageNav';
 
 export const TashrifLughawiView: React.FC = () => {
   const [currentBabIndex, setCurrentBabIndex] = useState<number>(0);
+  const [turnDir, setTurnDir] = useState<'next' | 'prev' | 'fade'>('fade');
   const [selectedCell, setSelectedCell] = useState<{
     arab: string;
     rowArab: string;
@@ -23,6 +24,7 @@ export const TashrifLughawiView: React.FC = () => {
   const dataColWidth = `${(86 / colCount).toFixed(2)}%`;
 
   const handleSelectBab = (idx: number) => {
+    setTurnDir(idx > currentBabIndex ? 'next' : idx < currentBabIndex ? 'prev' : 'fade');
     setCurrentBabIndex(idx);
     setSelectedCell(null);
     window.requestAnimationFrame(() => {
@@ -47,7 +49,7 @@ export const TashrifLughawiView: React.FC = () => {
         />
       </div>
 
-      <div ref={readingCardRef} style={{ maxWidth: '980px', margin: '0 auto', scrollMarginTop: '5rem', border: '4px double var(--tashrif-border-strong)', backgroundColor: 'var(--tashrif-paper)', padding: '8px 2px', boxShadow: '0 2px 6px rgba(16, 61, 44, 0.10)' }}>
+      <div key={currentBabIndex} ref={readingCardRef} className={`page-enter-${turnDir}`} style={{ maxWidth: '980px', margin: '0 auto', scrollMarginTop: '5rem', border: '4px double var(--tashrif-border-strong)', backgroundColor: 'var(--tashrif-paper)', padding: '8px 2px', boxShadow: '0 2px 6px rgba(16, 61, 44, 0.10)' }}>
         <div style={{ textAlign: 'center', borderBottom: '2px solid var(--tashrif-border-strong)', paddingBottom: '6px', marginBottom: '8px' }}>
           <div style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '4px', backgroundColor: currentBab.direction === 'vertical' ? 'var(--tashrif-btn-bg)' : 'var(--tashrif-accent)', color: currentBab.direction === 'vertical' ? 'var(--tashrif-btn-text)' : 'var(--tashrif-accent-text)', fontSize: '11px', fontWeight: 700, marginBottom: '3px' }}>
             {'\u2193 Arah Baca: Atas ke Bawah (Per Kolom)'}

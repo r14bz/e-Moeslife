@@ -924,6 +924,48 @@
   }
 }
 
+@keyframes appViewEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.994);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes panelEnterFade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes modalBackdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.975);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .turn-out-next {
   animation: pageTurnOutNext 150ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
   will-change: transform, opacity;
@@ -956,6 +998,22 @@
   animation: pageEnterFade 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+.app-view-enter {
+  animation: appViewEnter 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.panel-enter-fade {
+  animation: panelEnterFade 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.modal-backdrop-enter {
+  animation: modalBackdropIn 200ms ease-out both;
+}
+
+.modal-card-enter {
+  animation: modalCardIn 250ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -975,7 +1033,11 @@
   .turn-in-prev,
   .page-enter-next,
   .page-enter-prev,
-  .page-enter-fade {
+  .page-enter-fade,
+  .app-view-enter,
+  .panel-enter-fade,
+  .modal-backdrop-enter,
+  .modal-card-enter {
     animation: none !important;
   }
 }

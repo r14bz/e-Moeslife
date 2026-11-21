@@ -150,8 +150,8 @@ export const DownloadView: React.FC<DownloadViewProps> = ({ localBooks, onNaviga
   const features = [
     {
       icon: <Compass className="h-5 w-5" />,
-      title: "Jadwal Shalat Otomatis",
-      desc: "Menyesuaikan wilayah kabupaten/kota di Indonesia lengkap dengan hitung mundur menuju waktu shalat berikutnya.",
+      title: "Jadwal & Notifikasi Waktu Shalat",
+      desc: "Menyesuaikan wilayah kabupaten/kota di Indonesia lengkap dengan hitung mundur serta notifikasi bersuara adzan saat waktu shalat tiba.",
     },
     {
       icon: <Sparkles className="h-5 w-5" />,
@@ -309,7 +309,7 @@ export const DownloadView: React.FC<DownloadViewProps> = ({ localBooks, onNaviga
               />
               <div className="min-w-0">
                 <p className="font-display text-lg font-semibold text-white">e-Moeslife</p>
-                <p className="text-xs text-[#d6e4da]">Paket Aplikasi PWA · Versi 2.0</p>
+                <p className="text-xs text-[#d6e4da]">Paket Aplikasi PWA · Versi 3.0.0</p>
               </div>
             </div>
 
@@ -402,7 +402,7 @@ export const DownloadView: React.FC<DownloadViewProps> = ({ localBooks, onNaviga
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div key={selectedGuide} className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3 panel-enter-fade">
           {activeGuide.steps.map((step, idx) => (
             <div
               key={step.title}

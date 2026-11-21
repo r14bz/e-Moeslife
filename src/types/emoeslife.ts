@@ -33,6 +33,7 @@ export type AppRoute =
   | { view: "api-kitab"; slug: string; title: string }
   | { view: "nearby-mosques" }
   | { view: "qibla" }
+  | { view: "hadis" }
   | { view: "ecode-halal"; initialQuery?: string }
   | { view: "download" };
 
@@ -113,10 +114,14 @@ export interface EQuranDoaItem {
   id?: number;
   nama?: string;
   grup?: string;
+  kategoriSlug?: string;
   ar?: string;
   tr?: string;
   idn?: string;
   tentang?: string;
+  fawaid?: string;
+  catatan?: string;
+  sumber?: string;
   tag?: string[];
 }
 

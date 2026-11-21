@@ -13,6 +13,7 @@ export const KitabImrithiReader: React.FC<KitabImrithiReaderProps> = ({
   const [selectedBabId, setSelectedBabId] = useState<string>(initialBabId);
   const [openAllArti, setOpenAllArti] = useState<boolean>(false);
   const [openBaitIds, setOpenBaitIds] = useState<Record<number, boolean>>({});
+  const [turnDir, setTurnDir] = useState<"next" | "prev" | "fade">("fade");
   const readingCardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -57,11 +58,21 @@ export const KitabImrithiReader: React.FC<KitabImrithiReaderProps> = ({
     });
   };
 
+  const handleSelectBabId = (id: string) => {
+    const nextIdx = imrithiBabs.findIndex((b) => b.id === id);
+    if (currentBabIndex >= 0 && nextIdx >= 0) {
+      setTurnDir(nextIdx > currentBabIndex ? "next" : nextIdx < currentBabIndex ? "prev" : "fade");
+    } else {
+      setTurnDir("fade");
+    }
+    setSelectedBabId(id);
+    setOpenBaitIds({});
+    scrollToReadingCard();
+  };
+
   const goToBabByIndex = (index: number) => {
     if (index >= 0 && index < imrithiBabs.length) {
-      setSelectedBabId(imrithiBabs[index].id);
-      setOpenBaitIds({});
-      scrollToReadingCard();
+      handleSelectBabId(imrithiBabs[index].id);
     }
   };
 
@@ -121,11 +132,7 @@ export const KitabImrithiReader: React.FC<KitabImrithiReaderProps> = ({
             ariaLabel="Pilih Bab Nadhom Imrithi"
             kickerLabel="Daftar Bab Al-Imrithi"
             value={activeBab?.id || selectedBabId}
-            onChange={(val) => {
-              setSelectedBabId(String(val));
-              setOpenBaitIds({});
-              scrollToReadingCard();
-            }}
+            onChange={(val) => handleSelectBabId(String(val))}
             options={imrithiBabs.map((bab) => ({
               value: bab.id,
               label: `${bab.urutan}. ${bab.judulIndo}`,
@@ -166,13 +173,14 @@ export const KitabImrithiReader: React.FC<KitabImrithiReaderProps> = ({
       {activeBab && (
         <div
           ref={readingCardRef}
+          key={activeBab.id}
           style={{
             marginBottom: "0.95rem",
             backgroundColor: "var(--tashrif-paper)",
             border: "4px double var(--tashrif-border-strong)",
             borderRadius: "0.75rem",
           }}
-          className="scroll-mt-20 overflow-hidden shadow-xs"
+          className={`scroll-mt-20 overflow-hidden shadow-xs page-enter-${turnDir}`}
         >
           <div
             style={{

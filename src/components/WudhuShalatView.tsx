@@ -125,6 +125,7 @@ export const WudhuShalatView: React.FC<WudhuShalatViewProps> = ({
         </div>
 
         {/* Banner Header Hijau Zamrud (Senada Pembaca Kitab) */}
+        <div key={tab} className="space-y-4 panel-enter-fade">
         <div
           style={{
             backgroundColor: "var(--tashrif-panel-bg)",
@@ -326,6 +327,7 @@ export const WudhuShalatView: React.FC<WudhuShalatViewProps> = ({
                   })}
                 </div>
 
+                <div key={activeIntention.id} className="page-enter-fade">
                 <div className="mt-4">
                   <p
                     lang="ar"
@@ -356,6 +358,7 @@ export const WudhuShalatView: React.FC<WudhuShalatViewProps> = ({
                   >
                     {activeIntention.translation}
                   </p>
+                </div>
                 </div>
               </div>
             </div>
@@ -589,6 +592,7 @@ export const WudhuShalatView: React.FC<WudhuShalatViewProps> = ({
               </article>
             );
           })}
+        </div>
         </div>
 
         <FooterDisclaimer variant="compact" />

@@ -15,6 +15,7 @@ export const KitabJurumiyahReader: React.FC<KitabJurumiyahReaderProps> = ({
   const [selectedBabId, setSelectedBabId] = useState<number>(initialBabId || defaultBabId);
   const [openAllArti, setOpenAllArti] = useState<boolean>(false);
   const [openItemIds, setOpenItemIds] = useState<Record<number, boolean>>({});
+  const [turnDir, setTurnDir] = useState<"next" | "prev" | "fade">("fade");
   const readingCardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -34,6 +35,12 @@ export const KitabJurumiyahReader: React.FC<KitabJurumiyahReaderProps> = ({
     currentBabIndex >= 0 ? semuaBabJurumiyah[currentBabIndex] : semuaBabJurumiyah[0];
 
   const handleSelectBab = (id: number) => {
+    const nextIdx = semuaBabJurumiyah.findIndex((b) => b.id === id);
+    if (currentBabIndex >= 0 && nextIdx >= 0) {
+      setTurnDir(nextIdx > currentBabIndex ? "next" : nextIdx < currentBabIndex ? "prev" : "fade");
+    } else {
+      setTurnDir("fade");
+    }
     setSelectedBabId(id);
     setOpenItemIds({});
     window.requestAnimationFrame(() => {
@@ -154,13 +161,14 @@ export const KitabJurumiyahReader: React.FC<KitabJurumiyahReaderProps> = ({
       {activeBab && (
         <div
           ref={readingCardRef}
+          key={activeBab.id}
           style={{
             marginBottom: "0.95rem",
             backgroundColor: "var(--tashrif-paper)",
             border: "4px double var(--tashrif-border-strong)",
             borderRadius: "0.75rem",
           }}
-          className="scroll-mt-20 overflow-hidden shadow-xs"
+          className={`scroll-mt-20 overflow-hidden shadow-xs page-enter-${turnDir}`}
         >
           <div
             style={{

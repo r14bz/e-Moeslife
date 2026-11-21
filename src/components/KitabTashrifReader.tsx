@@ -21,6 +21,7 @@ const COL_WIDTHS_11 = [
 
 export const KitabTashrifReader: React.FC = () => {
   const [currentBabIndex, setCurrentBabIndex] = useState<number>(0);
+  const [turnDir, setTurnDir] = useState<"next" | "prev" | "fade">("fade");
   const [selectedCell, setSelectedCell] = useState<{
     arab: string;
     arti: string;
@@ -37,6 +38,7 @@ export const KitabTashrifReader: React.FC = () => {
   const colWidths = currentBab.hasIsimAlat ? COL_WIDTHS_12 : COL_WIDTHS_11;
 
   const handleSelectBab = (idx: number) => {
+    setTurnDir(idx > currentBabIndex ? "next" : idx < currentBabIndex ? "prev" : "fade");
     setCurrentBabIndex(idx);
     setSelectedCell(null);
     window.requestAnimationFrame(() => {
@@ -70,7 +72,7 @@ export const KitabTashrifReader: React.FC = () => {
         />
       </div>
 
-      <div ref={readingCardRef} style={{ maxWidth: "980px", margin: "0 auto", scrollMarginTop: "5rem", border: "4px double var(--tashrif-border-strong)", backgroundColor: "var(--tashrif-paper)", padding: "8px 2px", boxShadow: "0 2px 6px rgba(16, 61, 44, 0.10)" }}>
+      <div key={currentBabIndex} ref={readingCardRef} className={`page-enter-${turnDir}`} style={{ maxWidth: "980px", margin: "0 auto", scrollMarginTop: "5rem", border: "4px double var(--tashrif-border-strong)", backgroundColor: "var(--tashrif-paper)", padding: "8px 2px", boxShadow: "0 2px 6px rgba(16, 61, 44, 0.10)" }}>
         <div style={{ textAlign: "center", borderBottom: "2px solid var(--tashrif-border-strong)", paddingBottom: "6px", marginBottom: "8px" }}>
           <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.8px", fontWeight: 700, color: "var(--tashrif-accent)" }}>{currentBab.kategori}</div>
           <h2 dir="rtl" style={{ fontFamily: "Amiri, serif", fontSize: "clamp(1.28rem, 4.6vw, 1.8rem)", fontWeight: 700, color: "var(--tashrif-ink)", margin: "2px 0", lineHeight: 1.55 }}>{currentBab.judulArab}</h2>

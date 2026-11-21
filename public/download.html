@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#134a35">
-<meta name="description" content="Unduh aplikasi Android e-Moeslife untuk membaca tahlil, dzikir, Al-Qur'an & Murattal, Tafsir, Arah Kiblat, Cek Halal E-Code, Jadwal & Notifikasi Shalat bersuara, serta perpustakaan Kitab Kuning 100% offline.">
+<meta name="description" content="Unduh aplikasi Android e-Moeslife untuk Pencarian Hadis (10 kitab), Do'a & Dzikir Harian, Al-Qur'an & Tafsir, Kompas Arah Kiblat, Cek Halal E-Code, Jadwal & Notifikasi Waktu Shalat bersuara Adzan, serta perpustakaan Kitab Kuning 100% offline.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Unduh e-Moeslife Android">
-<meta property="og:description" content="Aplikasi Android e-Moeslife — kompas arah kiblat, cek halal E-Code, notifikasi waktu shalat bersuara, dan perpustakaan kitab kuning 100% offline.">
+<meta property="og:description" content="Aplikasi Android e-Moeslife — Pencarian Hadis, Do'a & Dzikir, Kompas Arah Kiblat, Cek Halal E-Code, Notifikasi Shalat bersuara Adzan, dan Kitab Kuning 100% offline.">
 <title>Unduh e-Moeslife Android — Ruang Baca Islami Digital</title>
 <link rel="icon" type="image/png" href="/assets/app-icon/icon.png">
 <link rel="apple-touch-icon" href="/assets/app-icon/icon.png">
@@ -217,6 +217,12 @@ html.dark .pkg-card{background:#0F1722cc}
 .pkg-list{margin:16px 0 0;padding:0;list-style:none;display:grid;gap:10px;font-size:12.5px}
 .pkg-list li{display:flex;justify-content:space-between;gap:12px;color:#cfe0d5}
 .pkg-list strong{color:#fff;text-align:right}
+.pkg-perms{margin-top:15px;padding-top:14px;border-top:1px solid #ffffff1f}
+.pkg-perms-title{margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:#f3d99d}
+.pkg-perm-list{margin:0;padding:0;list-style:none;display:grid;gap:6px;font-size:11.5px;line-height:1.45;color:#cfe0d5}
+.pkg-perm-list li{display:flex;align-items:flex-start;gap:7px}
+.pkg-perm-dot{width:6px;height:6px;border-radius:50%;background:#e6c98e;flex:0 0 6px;margin-top:6px}
+.pkg-perm-list strong{color:#fff;font-weight:600}
 .content{max-width:1120px;margin:0 auto;padding:48px 22px 68px}
 .guide-box{
   background:var(--surface);
@@ -354,7 +360,7 @@ footer a{color:#e6c98e;text-decoration:none}
 <div>
 <span class="badge-pill">Aplikasi Android</span>
 <h1>Unduh e-Moeslife untuk Android.</h1>
-<p class="hero-lead">Nikmati ruang baca Islami digital dalam bentuk aplikasi Android native yang ringan dan responsif. Dilengkapi kompas arah kiblat, cek status halal E-Code, notifikasi waktu shalat bersuara, serta perpustakaan kitab kuning lokal yang siap dibaca 100% offline.</p>
+<p class="hero-lead">Nikmati ruang baca Islami digital dalam bentuk aplikasi Android native yang ringan dan responsif. Dilengkapi pencarian hadis dari 10 kitab, do'a &amp; dzikir harian, kompas arah kiblat, cek status halal E-Code, jadwal &amp; notifikasi waktu shalat bersuara adzan, serta perpustakaan kitab kuning lokal yang siap dibaca 100% offline.</p>
 <div class="actions">
 <a id="apk-download-btn" class="btn btn-primary" href="https://github.com/r14bz/e-Moeslife/releases/latest/download/e-moeslife.apk" download="e-moeslife.apk">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
@@ -370,7 +376,7 @@ footer a{color:#e6c98e;text-decoration:none}
 <img class="pkg-icon" src="/assets/app-icon/icon.png" alt="Ikon e-Moeslife">
 <div>
 <p class="pkg-title">e-Moeslife Android</p>
-<p id="apk-version-sub" class="pkg-sub">Versi Terbaru · Signed APK</p>
+<p id="apk-version-sub" class="pkg-sub">Versi 3.0.0 · Signed APK</p>
 </div>
 </div>
 <ul class="pkg-list">
@@ -380,6 +386,16 @@ footer a{color:#e6c98e;text-decoration:none}
 <li><span>Pembaruan Aplikasi</span><strong>Notifikasi Update Otomatis</strong></li>
 <li><span>Kompatibilitas OS</span><strong>Android 7.0+ (arm64 / universal)</strong></li>
 </ul>
+<div class="pkg-perms">
+<p class="pkg-perms-title">Izin yang Dibutuhkan</p>
+<ul class="pkg-perm-list">
+<li><span class="pkg-perm-dot" aria-hidden="true"></span><span><strong>Lokasi (GPS &amp; Perkiraan):</strong> Arah kiblat, jadwal shalat setempat, dan masjid terdekat.</span></li>
+<li><span class="pkg-perm-dot" aria-hidden="true"></span><span><strong>Notifikasi &amp; Alarm Tepat Waktu:</strong> Pengingat waktu shalat bersuara adzan &amp; info pembaruan (termasuk setelah perangkat dinyalakan ulang).</span></li>
+<li><span class="pkg-perm-dot" aria-hidden="true"></span><span><strong>Sensor Kompas &amp; Gerak:</strong> Pembacaan arah kompas Ka'bah secara langsung.</span></li>
+<li><span class="pkg-perm-dot" aria-hidden="true"></span><span><strong>Pasang Paket (Install APK):</strong> Mengunduh &amp; memasang pembaruan APK resmi langsung dari dalam aplikasi.</span></li>
+<li><span class="pkg-perm-dot" aria-hidden="true"></span><span><strong>Internet &amp; Jaringan:</strong> Memuat Al-Qur'an, murattal, hadis, do'a/dzikir, cek E-Code &amp; peta (kitab kuning tetap 100% offline).</span></li>
+</ul>
+</div>
 </aside>
 </div>
 </section>
@@ -423,20 +439,20 @@ footer a{color:#e6c98e;text-decoration:none}
 </div>
 
 <div class="features">
-<article class="feature"><div class="feature-icon" aria-hidden="true">☾</div><h3>Jadwal, Hijriyah &amp; Suara Adzan</h3><p>Menyesuaikan lokasi GPS atau kabupaten/kota di Indonesia lengkap dengan penanggalan Hijriyah, hitung mundur, serta notifikasi bersuara otomatis saat waktu shalat tiba.</p></article>
+<article class="feature"><div class="feature-icon" aria-hidden="true">☾</div><h3>Jadwal &amp; Notifikasi Waktu Shalat</h3><p>Menyesuaikan lokasi GPS atau kabupaten/kota di Indonesia lengkap dengan penanggalan Hijriyah, hitung mundur, serta notifikasi bersuara adzan otomatis (termasuk Adzan Subuh) saat waktu shalat tiba.</p></article>
 <article class="feature"><div class="feature-icon" aria-hidden="true">🧭</div><h3>Kompas Arah Kiblat</h3><p>Hitung sudut azimuth presisi dan jarak ke Ka'bah secara langsung menggunakan sensor kompas perangkat, izin lokasi GPS, maupun mode acuan kota di Indonesia.</p></article>
-<article class="feature"><div class="feature-icon" aria-hidden="true">۝</div><h3>Al-Qur’an, Murattal &amp; Tafsir</h3><p>Teks Arab, latin, terjemahan Indonesia, tafsir per surah, penanda terakhir dibaca, salin ayat, serta pemutar audio murattal 6 qari pilihan.</p></article>
+<article class="feature"><div class="feature-icon" aria-hidden="true">۝</div><h3>Al-Qur’an, Murattal &amp; Tafsir</h3><p>Teks Arab, latin, terjemahan Indonesia, tafsir Kemenag per surah &amp; ayat, penanda terakhir dibaca, salin ayat, serta pemutar audio murattal 6 qari pilihan.</p></article>
 <article class="feature"><div class="feature-icon" aria-hidden="true">▣</div><h3>Kitab Kuning 100% Offline</h3><p>Perpustakaan pesantren lintas bidang — Aqidah (Aqidatul Awam, Tijan Daruri, Qathrul Ghaits), Fiqih (Safinah, Kasyifatus Saja, Bahjatul Wasa'il, Fathul Qarib Al-Mujib, Fathul Mu'in), Nahwu-Sharaf (Jurumiyah, Imrithi, Alfiyah, Tashrif + I'lal), Adab, Hadis, Keluarga, Tasawuf (Al-Hikam Al-Atha'iyyah), hingga Tafsir.</p></article>
-<article class="feature"><div class="feature-icon" aria-hidden="true">۞</div><h3>Tahlil, Yasin, Dzikir &amp; Do'a</h3><p>Susunan tawasul, rangkaian tahlil lengkap, dzikir ba'da shalat, Surah Yasin, Ar-Rahman, dan do'a harian dalam tampilan kitab klasik dengan navigasi mengambang.</p></article>
-<article class="feature"><div class="feature-icon" aria-hidden="true">💧</div><h3>Wudhu &amp; 17 Rukun Shalat</h3><p>Panduan rukun, pembatal, dan tata cara wudhu serta shalat fardhu 5 waktu lengkap dengan 17 Rukun Shalat sesuai Kitab Safinatun Najah, bacaan Arab, latin, dan Qunut.</p></article>
+<article class="feature"><div class="feature-icon" aria-hidden="true">📜</div><h3>Pencarian Hadis (10 Kitab)</h3><p>Telusuri hadis harian, pencarian kata kunci, maupun loncat ke nomor hadis dari 10 kitab otentik (Bukhari, Muslim, Abu Daud, Tirmidzi, Nasa'i, Ibnu Majah, Musnad Ahmad, Musnad Syafi'i, dan Riyadhus Shalihin).</p></article>
+<article class="feature"><div class="feature-icon" aria-hidden="true">۞</div><h3>Tahlil, Do'a, Dzikir &amp; Wudhu</h3><p>Rangkaian tahlil, Yasin &amp; dzikir ba'da shalat, panduan wudhu &amp; 17 rukun shalat, serta ratusan do'a harian, do'a pilihan, dzikir pagi/petang, dan fawaid lengkap dengan sumbernya.</p></article>
 <article class="feature"><div class="feature-icon" aria-hidden="true">✓</div><h3>Cek Status Halal E-Code</h3><p>Periksa kode bahan tambahan pangan (E100–E1521) lengkap dengan klasifikasi Halal, Diragukan (Syubhat), atau Haram serta penjelasan sumber bahannya dalam bahasa Indonesia.</p></article>
-<article class="feature"><div class="feature-icon" aria-hidden="true">📍</div><h3>Masjid Terdekat &amp; Update APK</h3><p>Temukan masjid/mushala terdekat via Google Maps, pencarian menyeluruh, mode gelap, ukuran teks, serta unduh &amp; pasang pembaruan bersuara langsung di dalam aplikasi.</p></article>
+<article class="feature"><div class="feature-icon" aria-hidden="true">📍</div><h3>Masjid Terdekat, 5 Tema &amp; Update</h3><p>Temukan masjid/mushala terdekat via Google Maps, pencarian cepat menyeluruh, 5 tema warna (mode terang &amp; gelap), ukuran teks, serta unduh &amp; pasang pembaruan APK langsung di dalam aplikasi.</p></article>
 </div>
 
 <section class="download-panel">
 <div>
 <h2>Siap pasang e-Moeslife di Android?</h2>
-<p>Unduh installer APK terbaru untuk merasakan aplikasi Android native lengkap dengan perpustakaan kitab kuning offline, kompas kiblat, cek halal E-Code, jadwal shalat bersuara, serta pembaruan langsung dari dalam aplikasi.</p>
+<p>Unduh installer APK terbaru untuk merasakan aplikasi Android native lengkap dengan perpustakaan kitab kuning offline, pencarian hadis, do'a &amp; dzikir harian, kompas kiblat, cek halal E-Code, notifikasi waktu shalat bersuara adzan, serta pembaruan langsung dari dalam aplikasi.</p>
 </div>
 <a class="btn apk-trigger" href="https://github.com/r14bz/e-Moeslife/releases/latest/download/e-moeslife.apk" download="e-moeslife.apk">Unduh e-Moeslife <span aria-hidden="true">→</span></a>
 </section>
@@ -464,11 +480,24 @@ footer a{color:#e6c98e;text-decoration:none}
       });
     });
 
-  fetch("https://api.github.com/repos/r14bz/e-Moeslife/releases/tags/v2.0-android", {
-    cache: "no-store",
-    headers: { Accept: "application/vnd.github+json" }
-  })
-    .then(function (res) { return res.ok ? res.json() : null; })
+  var releaseEndpoints = [
+    "https://api.github.com/repos/r14bz/e-Moeslife/releases/tags/v3.0-android",
+    "https://api.github.com/repos/r14bz/e-Moeslife/releases/latest",
+    "https://api.github.com/repos/r14bz/e-Moeslife/releases/tags/v2.0-android"
+  ];
+
+  function fetchReleaseWithFallback(index) {
+    if (index >= releaseEndpoints.length) return Promise.resolve(null);
+    return fetch(releaseEndpoints[index], {
+      cache: "no-store",
+      headers: { Accept: "application/vnd.github+json" }
+    })
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (data) { return data || fetchReleaseWithFallback(index + 1); })
+      .catch(function () { return fetchReleaseWithFallback(index + 1); });
+  }
+
+  fetchReleaseWithFallback(0)
     .then(function (rel) {
       var countEl = document.getElementById("apk-download-count");
       if (!rel) {

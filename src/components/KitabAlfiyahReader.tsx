@@ -24,6 +24,7 @@ export const KitabAlfiyahReader: React.FC<KitabAlfiyahReaderProps> = ({
   const [selectedBabIndex, setSelectedBabIndex] = useState<number>(initialBabIndex);
   const [showAllTranslation, setShowAllTranslation] = useState<boolean>(false);
   const [openBaitIds, setOpenBaitIds] = useState<Record<number, boolean>>({});
+  const [turnDir, setTurnDir] = useState<"next" | "prev" | "fade">("fade");
   const readingCardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -48,6 +49,7 @@ export const KitabAlfiyahReader: React.FC<KitabAlfiyahReaderProps> = ({
   };
 
   const handleSelectJuz = (juzNumber: number) => {
+    setTurnDir(juzNumber > selectedJuz ? "next" : juzNumber < selectedJuz ? "prev" : "fade");
     setSelectedJuz(juzNumber);
     setSelectedBabIndex(0);
     setOpenBaitIds({});
@@ -70,6 +72,7 @@ export const KitabAlfiyahReader: React.FC<KitabAlfiyahReaderProps> = ({
   };
 
   const handlePrevBab = () => {
+    setTurnDir("prev");
     if (selectedBabIndex > 0) {
       setSelectedBabIndex(selectedBabIndex - 1);
     } else if (selectedJuz > 1) {
@@ -84,6 +87,7 @@ export const KitabAlfiyahReader: React.FC<KitabAlfiyahReaderProps> = ({
   };
 
   const handleNextBab = () => {
+    setTurnDir("next");
     if (selectedBabIndex < babList.length - 1) {
       setSelectedBabIndex(selectedBabIndex + 1);
     } else if (selectedJuz < ALFIYAH_DATA.length) {
@@ -199,7 +203,9 @@ export const KitabAlfiyahReader: React.FC<KitabAlfiyahReaderProps> = ({
             kickerLabel="Daftar Bab Alfiyah"
             value={selectedBabIndex}
             onChange={(val) => {
-              setSelectedBabIndex(Number(val));
+              const nextIdx = Number(val);
+              setTurnDir(nextIdx > selectedBabIndex ? "next" : nextIdx < selectedBabIndex ? "prev" : "fade");
+              setSelectedBabIndex(nextIdx);
               setOpenBaitIds({});
               scrollToReadingCard();
             }}
@@ -245,13 +251,14 @@ export const KitabAlfiyahReader: React.FC<KitabAlfiyahReaderProps> = ({
       {currentBab && (
         <div
           ref={readingCardRef}
+          key={`${selectedJuz}-${selectedBabIndex}`}
           style={{
             marginBottom: "0.95rem",
             backgroundColor: "var(--tashrif-paper)",
             border: "4px double var(--tashrif-border-strong)",
             borderRadius: "0.75rem",
           }}
-          className="scroll-mt-20 overflow-hidden shadow-xs"
+          className={`scroll-mt-20 overflow-hidden shadow-xs page-enter-${turnDir}`}
         >
           <div
             style={{

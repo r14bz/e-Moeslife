@@ -59,7 +59,7 @@ jobs:
         env:
           VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
           VITE_APK_VERSION_CODE: ${{ github.run_number }}
-          VITE_APK_VERSION_NAME: 2.0.${{ github.run_number }}
+          VITE_APK_VERSION_NAME: 3.0.0
         run: npm run build
 
       - name: Add & sync Capacitor Android project
@@ -79,7 +79,7 @@ jobs:
       - name: Configure Android versioning & release signing
         env:
           APK_VERSION_CODE: ${{ github.run_number }}
-          APK_VERSION_NAME: 2.0.${{ github.run_number }}
+          APK_VERSION_NAME: 3.0.0
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -146,18 +146,18 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION_CODE: ${{ github.run_number }}
-          VERSION_NAME: 2.0.${{ github.run_number }}
+          VERSION_NAME: 3.0.0
         run: |
-          PREV_RELEASE_JSON=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/v2.0-android" 2>/dev/null || true)
+          PREV_RELEASE_JSON=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/v3.0-android" 2>/dev/null || gh api "repos/${GITHUB_REPOSITORY}/releases/tags/v2.0-android" 2>/dev/null || true)
           export PREV_RELEASE_JSON
           node scripts/generate-release-notes.mjs > release-notes.md
-          if gh release view v2.0-android >/dev/null 2>&1; then
-            gh release edit v2.0-android \
+          if gh release view v3.0-android >/dev/null 2>&1; then
+            gh release edit v3.0-android \
               --title "e-Moeslife Android v${VERSION_NAME}" \
               --notes-file release-notes.md
-            gh release upload v2.0-android release-apk/e-moeslife.apk --clobber
+            gh release upload v3.0-android release-apk/e-moeslife.apk --clobber
           else
-            gh release create v2.0-android release-apk/e-moeslife.apk \
+            gh release create v3.0-android release-apk/e-moeslife.apk \
               --title "e-Moeslife Android v${VERSION_NAME}" \
               --notes-file release-notes.md
           fi

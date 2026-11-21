@@ -97,6 +97,9 @@ const WudhuShalatView = lazy(() =>
 const EcodeHalalView = lazy(() =>
   import("./components/EcodeHalalView").then((m) => ({ default: m.EcodeHalalView }))
 );
+const HadisView = lazy(() =>
+  import("./components/HadisView").then((m) => ({ default: m.HadisView }))
+);
 const QiblaView = lazy(() =>
   import("./components/QiblaView").then((m) => ({ default: m.QiblaView }))
 );
@@ -218,6 +221,8 @@ export function App() {
             setApkUpdateRelease(updateAvailable);
           }
         });
+      } else if (extra?.type === "prayer-time" && active) {
+        setRoute({ view: "home" });
       }
     })
       .then((handle) => {
@@ -527,6 +532,17 @@ export function App() {
   const activeLocalBook =
     route.view === "local-kitab" ? LOCAL_BOOKS.find((b) => b.slug === route.slug) || null : null;
 
+  const viewTransitionKey = useMemo(() => {
+    if (
+      route.view === "local-kitab" ||
+      route.view === "turats-kitab" ||
+      route.view === "api-kitab"
+    ) {
+      return `${route.view}:${route.slug}`;
+    }
+    return route.view;
+  }, [route]);
+
   return (
     <>
       {mapsQuotaExceeded && (
@@ -561,6 +577,7 @@ export function App() {
         onCheckApkUpdate={isNativeAndroidApp() ? handleManualApkUpdateCheck : undefined}
       >
       <Suspense fallback={<RouteLoadingFallback />}>
+      <div key={viewTransitionKey} className="app-view-enter">
       {route.view === "home" && (
         <HomeView
           sections={sections}
@@ -787,9 +804,14 @@ export function App() {
         />
       )}
 
+      {route.view === "hadis" && (
+        <HadisView onBackHome={() => navigate({ view: "home" })} />
+      )}
+
       {route.view === "download" && (
         <DownloadView localBooks={LOCAL_BOOKS} onNavigate={navigate} />
       )}
+      </div>
       </Suspense>
     </AppShell>
       {(apkUpdateRelease || apkUpdateStatus) && (

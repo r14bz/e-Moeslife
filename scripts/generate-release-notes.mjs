@@ -1,7 +1,7 @@
 import { execSync } from "node:child_process";
 
 const versionCode = Number.parseInt(process.env.VERSION_CODE || "1", 10) || 1;
-const versionName = process.env.VERSION_NAME || `2.0.${versionCode}`;
+const versionName = process.env.VERSION_NAME || `3.0.${versionCode}`;
 const signMode = process.env.APK_SIGN_MODE === "release" ? "release" : "debug";
 const signLabel = signMode === "release" ? "Release Signed" : "Debug Signed";
 const currentSha = (process.env.GITHUB_SHA || safeExec("git rev-parse HEAD")).trim();

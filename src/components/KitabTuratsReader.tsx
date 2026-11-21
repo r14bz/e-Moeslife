@@ -19,6 +19,7 @@ export const KitabTuratsReader: React.FC<KitabTuratsReaderProps> = ({
   const [selectedIndex, setSelectedIndex] = useState<number>(Math.max(0, initialBabIndex || 0));
   const [openAllArti, setOpenAllArti] = useState<boolean>(false);
   const [openItemIds, setOpenItemIds] = useState<Record<string, boolean>>({});
+  const [turnDir, setTurnDir] = useState<"next" | "prev" | "fade">("fade");
   const readingCardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -69,6 +70,7 @@ export const KitabTuratsReader: React.FC<KitabTuratsReaderProps> = ({
 
   const handleSelectBab = (idx: number) => {
     if (idx >= 0 && idx < daftarBab.length) {
+      setTurnDir(idx > safeIndex ? "next" : idx < safeIndex ? "prev" : "fade");
       setSelectedIndex(idx);
       setOpenItemIds({});
       scrollToReadingCard();
@@ -230,13 +232,14 @@ export const KitabTuratsReader: React.FC<KitabTuratsReaderProps> = ({
       {activeBab && (
         <div
           ref={readingCardRef}
+          key={`${slug}-${safeIndex}`}
           style={{
             marginBottom: "0.95rem",
             backgroundColor: "var(--tashrif-paper)",
             border: "4px double var(--tashrif-border-strong)",
             borderRadius: "0.75rem",
           }}
-          className="scroll-mt-20 overflow-hidden shadow-xs"
+          className={`scroll-mt-20 overflow-hidden shadow-xs page-enter-${turnDir}`}
         >
           <div
             style={{

@@ -15,6 +15,7 @@ export const KitabTijanDaroriReader: React.FC<KitabTijanDaroriReaderProps> = ({
   const [selectedBabId, setSelectedBabId] = useState<string>(initialBabId || defaultBabId);
   const [openAllArti, setOpenAllArti] = useState<boolean>(false);
   const [openItemIds, setOpenItemIds] = useState<Record<string, boolean>>({});
+  const [turnDir, setTurnDir] = useState<"next" | "prev" | "fade">("fade");
   const readingCardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -41,6 +42,12 @@ export const KitabTijanDaroriReader: React.FC<KitabTijanDaroriReaderProps> = ({
   };
 
   const handleSelectBab = (id: string) => {
+    const nextIdx = tijanDaroriData.findIndex((b) => b.id === id);
+    if (currentBabIndex >= 0 && nextIdx >= 0) {
+      setTurnDir(nextIdx > currentBabIndex ? "next" : nextIdx < currentBabIndex ? "prev" : "fade");
+    } else {
+      setTurnDir("fade");
+    }
     setSelectedBabId(id);
     setOpenItemIds({});
     scrollToReadingCard();
@@ -158,13 +165,14 @@ export const KitabTijanDaroriReader: React.FC<KitabTijanDaroriReaderProps> = ({
       {activeBab && (
         <div
           ref={readingCardRef}
+          key={activeBab.id}
           style={{
             marginBottom: "0.95rem",
             backgroundColor: "var(--tashrif-paper)",
             border: "4px double var(--tashrif-border-strong)",
             borderRadius: "0.75rem",
           }}
-          className="scroll-mt-20 overflow-hidden shadow-xs"
+          className={`scroll-mt-20 overflow-hidden shadow-xs page-enter-${turnDir}`}
         >
           <div
             style={{

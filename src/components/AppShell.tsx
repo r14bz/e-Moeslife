@@ -36,19 +36,20 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
-type NavTab = "bacaan" | "quran" | "home" | "qibla" | "kitab";
+type NavTab = "hadis" | "quran" | "home" | "qibla" | "kitab";
 
 function getActiveTab(route: AppRoute): NavTab | null {
   if (route.view === "home") return "home";
-  if (route.view === "bacaan-hub" || route.view === "classic" || route.view === "wudhu-shalat") {
-    return "bacaan";
-  }
+  if (route.view === "hadis") return "hadis";
   if (route.view === "quran-studio") return "quran";
   if (route.view === "qibla") return "qibla";
   if (
     route.view === "download" ||
     route.view === "nearby-mosques" ||
-    route.view === "ecode-halal"
+    route.view === "ecode-halal" ||
+    route.view === "bacaan-hub" ||
+    route.view === "classic" ||
+    route.view === "wudhu-shalat"
   ) {
     return null;
   }
@@ -123,16 +124,16 @@ export const AppShell: React.FC<AppShellProps> = ({
     onClick: () => void;
   }> = [
     {
-      id: "bacaan",
-      label: "Bacaan & Zikir",
-      mobileLabel: "Zikir",
+      id: "hadis",
+      label: "Pencarian Hadis",
+      mobileLabel: "Hadis",
       icon: <ScrollText className="h-[18px] w-[18px] shrink-0" />,
-      onClick: () => onNavigate({ view: "bacaan-hub" }),
+      onClick: () => onNavigate({ view: "hadis" }),
     },
     {
       id: "quran",
-      label: "Studio Ibadah",
-      mobileLabel: "Ibadah",
+      label: "Al-Qur'an",
+      mobileLabel: "Al-Qur'an",
       icon: <BookOpen className="h-[18px] w-[18px] shrink-0" />,
       onClick: () => onNavigate({ view: "quran-studio", tab: "quran" }),
     },
@@ -161,9 +162,9 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   const pageLabel: Record<AppRoute["view"], string> = {
     home: "Beranda Utama",
-    "bacaan-hub": "Bacaan & Zikir",
+    "bacaan-hub": "Bacaan, Yasin & Zikir",
     classic: "Ruang Baca Klasik",
-    "quran-studio": "Studio Ibadah",
+    "quran-studio": "Al-Qur'an & Ibadah",
     "wudhu-shalat": "Panduan Wudhu & Shalat",
     "kitab-hub": "Perpustakaan Kitab Kuning",
     "local-kitab": "Pembaca Kitab Kuning",
@@ -183,6 +184,7 @@ export const AppShell: React.FC<AppShellProps> = ({
     "nearby-mosques": "Masjid & Mushala Terdekat",
     qibla: "Arah Kiblat",
     "ecode-halal": "Cek Status Halal E-Code",
+    hadis: "Pencarian Hadis",
     download: "Unduh & Pasang Aplikasi (PWA)",
   };
 
@@ -253,8 +255,16 @@ export const AppShell: React.FC<AppShellProps> = ({
               </p>
               <button
                 type="button"
-                onClick={onOpenClassicToc}
+                onClick={() => onNavigate({ view: "bacaan-hub" })}
                 className="mt-2 flex min-h-[42px] w-full items-center gap-3 rounded-xl px-3.5 text-sm font-medium text-[var(--theme-nav-muted)] transition-colors hover:bg-[var(--theme-tint-bg)] hover:text-[var(--theme-heading)]"
+              >
+                <BookOpen className="h-[18px] w-[18px] shrink-0" />
+                <span>Yasin, Tahlil &amp; Zikir</span>
+              </button>
+              <button
+                type="button"
+                onClick={onOpenClassicToc}
+                className="mt-1 flex min-h-[42px] w-full items-center gap-3 rounded-xl px-3.5 text-sm font-medium text-[var(--theme-nav-muted)] transition-colors hover:bg-[var(--theme-tint-bg)] hover:text-[var(--theme-heading)]"
               >
                 <BookMarked className="h-[18px] w-[18px] shrink-0" />
                 <span>Pindah bacaan</span>

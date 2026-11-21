@@ -43,6 +43,8 @@ export default defineConfig(() => {
           "assets/mosque-banner.webp",
           "assets/sounds/notif_shalat.wav",
           "assets/sounds/notif_update.wav",
+          "assets/sounds/adzan.mp3",
+          "assets/sounds/adzan_subuh.mp3",
         ],
         manifest: {
           id: "/",

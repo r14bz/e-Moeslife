@@ -213,6 +213,206 @@ async function startServer() {
     }
   });
 
+  const ALLOWED_HADITS_ACTIONS = new Set(["daily", "books", "list", "search", "detail"]);
+  app.get("/api/hadits", async (req, res) => {
+    const pick = (v: unknown) => (Array.isArray(v) ? String(v[0] || "") : String(v || ""));
+    const action = pick(req.query.action || "books").trim().toLowerCase();
+    const apiKey = (process.env.AHMADSANUSI_API_KEY || "").trim();
+
+    if (!ALLOWED_HADITS_ACTIONS.has(action)) {
+      return res.status(400).json({ status: "error", message: "Aksi API Hadis tidak valid." });
+    }
+    if (!apiKey) {
+      return res.status(503).json({
+        status: "error",
+        unconfigured: true,
+        message:
+          "Layanan Pencarian Hadis belum aktif karena AHMADSANUSI_API_KEY belum dikonfigurasi di server.",
+      });
+    }
+
+    const parsePositiveInt = (raw: string, fallback: number, max: number): number | null => {
+      const value = raw.trim() ? Number(raw) : fallback;
+      return Number.isInteger(value) && value >= 1 && value <= max ? value : null;
+    };
+
+    const upstream = new URL(`${KITAB_BASE_URL}/v1/hadits`);
+    if (action === "daily") {
+      upstream.pathname = "/v1/hadits/daily";
+    } else if (action === "books") {
+      upstream.pathname = "/v1/hadits";
+    } else if (action === "list") {
+      const kitab = pick(req.query.kitab).trim();
+      if (!/^[a-z0-9_]{2,50}$/i.test(kitab)) {
+        return res.status(400).json({ status: "error", message: "Slug kitab hadis tidak valid." });
+      }
+      const page = parsePositiveInt(pick(req.query.page), 1, 10000);
+      const limit = parsePositiveInt(pick(req.query.limit), 20, 100);
+      if (page === null || limit === null) {
+        return res.status(400).json({ status: "error", message: "Parameter halaman hadis tidak valid." });
+      }
+      upstream.pathname = `/v1/hadits/${encodeURIComponent(kitab)}`;
+      upstream.searchParams.set("page", String(page));
+      upstream.searchParams.set("limit", String(limit));
+    } else if (action === "search") {
+      const q = pick(req.query.q).trim();
+      if (q.length < 3 || q.length > 120) {
+        return res.status(400).json({
+          status: "error",
+          message: "Kata pencarian hadis minimal 3 dan maksimal 120 karakter.",
+        });
+      }
+      const page = parsePositiveInt(pick(req.query.page), 1, 1000);
+      const limit = parsePositiveInt(pick(req.query.limit), 20, 100);
+      if (page === null || limit === null) {
+        return res.status(400).json({ status: "error", message: "Parameter halaman pencarian tidak valid." });
+      }
+      upstream.pathname = "/v1/hadits/search";
+      upstream.searchParams.set("q", q);
+      upstream.searchParams.set("page", String(page));
+      upstream.searchParams.set("limit", String(limit));
+
+      const kitab = pick(req.query.kitab).trim();
+      if (kitab) {
+        if (!/^[a-z0-9_]{2,50}$/i.test(kitab)) {
+          return res.status(400).json({ status: "error", message: "Filter kitab hadis tidak valid." });
+        }
+        upstream.searchParams.set("kitab", kitab);
+      }
+    } else if (action === "detail") {
+      const kitab = pick(req.query.kitab).trim();
+      const nomor = parsePositiveInt(pick(req.query.nomor), 0, 100000);
+      if (!/^[a-z0-9_]{2,50}$/i.test(kitab) || nomor === null || nomor < 1) {
+        return res.status(400).json({ status: "error", message: "Parameter kitab atau nomor hadis tidak valid." });
+      }
+      upstream.pathname = `/v1/hadits/${encodeURIComponent(kitab)}/${nomor}`;
+    }
+
+    try {
+      const response = await fetch(upstream.toString(), {
+        method: "GET",
+        headers: {
+          "X-API-Key": apiKey,
+          Accept: "application/json",
+        },
+      });
+      const text = await response.text();
+      res.setHeader(
+        "Cache-Control",
+        action === "daily" ? "s-maxage=900, stale-while-revalidate=3600" : "s-maxage=3600, stale-while-revalidate=86400"
+      );
+      try {
+        const parsed = JSON.parse(text);
+        if (!response.ok && (response.status === 401 || response.status === 403)) {
+          return res.status(502).json({
+            status: "error",
+            message: "Autentikasi API Ahmad Sanusi ditolak. Periksa AHMADSANUSI_API_KEY di server.",
+          });
+        }
+        return res.status(response.status).json(parsed);
+      } catch {
+        return res.status(response.status).send(text);
+      }
+    } catch {
+      return res.status(502).json({
+        status: "error",
+        message: "Gagal menghubungi layanan Pencarian Hadis.",
+      });
+    }
+  });
+
+  const ALLOWED_DOA_ACTIONS = new Set(["categories", "list", "search", "detail"]);
+  app.get("/api/doa", async (req, res) => {
+    const pick = (v: unknown) => (Array.isArray(v) ? String(v[0] || "") : String(v || ""));
+    const action = pick(req.query.action || "categories").trim().toLowerCase();
+    const apiKey = (process.env.AHMADSANUSI_API_KEY || "").trim();
+
+    if (!ALLOWED_DOA_ACTIONS.has(action)) {
+      return res.status(400).json({ status: "error", message: "Aksi API Do'a & Dzikir tidak valid." });
+    }
+    if (!apiKey) {
+      return res.status(503).json({
+        status: "error",
+        unconfigured: true,
+        message:
+          "Layanan Do'a & Dzikir belum aktif karena AHMADSANUSI_API_KEY belum dikonfigurasi di server.",
+      });
+    }
+
+    const parsePositiveInt = (raw: string, fallback: number, max: number): number | null => {
+      const value = raw.trim() ? Number(raw) : fallback;
+      return Number.isInteger(value) && value >= 1 && value <= max ? value : null;
+    };
+
+    const upstream = new URL(`${KITAB_BASE_URL}/v1/doa/kategori`);
+    if (action === "categories") {
+      upstream.pathname = "/v1/doa/kategori";
+    } else if (action === "list") {
+      const slug = pick(req.query.slug).trim();
+      if (!/^[a-z0-9-]{2,60}$/i.test(slug)) {
+        return res.status(400).json({ status: "error", message: "Slug kategori do'a tidak valid." });
+      }
+      const page = parsePositiveInt(pick(req.query.page), 1, 100);
+      const limit = parsePositiveInt(pick(req.query.limit), 100, 100);
+      if (page === null || limit === null) {
+        return res.status(400).json({ status: "error", message: "Parameter halaman do'a tidak valid." });
+      }
+      upstream.pathname = `/v1/doa/kategori/${encodeURIComponent(slug)}`;
+      upstream.searchParams.set("page", String(page));
+      upstream.searchParams.set("limit", String(limit));
+    } else if (action === "search") {
+      const q = pick(req.query.q).trim();
+      if (q.length < 2 || q.length > 100) {
+        return res.status(400).json({
+          status: "error",
+          message: "Kata pencarian do'a minimal 2 dan maksimal 100 karakter.",
+        });
+      }
+      const limit = parsePositiveInt(pick(req.query.limit), 30, 50);
+      if (limit === null) {
+        return res.status(400).json({ status: "error", message: "Batas jumlah do'a tidak valid." });
+      }
+      upstream.pathname = "/v1/doa/search";
+      upstream.searchParams.set("q", q);
+      upstream.searchParams.set("limit", String(limit));
+    } else if (action === "detail") {
+      const id = parsePositiveInt(pick(req.query.id), 0, 100000);
+      if (id === null || id < 1) {
+        return res.status(400).json({ status: "error", message: "ID do'a tidak valid." });
+      }
+      upstream.pathname = `/v1/doa/${id}`;
+    }
+
+    try {
+      const response = await fetch(upstream.toString(), {
+        method: "GET",
+        headers: {
+          "X-API-Key": apiKey,
+          Accept: "application/json",
+        },
+      });
+      const text = await response.text();
+      res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate=86400");
+      try {
+        const parsed = JSON.parse(text);
+        if (!response.ok && (response.status === 401 || response.status === 403)) {
+          return res.status(502).json({
+            status: "error",
+            message: "Autentikasi API Ahmad Sanusi ditolak. Periksa AHMADSANUSI_API_KEY di server.",
+          });
+        }
+        return res.status(response.status).json(parsed);
+      } catch {
+        return res.status(response.status).send(text);
+      }
+    } catch {
+      return res.status(502).json({
+        status: "error",
+        message: "Gagal menghubungi layanan Do'a & Dzikir.",
+      });
+    }
+  });
+
   const httpServer = http.createServer(app);
 
   if (process.env.NODE_ENV === "production") {

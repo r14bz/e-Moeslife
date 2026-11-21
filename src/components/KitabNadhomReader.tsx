@@ -25,6 +25,7 @@ export const KitabNadhomReader: React.FC<KitabNadhomReaderProps> = ({
   const [openAllArti, setOpenAllArti] = useState<boolean>(false);
   const [openBaitIds, setOpenBaitIds] = useState<Record<number, boolean>>({});
   const [openSyarahIds, setOpenSyarahIds] = useState<Record<number, boolean>>({});
+  const [turnDir, setTurnDir] = useState<"next" | "prev" | "fade">("fade");
   const readingCardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -32,6 +33,7 @@ export const KitabNadhomReader: React.FC<KitabNadhomReaderProps> = ({
     setSelectedBabId(valid);
     setOpenBaitIds({});
     setOpenSyarahIds({});
+    setTurnDir("fade");
   }, [initialBabId, babs, defaultBabId]);
 
   const currentBabIndex = useMemo(
@@ -77,6 +79,7 @@ export const KitabNadhomReader: React.FC<KitabNadhomReaderProps> = ({
 
   const goToBabByIndex = (index: number) => {
     if (index >= 0 && index < babs.length) {
+      setTurnDir(index > currentBabIndex ? "next" : index < currentBabIndex ? "prev" : "fade");
       setSelectedBabId(babs[index].id);
       setOpenBaitIds({});
       setOpenSyarahIds({});
@@ -138,7 +141,18 @@ export const KitabNadhomReader: React.FC<KitabNadhomReaderProps> = ({
             kickerLabel={`Daftar Bab ${kitabIndo}`}
             value={activeBab?.id || selectedBabId}
             onChange={(val) => {
-              setSelectedBabId(String(val));
+              const nextId = String(val);
+              const nextIdx = babs.findIndex((b) => b.id === nextId);
+              setTurnDir(
+                nextIdx >= 0 && currentBabIndex >= 0
+                  ? nextIdx > currentBabIndex
+                    ? "next"
+                    : nextIdx < currentBabIndex
+                      ? "prev"
+                      : "fade"
+                  : "fade"
+              );
+              setSelectedBabId(nextId);
               setOpenBaitIds({});
               setOpenSyarahIds({});
               scrollToReadingCard();
@@ -182,6 +196,7 @@ export const KitabNadhomReader: React.FC<KitabNadhomReaderProps> = ({
       {/* Bingkai Utama Kitab dengan Double Border */}
       {activeBab && (
         <div
+          key={activeBab.id}
           ref={readingCardRef}
           style={{
             marginBottom: "0.95rem",
@@ -189,7 +204,7 @@ export const KitabNadhomReader: React.FC<KitabNadhomReaderProps> = ({
             border: "4px double var(--tashrif-border-strong)",
             borderRadius: "0.75rem",
           }}
-          className="scroll-mt-20 overflow-hidden shadow-xs"
+          className={`scroll-mt-20 overflow-hidden shadow-xs page-enter-${turnDir}`}
         >
           <div
             style={{

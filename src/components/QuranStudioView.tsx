@@ -35,6 +35,10 @@ import {
 } from "../services/preferences";
 import { prepareReadingSections } from "../utils/readerEngine";
 import { CURATED_DAILY_PRAYERS } from "../data/dailyPrayers";
+import {
+  fetchAllSanusiDoaAndDzikir,
+  type SanusiDoaCategory,
+} from "../services/doaApiService";
 import { FooterDisclaimer } from "./FooterDisclaimer";
 import { ThemedSelect } from "./ThemedSelect";
 import { FloatingPageNav } from "./FloatingPageNav";
@@ -126,8 +130,10 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const [doaItems, setDoaItems] = useState<EQuranDoaItem[]>(() => [...CURATED_DAILY_PRAYERS]);
+  const [sanusiCategories, setSanusiCategories] = useState<SanusiDoaCategory[]>([]);
   const [doaQuery, setDoaQuery] = useState("");
   const [doaFilter, setDoaFilter] = useState<"all" | "saved">("all");
+  const [doaCategoryFilter, setDoaCategoryFilter] = useState<string>("all");
   const [doaLoading, setDoaLoading] = useState(false);
   const [activeDoaIndex, setActiveDoaIndex] = useState(0);
   const [doaTurnDir, setDoaTurnDir] = useState<"next" | "prev" | "fade">("fade");
@@ -195,19 +201,58 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
     if (activeTab !== "doa" || doaFetchedRef.current) return;
     doaFetchedRef.current = true;
     let active = true;
+    const controller = new AbortController();
     setDoaLoading(true);
-    equranFetch<EQuranDoaItem[]>(`${EQURAN_API}/doa`)
-      .then((data) => {
-        if (!active || !Array.isArray(data) || data.length === 0) return;
-        const seen = new Set(CURATED_DAILY_PRAYERS.map((d) => normalizeDoaTitle(d.nama)));
-        const extras = data.filter((item) => {
+
+    Promise.allSettled([
+      equranFetch<EQuranDoaItem[]>(`${EQURAN_API}/doa`),
+      fetchAllSanusiDoaAndDzikir(controller.signal),
+    ])
+      .then(([equranRes, sanusiRes]) => {
+        if (!active) return;
+
+        const merged = CURATED_DAILY_PRAYERS.map((item) => ({ ...item }));
+        const indexByTitle = new Map<string, number>();
+        merged.forEach((item, idx) => {
           const norm = normalizeDoaTitle(item.nama);
-          if (!norm || seen.has(norm)) return false;
-          seen.add(norm);
-          return true;
+          if (norm) indexByTitle.set(norm, idx);
         });
-        if (extras.length > 0) {
-          setDoaItems([...CURATED_DAILY_PRAYERS, ...extras]);
+
+        const addOrMerge = (incoming: EQuranDoaItem) => {
+          const norm = normalizeDoaTitle(incoming.nama);
+          if (!norm) return;
+          const existingIdx = indexByTitle.get(norm);
+          if (existingIdx !== undefined) {
+            const existing = merged[existingIdx];
+            merged[existingIdx] = {
+              ...existing,
+              ar: existing.ar || incoming.ar,
+              tr: existing.tr || incoming.tr,
+              idn: existing.idn || incoming.idn,
+              grup: existing.grup || incoming.grup,
+              kategoriSlug: existing.kategoriSlug || incoming.kategoriSlug,
+              fawaid: existing.fawaid || incoming.fawaid,
+              catatan: existing.catatan || incoming.catatan,
+              sumber: existing.sumber || incoming.sumber,
+              tentang: existing.tentang || incoming.tentang,
+            };
+            return;
+          }
+          indexByTitle.set(norm, merged.length);
+          merged.push(incoming);
+        };
+
+        if (equranRes.status === "fulfilled" && Array.isArray(equranRes.value)) {
+          equranRes.value.forEach(addOrMerge);
+        }
+
+        if (sanusiRes.status === "fulfilled") {
+          setSanusiCategories(sanusiRes.value.categories);
+          sanusiRes.value.items.forEach(addOrMerge);
+        }
+
+        if (merged.length > CURATED_DAILY_PRAYERS.length) {
+          setDoaItems(merged);
         }
       })
       .catch(() => {
@@ -216,8 +261,10 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
       .finally(() => {
         if (active) setDoaLoading(false);
       });
+
     return () => {
       active = false;
+      controller.abort();
     };
   }, [activeTab]);
 
@@ -328,13 +375,23 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
     return doaItems.filter((item, idx) => {
       const key = doaBookmarkKey(item, idx);
       if (doaFilter === "saved" && !doaBookmarks.includes(key)) return false;
+      if (doaCategoryFilter !== "all" && item.kategoriSlug !== doaCategoryFilter) return false;
       if (!q) return true;
-      return [item.nama, item.grup, item.idn, item.tr, ...(item.tag || [])]
+      return [
+        item.nama,
+        item.grup,
+        item.idn,
+        item.tr,
+        item.fawaid,
+        item.catatan,
+        item.sumber,
+        ...(item.tag || []),
+      ]
         .join(" ")
         .toLocaleLowerCase("id")
         .includes(q);
     });
-  }, [doaItems, doaQuery, doaFilter, doaBookmarks]);
+  }, [doaItems, doaQuery, doaFilter, doaCategoryFilter, doaBookmarks]);
 
   const safeDoaIndex =
     filteredDoa.length > 0 ? Math.min(activeDoaIndex, filteredDoa.length - 1) : 0;
@@ -362,9 +419,10 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
     if (activeTab === "doa" && filteredDoa.length > 0) {
       if (initialDoaTitle) {
         const target = normalizeDoaTitle(initialDoaTitle);
-        const matchIdx = filteredDoa.findIndex((d) => normalizeDoaTitle(d.nama) === target);
+        const matchIdx = doaItems.findIndex((d) => normalizeDoaTitle(d.nama) === target);
         if (matchIdx >= 0) {
           setDoaFilter("all");
+          setDoaCategoryFilter("all");
           setDoaQuery("");
           setActiveDoaIndex(matchIdx);
           setDoaTurnDir("fade");
@@ -507,8 +565,8 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
         };
       case "doa":
         return {
-          arabic: "الأَدْعِيَةُ الْيَوْمِيَّةُ",
-          title: "Do'a Harian — Bacaan Arab, Latin & Terjemahan",
+          arabic: "الأَدْعِيَةُ وَالأَذْكَارُ الْيَوْمِيَّةُ",
+          title: "Do'a & Dzikir Harian — Bacaan Arab, Latin, Terjemahan & Keutamaan",
         };
       case "dzikir":
         return {
@@ -641,125 +699,188 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
         {/* Do'a Harian Paginated Studio View */}
         {activeTab === "doa" && (
           <div className="space-y-4">
-            {/* Filter & Directory Trigger Bar */}
             <div
               style={{
                 border: "1px solid var(--tashrif-border-cell)",
                 backgroundColor: "var(--tashrif-paper)",
               }}
-              className="flex flex-col gap-2.5 rounded-xl p-3 shadow-xs md:flex-row md:items-center md:justify-between"
+              className="space-y-3 rounded-xl p-3 shadow-xs"
             >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <h2
-                    style={{ color: "var(--tashrif-ink)" }}
-                    className="font-display text-base font-semibold sm:text-lg"
-                  >
-                    Do'a Harian
-                  </h2>
-                  <span
-                    style={{ color: "var(--tashrif-accent)" }}
-                    className="font-mono-tabular text-xs font-bold"
-                  >
-                    ({filteredDoa.length})
-                  </span>
-                  {doaLoading && (
-                    <span
-                      style={{ color: "var(--tashrif-muted)" }}
-                      className="text-[11px] font-medium"
+              <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <h2
+                      style={{ color: "var(--tashrif-ink)" }}
+                      className="font-display text-base font-semibold sm:text-lg"
                     >
-                      · Menyelaraskan…
+                      Do'a &amp; Dzikir Harian
+                    </h2>
+                    <span
+                      style={{ color: "var(--tashrif-accent)" }}
+                      className="font-mono-tabular text-xs font-bold"
+                    >
+                      ({filteredDoa.length})
                     </span>
-                  )}
-                </div>
+                    {doaLoading && (
+                      <span
+                        style={{ color: "var(--tashrif-muted)" }}
+                        className="text-[11px] font-medium"
+                      >
+                        · Memuat koleksi do'a &amp; dzikir…
+                      </span>
+                    )}
+                  </div>
 
-                <button
-                  type="button"
-                  onClick={() => setDoaDrawerOpen(true)}
-                  style={{
-                    border: "1px solid var(--tashrif-border-cell)",
-                    backgroundColor: "var(--tashrif-wazan-bg)",
-                    color: "var(--tashrif-text)",
-                  }}
-                  className="inline-flex min-h-[38px] items-center gap-1.5 rounded-lg px-3 text-xs font-bold lg:hidden"
-                >
-                  <List className="h-3.5 w-3.5" />
-                  <span>Daftar Do'a</span>
-                </button>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <div
-                  style={{
-                    border: "1px solid var(--tashrif-border-cell)",
-                    backgroundColor: "var(--tashrif-row-alt)",
-                  }}
-                  className="inline-flex rounded-lg p-0.5"
-                >
                   <button
                     type="button"
-                    onClick={() => {
-                      setDoaFilter("all");
-                      setActiveDoaIndex(0);
-                      setDoaTurnDir("fade");
-                    }}
-                    style={
-                      doaFilter === "all"
-                        ? {
-                            backgroundColor: "var(--tashrif-btn-bg)",
-                            color: "var(--tashrif-btn-text)",
-                          }
-                        : { color: "var(--tashrif-text)" }
-                    }
-                    className="min-h-[34px] rounded-md px-2.5 text-xs font-bold transition-colors"
-                  >
-                    Semua
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDoaFilter("saved");
-                      setActiveDoaIndex(0);
-                      setDoaTurnDir("fade");
-                    }}
-                    style={
-                      doaFilter === "saved"
-                        ? {
-                            backgroundColor: "var(--tashrif-btn-bg)",
-                            color: "var(--tashrif-btn-text)",
-                          }
-                        : { color: "var(--tashrif-text)" }
-                    }
-                    className="min-h-[34px] rounded-md px-2.5 text-xs font-bold transition-colors"
-                  >
-                    Tersimpan ({doaBookmarks.length})
-                  </button>
-                </div>
-
-                <label className="relative flex min-h-[38px] w-full items-center md:w-60">
-                  <Search
-                    style={{ color: "var(--tashrif-muted)" }}
-                    className="pointer-events-none absolute left-3 h-4 w-4"
-                  />
-                  <input
-                    type="search"
-                    value={doaQuery}
-                    onChange={(e) => {
-                      setDoaQuery(e.target.value);
-                      setActiveDoaIndex(0);
-                      setDoaTurnDir("fade");
-                    }}
-                    placeholder="Cari do'a atau kategori…"
-                    aria-label="Cari do'a harian"
+                    onClick={() => setDoaDrawerOpen(true)}
                     style={{
-                      border: "1.5px solid var(--tashrif-border-strong)",
-                      backgroundColor: "var(--tashrif-control-bg)",
+                      border: "1px solid var(--tashrif-border-cell)",
+                      backgroundColor: "var(--tashrif-wazan-bg)",
                       color: "var(--tashrif-text)",
                     }}
-                    className="min-h-[38px] w-full rounded-lg pr-3.5 pl-9 text-xs font-medium outline-none sm:text-sm"
-                  />
-                </label>
+                    className="inline-flex min-h-[38px] items-center gap-1.5 rounded-lg px-3 text-xs font-bold lg:hidden"
+                  >
+                    <List className="h-3.5 w-3.5" />
+                    <span>Daftar Do'a</span>
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <div
+                    style={{
+                      border: "1px solid var(--tashrif-border-cell)",
+                      backgroundColor: "var(--tashrif-row-alt)",
+                    }}
+                    className="inline-flex rounded-lg p-0.5"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDoaFilter("all");
+                        setActiveDoaIndex(0);
+                        setDoaTurnDir("fade");
+                      }}
+                      style={
+                        doaFilter === "all"
+                          ? {
+                              backgroundColor: "var(--tashrif-btn-bg)",
+                              color: "var(--tashrif-btn-text)",
+                            }
+                          : { color: "var(--tashrif-text)" }
+                      }
+                      className="min-h-[34px] rounded-md px-2.5 text-xs font-bold transition-colors"
+                    >
+                      Semua
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDoaFilter("saved");
+                        setActiveDoaIndex(0);
+                        setDoaTurnDir("fade");
+                      }}
+                      style={
+                        doaFilter === "saved"
+                          ? {
+                              backgroundColor: "var(--tashrif-btn-bg)",
+                              color: "var(--tashrif-btn-text)",
+                            }
+                          : { color: "var(--tashrif-text)" }
+                      }
+                      className="min-h-[34px] rounded-md px-2.5 text-xs font-bold transition-colors"
+                    >
+                      Tersimpan ({doaBookmarks.length})
+                    </button>
+                  </div>
+
+                  <label className="relative flex min-h-[38px] w-full items-center md:w-64">
+                    <Search
+                      style={{ color: "var(--tashrif-muted)" }}
+                      className="pointer-events-none absolute left-3 h-4 w-4"
+                    />
+                    <input
+                      type="search"
+                      value={doaQuery}
+                      onChange={(e) => {
+                        setDoaQuery(e.target.value);
+                        setActiveDoaIndex(0);
+                        setDoaTurnDir("fade");
+                      }}
+                      placeholder="Cari do'a, dzikir, atau sumber…"
+                      aria-label="Cari do'a harian dan dzikir"
+                      style={{
+                        border: "1.5px solid var(--tashrif-border-strong)",
+                        backgroundColor: "var(--tashrif-control-bg)",
+                        color: "var(--tashrif-text)",
+                      }}
+                      className="min-h-[38px] w-full rounded-lg pr-3.5 pl-9 text-xs font-medium outline-none sm:text-sm"
+                    />
+                  </label>
+                </div>
               </div>
+
+              {sanusiCategories.length > 0 && (
+                <div
+                  style={{ borderTop: "1px dashed var(--tashrif-border-cell)" }}
+                  className="no-scrollbar flex items-center gap-1.5 overflow-x-auto pt-2.5"
+                  role="group"
+                  aria-label="Filter kategori do'a & dzikir"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDoaCategoryFilter("all");
+                      setActiveDoaIndex(0);
+                      setDoaTurnDir("fade");
+                    }}
+                    style={
+                      doaCategoryFilter === "all"
+                        ? {
+                            backgroundColor: "var(--tashrif-btn-bg)",
+                            color: "var(--tashrif-btn-text)",
+                          }
+                        : {
+                            border: "1px solid var(--tashrif-border-cell)",
+                            backgroundColor: "var(--tashrif-row-alt)",
+                            color: "var(--tashrif-text)",
+                          }
+                    }
+                    className="min-h-[32px] shrink-0 rounded-lg px-2.5 text-xs font-bold transition-colors"
+                  >
+                    Semua Kategori
+                  </button>
+                  {sanusiCategories.map((cat) => {
+                    const active = doaCategoryFilter === cat.slug;
+                    return (
+                      <button
+                        key={cat.slug}
+                        type="button"
+                        onClick={() => {
+                          setDoaCategoryFilter(cat.slug);
+                          setActiveDoaIndex(0);
+                          setDoaTurnDir("fade");
+                        }}
+                        style={
+                          active
+                            ? {
+                                backgroundColor: "var(--tashrif-btn-bg)",
+                                color: "var(--tashrif-btn-text)",
+                              }
+                            : {
+                                border: "1px solid var(--tashrif-border-cell)",
+                                backgroundColor: "var(--tashrif-row-alt)",
+                                color: "var(--tashrif-text)",
+                              }
+                        }
+                        className="min-h-[32px] shrink-0 rounded-lg px-2.5 text-xs font-semibold transition-colors"
+                      >
+                        {cat.nama}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-[290px_minmax(0,1fr)] lg:items-start">
@@ -934,14 +1055,17 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
                                 >
                                   {activeDoa.nama || "Do'a Harian"}
                                 </h3>
-                                {activeDoa.tentang && (
-                                  <p
-                                    style={{ color: "var(--tashrif-muted)" }}
-                                    className="mt-1 text-xs"
-                                  >
-                                    {activeDoa.tentang}
-                                  </p>
-                                )}
+                                {!activeDoa.fawaid &&
+                                  !activeDoa.catatan &&
+                                  !activeDoa.sumber &&
+                                  activeDoa.tentang && (
+                                    <p
+                                      style={{ color: "var(--tashrif-muted)" }}
+                                      className="mt-1 text-xs"
+                                    >
+                                      {activeDoa.tentang}
+                                    </p>
+                                  )}
                               </div>
 
                               <div className="flex shrink-0 items-center gap-1.5">
@@ -950,7 +1074,14 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
                                   onClick={() =>
                                     copyText(
                                       `doa-${key}`,
-                                      [activeDoa.nama, activeDoa.ar, activeDoa.tr, activeDoa.idn]
+                                      [
+                                        activeDoa.nama,
+                                        activeDoa.ar,
+                                        activeDoa.tr,
+                                        activeDoa.idn,
+                                        activeDoa.fawaid ? `Keutamaan: ${activeDoa.fawaid}` : "",
+                                        activeDoa.sumber ? `Sumber: ${activeDoa.sumber}` : "",
+                                      ]
                                         .filter(Boolean)
                                         .join("\n\n")
                                     )
@@ -1011,14 +1142,18 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
                             )}
                           </div>
 
-                          {/* Dashed Bilingual Panel (Latin & Terjemahan) */}
-                          {(activeDoa.tr || activeDoa.idn) && (
+                          {/* Dashed Bilingual Panel (Latin, Terjemahan & Keterangan Sanusi API) */}
+                          {(activeDoa.tr ||
+                            activeDoa.idn ||
+                            activeDoa.fawaid ||
+                            activeDoa.catatan ||
+                            activeDoa.sumber) && (
                             <div
                               style={{
                                 borderTop: "1px dashed var(--tashrif-group-break)",
                                 backgroundColor: "var(--tashrif-wazan-bg)",
                               }}
-                              className="space-y-2.5 px-4 py-4 sm:px-7 sm:py-5"
+                              className="space-y-3 px-4 py-4 sm:px-7 sm:py-5"
                             >
                               {activeDoa.tr && (
                                 <p
@@ -1035,6 +1170,40 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
                                 >
                                   {activeDoa.idn}
                                 </p>
+                              )}
+                              {(activeDoa.fawaid || activeDoa.catatan || activeDoa.sumber) && (
+                                <div
+                                  style={{
+                                    borderTop: "1px solid var(--tashrif-border-cell)",
+                                    color: "var(--tashrif-muted)",
+                                  }}
+                                  className="space-y-1.5 pt-3 text-xs leading-relaxed"
+                                >
+                                  {activeDoa.fawaid && (
+                                    <p>
+                                      <strong style={{ color: "var(--tashrif-ink)" }}>
+                                        Keutamaan / Fawaid:{" "}
+                                      </strong>
+                                      {activeDoa.fawaid}
+                                    </p>
+                                  )}
+                                  {activeDoa.catatan && (
+                                    <p>
+                                      <strong style={{ color: "var(--tashrif-ink)" }}>
+                                        Catatan:{" "}
+                                      </strong>
+                                      {activeDoa.catatan}
+                                    </p>
+                                  )}
+                                  {activeDoa.sumber && (
+                                    <p>
+                                      <strong style={{ color: "var(--tashrif-accent)" }}>
+                                        Sumber:{" "}
+                                      </strong>
+                                      {activeDoa.sumber}
+                                    </p>
+                                  )}
+                                </div>
                               )}
                             </div>
                           )}

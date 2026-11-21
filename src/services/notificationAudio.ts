@@ -1,31 +1,113 @@
-export type NotificationSoundKind = "prayer" | "update";
+export type NotificationSoundKind = "prayer" | "adzan" | "adzan_subuh" | "update";
+
+export type NotificationAudioPlayResult = "playing" | "blocked" | "fallback" | "unsupported";
+
+export interface NotificationAudioState {
+  isPlaying: boolean;
+  kind: NotificationSoundKind | null;
+  label: string;
+  blocked: boolean;
+  blockedPrayerLabel: string;
+  blockedKind: NotificationSoundKind | null;
+}
 
 const SOUND_PATHS: Record<NotificationSoundKind, string> = {
   prayer: "/assets/sounds/notif_shalat.wav",
+  adzan: "/assets/sounds/adzan.mp3",
+  adzan_subuh: "/assets/sounds/adzan_subuh.mp3",
   update: "/assets/sounds/notif_update.wav",
 };
 
-function playWebAudioFallback(kind: NotificationSoundKind): void {
-  if (typeof window === "undefined") return;
+let activeAudio: HTMLAudioElement | null = null;
+let state: NotificationAudioState = {
+  isPlaying: false,
+  kind: null,
+  label: "",
+  blocked: false,
+  blockedPrayerLabel: "",
+  blockedKind: null,
+};
+
+const listeners = new Set<(next: NotificationAudioState) => void>();
+
+function emitState() {
+  const snapshot = { ...state };
+  listeners.forEach((listener) => {
+    try {
+      listener(snapshot);
+    } catch {
+      // ignore subscriber errors
+    }
+  });
+}
+
+export function getNotificationAudioState(): NotificationAudioState {
+  return { ...state };
+}
+
+export function subscribeNotificationAudio(
+  listener: (next: NotificationAudioState) => void
+): () => void {
+  listeners.add(listener);
+  listener({ ...state });
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+export function clearBlockedNotificationAudio(): void {
+  if (!state.blocked && !state.blockedPrayerLabel && !state.blockedKind) return;
+  state = {
+    ...state,
+    blocked: false,
+    blockedPrayerLabel: "",
+    blockedKind: null,
+  };
+  emitState();
+}
+
+export function stopNotificationAudio(): void {
+  if (activeAudio) {
+    try {
+      activeAudio.pause();
+      activeAudio.currentTime = 0;
+    } catch {
+      // ignore cleanup failures
+    }
+    activeAudio = null;
+  }
+  if (state.isPlaying || state.kind !== null || state.label) {
+    state = {
+      ...state,
+      isPlaying: false,
+      kind: null,
+      label: "",
+    };
+    emitState();
+  }
+}
+
+function playWebAudioFallback(kind: NotificationSoundKind): boolean {
+  if (typeof window === "undefined") return false;
   const AudioCtx =
     window.AudioContext ||
     (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!AudioCtx) return;
+  if (!AudioCtx) return false;
 
   try {
     const ctx = new AudioCtx();
     const now = ctx.currentTime;
     const notes =
-      kind === "prayer"
+      kind === "update"
         ? [
+            { freq: 587.33, offset: 0, dur: 0.25 },
+            { freq: 880.0, offset: 0.14, dur: 0.45 },
+          ]
+        : [
             { freq: 392.0, offset: 0, dur: 0.45 },
             { freq: 493.88, offset: 0.16, dur: 0.45 },
             { freq: 587.33, offset: 0.32, dur: 0.5 },
             { freq: 783.99, offset: 0.5, dur: 0.7 },
-          ]
-        : [
-            { freq: 587.33, offset: 0, dur: 0.25 },
-            { freq: 880.0, offset: 0.14, dur: 0.45 },
           ];
 
     for (const note of notes) {
@@ -44,23 +126,87 @@ function playWebAudioFallback(kind: NotificationSoundKind): void {
     window.setTimeout(() => {
       void ctx.close().catch(() => undefined);
     }, 1800);
+    return true;
   } catch {
-    // Ignore autoplay/AudioContext blocks cleanly
+    return false;
   }
 }
 
-export function playNotificationSound(kind: NotificationSoundKind): void {
-  if (typeof window === "undefined") return;
+export async function playNotificationSound(
+  kind: NotificationSoundKind,
+  options?: { label?: string }
+): Promise<NotificationAudioPlayResult> {
+  if (typeof window === "undefined") return "unsupported";
+
+  const isAdzan = kind === "adzan" || kind === "adzan_subuh";
+  const label = options?.label || (kind === "adzan_subuh" ? "Adzan Subuh" : isAdzan ? "Adzan" : "");
+
+  stopNotificationAudio();
+
   try {
     const audio = new Audio(SOUND_PATHS[kind]);
-    audio.volume = 0.85;
-    const promise = audio.play();
-    if (promise && typeof promise.catch === "function") {
-      promise.catch(() => {
-        playWebAudioFallback(kind);
-      });
-    }
+    audio.volume = isAdzan ? 0.92 : 0.85;
+    audio.preload = "auto";
+    activeAudio = audio;
+
+    audio.addEventListener("ended", () => {
+      if (activeAudio === audio) {
+        activeAudio = null;
+        state = {
+          isPlaying: false,
+          kind: null,
+          label: "",
+          blocked: false,
+          blockedPrayerLabel: "",
+          blockedKind: null,
+        };
+        emitState();
+      }
+    });
+
+    audio.addEventListener("error", () => {
+      if (activeAudio === audio) {
+        activeAudio = null;
+        state = {
+          ...state,
+          isPlaying: false,
+          kind: null,
+          label: "",
+        };
+        emitState();
+      }
+    });
+
+    await audio.play();
+
+    state = {
+      isPlaying: true,
+      kind,
+      label,
+      blocked: false,
+      blockedPrayerLabel: "",
+      blockedKind: null,
+    };
+    emitState();
+    return "playing";
   } catch {
-    playWebAudioFallback(kind);
+    if (activeAudio) {
+      activeAudio = null;
+    }
+
+    if (isAdzan) {
+      state = {
+        isPlaying: false,
+        kind: null,
+        label: "",
+        blocked: true,
+        blockedPrayerLabel: label,
+        blockedKind: kind,
+      };
+      emitState();
+      return "blocked";
+    }
+
+    return playWebAudioFallback(kind) ? "fallback" : "unsupported";
   }
 }
