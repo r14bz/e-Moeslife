@@ -6,32 +6,111 @@ const signMode = process.env.APK_SIGN_MODE === "release" ? "release" : "debug";
 const signLabel = signMode === "release" ? "Release Signed" : "Debug Signed";
 const currentSha = (process.env.GITHUB_SHA || safeExec("git rev-parse HEAD")).trim();
 
-function parsePrevRelease() {
+const targetTag = (process.env.TARGET_TAG || "v3.0-android").trim();
+
+function extractApkDownloadCount(release) {
+  const assets = Array.isArray(release?.assets) ? release.assets : [];
+  const apkAsset = assets.find((a) =>
+    String(a?.name || "")
+      .toLowerCase()
+      .endsWith(".apk")
+  );
+  return typeof apkAsset?.download_count === "number" && Number.isFinite(apkAsset.download_count)
+    ? apkAsset.download_count
+    : 0;
+}
+
+function extractPrevMetadata(body) {
+  const match = String(body || "").match(/<!--\s*emoeslife-release:(\{[\s\S]*?\})\s*-->/);
+  if (!match) return { commit: "", prevDownloads: 0, migratedTags: [] };
+  try {
+    const parsed = JSON.parse(match[1]);
+    return {
+      commit: typeof parsed.commit === "string" ? parsed.commit.trim() : "",
+      prevDownloads:
+        typeof parsed.prevDownloads === "number" && Number.isFinite(parsed.prevDownloads)
+          ? parsed.prevDownloads
+          : 0,
+      migratedTags: Array.isArray(parsed.migratedTags)
+        ? parsed.migratedTags.map((t) => String(t).trim()).filter(Boolean)
+        : [],
+    };
+  } catch {
+    return { commit: "", prevDownloads: 0, migratedTags: [] };
+  }
+}
+
+function parsePrevState() {
+  const rawList = process.env.RELEASES_JSON || "";
+  if (rawList) {
+    try {
+      const releases = JSON.parse(rawList);
+      if (Array.isArray(releases) && releases.length > 0) {
+        const targetRelease = releases.find((r) => String(r?.tag_name || "") === targetTag) || null;
+        const olderAndroidReleases = releases.filter((r) => {
+          const tag = String(r?.tag_name || "");
+          return tag && tag !== targetTag && /^v\d+(\.\d+)?-android$/i.test(tag);
+        });
+
+        const targetMeta = extractPrevMetadata(targetRelease?.body || "");
+        const targetCurrent = targetRelease ? extractApkDownloadCount(targetRelease) : 0;
+        let totalPrevDownloads = targetMeta.prevDownloads + targetCurrent;
+        const migratedSet = new Set(targetMeta.migratedTags);
+
+        for (const oldRel of olderAndroidReleases) {
+          const oldTag = String(oldRel.tag_name || "");
+          if (!oldTag || migratedSet.has(oldTag)) continue;
+          const oldMeta = extractPrevMetadata(oldRel.body || "");
+          const oldCurrent = extractApkDownloadCount(oldRel);
+          totalPrevDownloads += oldMeta.prevDownloads + oldCurrent;
+          migratedSet.add(oldTag);
+        }
+
+        const commitCandidate =
+          targetMeta.commit ||
+          olderAndroidReleases.map((r) => extractPrevMetadata(r.body || "").commit).find(Boolean) ||
+          "";
+
+        return {
+          commit: commitCandidate,
+          prevDownloads: totalPrevDownloads,
+          migratedTags: Array.from(migratedSet),
+        };
+      }
+    } catch {
+      // Fallback to PREV_RELEASE_JSON / PREV_RELEASE_BODY
+    }
+  }
+
   const rawJson = process.env.PREV_RELEASE_JSON || "";
   if (rawJson) {
     try {
       const data = JSON.parse(rawJson);
-      const body = typeof data.body === "string" ? data.body : "";
-      const assets = Array.isArray(data.assets) ? data.assets : [];
-      const apkAsset = assets.find((a) =>
-        String(a?.name || "")
-          .toLowerCase()
-          .endsWith(".apk")
-      );
-      const currentDownloads =
-        typeof apkAsset?.download_count === "number" && Number.isFinite(apkAsset.download_count)
-          ? apkAsset.download_count
-          : 0;
-      return { body, currentDownloads };
+      if (data && typeof data.body === "string") {
+        const meta = extractPrevMetadata(data.body);
+        const currentDownloads = extractApkDownloadCount(data);
+        return {
+          commit: meta.commit,
+          prevDownloads: meta.prevDownloads + currentDownloads,
+          migratedTags: meta.migratedTags,
+        };
+      }
     } catch {
       // Fallback to PREV_RELEASE_BODY
     }
   }
-  return { body: process.env.PREV_RELEASE_BODY || "", currentDownloads: 0 };
+
+  const bodyMeta = extractPrevMetadata(process.env.PREV_RELEASE_BODY || "");
+  return {
+    commit: bodyMeta.commit,
+    prevDownloads: bodyMeta.prevDownloads,
+    migratedTags: bodyMeta.migratedTags,
+  };
 }
 
-const prevRelease = parsePrevRelease();
-const prevBody = prevRelease.body;
+const prevState = parsePrevState();
+const cumulativePrevDownloads = prevState.prevDownloads;
+const migratedTags = prevState.migratedTags;
 
 function safeExec(cmd) {
   try {
@@ -41,33 +120,13 @@ function safeExec(cmd) {
   }
 }
 
-function extractPrevMetadata(body) {
-  const match = body.match(/<!--\s*emoeslife-release:(\{[\s\S]*?\})\s*-->/);
-  if (!match) return { commit: "", prevDownloads: 0 };
-  try {
-    const parsed = JSON.parse(match[1]);
-    return {
-      commit: typeof parsed.commit === "string" ? parsed.commit.trim() : "",
-      prevDownloads:
-        typeof parsed.prevDownloads === "number" && Number.isFinite(parsed.prevDownloads)
-          ? parsed.prevDownloads
-          : 0,
-    };
-  } catch {
-    return { commit: "", prevDownloads: 0 };
-  }
-}
-
-const prevMeta = extractPrevMetadata(prevBody);
-const cumulativePrevDownloads = prevMeta.prevDownloads + prevRelease.currentDownloads;
-
 function hasCommit(sha) {
   if (!sha || !/^[0-9a-f]{7,40}$/i.test(sha)) return false;
   return Boolean(safeExec(`git cat-file -e "${sha}^{commit}" && echo ok`));
 }
 
 function collectCommitSubjects() {
-  const prevSha = prevMeta.commit;
+  const prevSha = prevState.commit;
   let raw = "";
   if (prevSha && hasCommit(prevSha) && prevSha !== currentSha) {
     raw = safeExec(`git log --no-merges --pretty=format:%s ${prevSha}..HEAD`);
@@ -174,6 +233,7 @@ lines.push(
     signed: signMode,
     commit: currentSha,
     prevDownloads: cumulativePrevDownloads,
+    migratedTags,
   })} -->`
 );
 

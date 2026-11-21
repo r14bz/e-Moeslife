@@ -481,10 +481,52 @@ footer a{color:#e6c98e;text-decoration:none}
     });
 
   var releaseEndpoints = [
-    "https://api.github.com/repos/r14bz/e-Moeslife/releases/tags/v3.0-android",
+    "https://api.github.com/repos/r14bz/e-Moeslife/releases?per_page=10",
     "https://api.github.com/repos/r14bz/e-Moeslife/releases/latest",
+    "https://api.github.com/repos/r14bz/e-Moeslife/releases/tags/v3.0-android",
     "https://api.github.com/repos/r14bz/e-Moeslife/releases/tags/v2.0-android"
   ];
+
+  function extractReleaseMeta(rel) {
+    var body = (rel && rel.body) || "";
+    var versionText = "";
+    var prevDownloads = 0;
+    var versionCode = 0;
+    var migratedTags = [];
+    var marker = body.match(/<!--\s*emoeslife-release:(\{[\s\S]*?\})\s*-->/);
+    if (marker) {
+      try {
+        var meta = JSON.parse(marker[1]);
+        if (meta && meta.versionName) versionText = "v" + meta.versionName;
+        if (meta && typeof meta.versionCode === "number" && isFinite(meta.versionCode)) {
+          versionCode = meta.versionCode;
+        }
+        if (meta && typeof meta.prevDownloads === "number" && isFinite(meta.prevDownloads)) {
+          prevDownloads = meta.prevDownloads;
+        }
+        if (meta && Array.isArray(meta.migratedTags)) {
+          migratedTags = meta.migratedTags.map(function (t) { return String(t); });
+        }
+      } catch (e) {}
+    }
+    if (!versionText && rel && rel.name) {
+      var titleMatch = rel.name.match(/v\d+\.\d+\.\d+/i);
+      if (titleMatch) versionText = titleMatch[0];
+    }
+    var asset = (rel && rel.assets ? rel.assets : []).find(function (a) {
+      return (a.name || "").toLowerCase().indexOf(".apk") !== -1;
+    });
+    var currentDownloads = asset && typeof asset.download_count === "number" ? asset.download_count : 0;
+    return {
+      tag: (rel && rel.tag_name) || "",
+      versionText: versionText,
+      versionCode: versionCode,
+      prevDownloads: prevDownloads,
+      currentDownloads: currentDownloads,
+      migratedTags: migratedTags,
+      sizeBytes: asset && asset.size ? asset.size : 0
+    };
+  }
 
   function fetchReleaseWithFallback(index) {
     if (index >= releaseEndpoints.length) return Promise.resolve(null);
@@ -498,40 +540,39 @@ footer a{color:#e6c98e;text-decoration:none}
   }
 
   fetchReleaseWithFallback(0)
-    .then(function (rel) {
+    .then(function (payload) {
       var countEl = document.getElementById("apk-download-count");
-      if (!rel) {
+      if (!payload) {
         if (countEl) countEl.textContent = "—";
         return;
       }
-      var subEl = document.getElementById("apk-version-sub");
-      var body = rel.body || "";
-      var versionText = "";
-      var prevDownloads = 0;
-      var marker = body.match(/<!--\s*emoeslife-release:(\{[\s\S]*?\})\s*-->/);
-      if (marker) {
-        try {
-          var meta = JSON.parse(marker[1]);
-          if (meta && meta.versionName) versionText = "v" + meta.versionName;
-          if (meta && typeof meta.prevDownloads === "number" && isFinite(meta.prevDownloads)) {
-            prevDownloads = meta.prevDownloads;
-          }
-        } catch (e) {}
+
+      var list = Array.isArray(payload) ? payload : [payload];
+      var published = list.filter(function (r) { return r && !r.draft && !r.prerelease; });
+      if (!published.length) {
+        if (countEl) countEl.textContent = "—";
+        return;
       }
-      if (!versionText && rel.name) {
-        var titleMatch = rel.name.match(/v\d+\.\d+\.\d+/i);
-        if (titleMatch) versionText = titleMatch[0];
-      }
-      var asset = (rel.assets || []).find(function (a) {
-        return (a.name || "").toLowerCase().indexOf(".apk") !== -1;
+
+      var infos = published.map(extractReleaseMeta).sort(function (a, b) {
+        return b.versionCode - a.versionCode;
       });
-      var sizeText = asset && asset.size ? (asset.size / (1024 * 1024)).toFixed(1) + " MB" : "";
-      if (subEl && (versionText || sizeText)) {
-        subEl.textContent = ["Signed APK", versionText, sizeText].filter(Boolean).join(" · ");
+      var primary = infos[0];
+      var subEl = document.getElementById("apk-version-sub");
+      var sizeText = primary.sizeBytes ? (primary.sizeBytes / (1024 * 1024)).toFixed(1) + " MB" : "";
+      if (subEl && (primary.versionText || sizeText)) {
+        subEl.textContent = ["Signed APK", primary.versionText, sizeText].filter(Boolean).join(" · ");
       }
+
       if (countEl) {
-        var currentDownloads = asset && typeof asset.download_count === "number" ? asset.download_count : 0;
-        var totalDownloads = prevDownloads + currentDownloads;
+        var totalDownloads = primary.prevDownloads + primary.currentDownloads;
+        var migrated = primary.migratedTags || [];
+        for (var i = 1; i < infos.length; i++) {
+          var older = infos[i];
+          if (older.tag && migrated.indexOf(older.tag) === -1 && /^v\d+(\.\d+)?-android$/i.test(older.tag)) {
+            totalDownloads += older.prevDownloads + older.currentDownloads;
+          }
+        }
         countEl.textContent = totalDownloads.toLocaleString("id-ID") + " kali";
       }
     })

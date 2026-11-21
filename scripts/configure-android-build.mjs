@@ -204,8 +204,8 @@ public final class ApkUpdateChecker {
     };
 
     private static final String[] ENDPOINTS = new String[] {
-        "https://api.github.com/repos/r14bz/e-Moeslife/releases/tags/v3.0-android",
         "https://api.github.com/repos/r14bz/e-Moeslife/releases/latest",
+        "https://api.github.com/repos/r14bz/e-Moeslife/releases/tags/v3.0-android",
         "https://api.github.com/repos/r14bz/e-Moeslife/releases/tags/v2.0-android"
     };
 
@@ -456,10 +456,24 @@ public final class ApkUpdateChecker {
                     signed = marker.optString("signed", "");
                 }
 
+                if (remoteCode <= 0L && !body.isEmpty()) {
+                    Matcher buildMatcher = Pattern.compile("\\\\(Build\\\\s+(\\\\d+)\\\\)", Pattern.CASE_INSENSITIVE).matcher(body);
+                    if (buildMatcher.find()) {
+                        remoteCode = Long.parseLong(buildMatcher.group(1));
+                    }
+                }
+
+                if (versionName.isEmpty() && !releaseName.isEmpty()) {
+                    Matcher verMatcher = Pattern.compile("v(\\\\d+\\\\.\\\\d+\\\\.\\\\d+)", Pattern.CASE_INSENSITIVE).matcher(releaseName);
+                    if (verMatcher.find()) {
+                        versionName = verMatcher.group(1);
+                    }
+                }
+
                 if (remoteCode <= 0L && !releaseName.isEmpty()) {
                     Matcher titleMatcher = Pattern.compile("v(\\\\d+\\\\.\\\\d+\\\\.(\\\\d+))", Pattern.CASE_INSENSITIVE).matcher(releaseName);
                     if (titleMatcher.find()) {
-                        versionName = titleMatcher.group(1);
+                        if (versionName.isEmpty()) versionName = titleMatcher.group(1);
                         remoteCode = Long.parseLong(titleMatcher.group(2));
                     }
                 }

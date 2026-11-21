@@ -4,10 +4,12 @@ import { requestStartupPermissionsOnLaunch } from "./locationService";
 import { markNativeVersionNotified } from "./apkInstaller";
 import { playNotificationSound } from "./notificationAudio";
 
-export const RELEASES_TAG_API_URL =
-  "https://api.github.com/repos/r14bz/e-Moeslife/releases/tags/v3.0-android";
 export const RELEASES_LATEST_API_URL =
   "https://api.github.com/repos/r14bz/e-Moeslife/releases/latest";
+export const RELEASES_LIST_API_URL =
+  "https://api.github.com/repos/r14bz/e-Moeslife/releases?per_page=10";
+export const RELEASES_TAG_API_URL =
+  "https://api.github.com/repos/r14bz/e-Moeslife/releases/tags/v3.0-android";
 export const RELEASES_LEGACY_TAG_API_URL =
   "https://api.github.com/repos/r14bz/e-Moeslife/releases/tags/v2.0-android";
 export const DEFAULT_APK_DOWNLOAD_URL =
@@ -54,6 +56,8 @@ interface GitHubReleaseResponse {
   name?: string;
   tag_name?: string;
   body?: string;
+  draft?: boolean;
+  prerelease?: boolean;
   published_at?: string;
   assets?: GitHubReleaseAsset[];
 }
@@ -195,10 +199,24 @@ function parseReleaseMetadata(release: GitHubReleaseResponse): ApkReleaseInfo | 
     }
   }
 
+  if (!versionCode && body) {
+    const buildMatch = body.match(/\(Build\s+(\d+)\)/i);
+    if (buildMatch) {
+      versionCode = Number.parseInt(buildMatch[1], 10) || 0;
+    }
+  }
+
+  if (!versionName && release.name) {
+    const titleMatch = release.name.match(/v(\d+\.\d+\.\d+)/i);
+    if (titleMatch) {
+      versionName = titleMatch[1];
+    }
+  }
+
   if (!versionCode && release.name) {
     const titleMatch = release.name.match(/v(\d+\.\d+\.(\d+))/i);
     if (titleMatch) {
-      versionName = titleMatch[1];
+      versionName = versionName || titleMatch[1];
       versionCode = Number.parseInt(titleMatch[2], 10) || 0;
     }
   }
@@ -245,8 +263,9 @@ export function dismissApkVersion(versionCode: number): void {
 
 export async function fetchLatestApkRelease(): Promise<ApkReleaseInfo | null> {
   const endpoints = [
-    RELEASES_TAG_API_URL,
     RELEASES_LATEST_API_URL,
+    RELEASES_LIST_API_URL,
+    RELEASES_TAG_API_URL,
     RELEASES_LEGACY_TAG_API_URL,
   ];
   for (const url of endpoints) {
@@ -256,7 +275,16 @@ export async function fetchLatestApkRelease(): Promise<ApkReleaseInfo | null> {
         headers: { Accept: "application/vnd.github+json" },
       });
       if (!res.ok) continue;
-      const data = (await res.json()) as GitHubReleaseResponse;
+      const data = (await res.json()) as GitHubReleaseResponse | GitHubReleaseResponse[];
+      if (Array.isArray(data)) {
+        const parsedList = data
+          .filter((rel) => !rel.draft && !rel.prerelease)
+          .map((rel) => parseReleaseMetadata(rel))
+          .filter((item): item is ApkReleaseInfo => item !== null)
+          .sort((a, b) => b.versionCode - a.versionCode);
+        if (parsedList.length > 0) return parsedList[0];
+        continue;
+      }
       const info = parseReleaseMetadata(data);
       if (info) return info;
     } catch {

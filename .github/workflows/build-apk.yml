@@ -147,9 +147,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION_CODE: ${{ github.run_number }}
           VERSION_NAME: 3.0.0
+          TARGET_TAG: v3.0-android
         run: |
-          PREV_RELEASE_JSON=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/v3.0-android" 2>/dev/null || gh api "repos/${GITHUB_REPOSITORY}/releases/tags/v2.0-android" 2>/dev/null || true)
-          export PREV_RELEASE_JSON
+          RELEASES_JSON=$(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=20" 2>/dev/null || echo "[]")
+          export RELEASES_JSON
           node scripts/generate-release-notes.mjs > release-notes.md
           if gh release view v3.0-android >/dev/null 2>&1; then
             gh release edit v3.0-android \
@@ -160,4 +161,7 @@ jobs:
             gh release create v3.0-android release-apk/e-moeslife.apk \
               --title "e-Moeslife Android v${VERSION_NAME}" \
               --notes-file release-notes.md
+          fi
+          if gh release view v2.0-android >/dev/null 2>&1; then
+            gh release delete v2.0-android --yes --cleanup-tag || true
           fi
