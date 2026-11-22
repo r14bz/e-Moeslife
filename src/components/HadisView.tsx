@@ -19,6 +19,9 @@ import {
   fetchHadisDetail,
   fetchHadisList,
   formatHadisKitabName,
+  getCachedDailyHadis,
+  getCachedHadisBooks,
+  getCachedHadisList,
   HadisApiError,
   searchHadis,
   type HadisBookMeta,
@@ -45,8 +48,9 @@ const QUICK_TOPICS: ReadonlyArray<string> = [
 const DEFAULT_KITAB_SLUG = "shahih_bukhari";
 
 export const HadisView: React.FC<HadisViewProps> = ({ onBackHome }) => {
-  const [books, setBooks] = useState<HadisBookMeta[]>([]);
-  const [dailyHadis, setDailyHadis] = useState<HadisItem | null>(null);
+  const initialListCache = useMemo(() => getCachedHadisList(DEFAULT_KITAB_SLUG, 1, 15), []);
+  const [books, setBooks] = useState<HadisBookMeta[]>(() => getCachedHadisBooks() || []);
+  const [dailyHadis, setDailyHadis] = useState<HadisItem | null>(() => getCachedDailyHadis());
   const [dailyExpanded, setDailyExpanded] = useState<boolean>(false);
 
   const [query, setQuery] = useState<string>("");
@@ -56,10 +60,10 @@ export const HadisView: React.FC<HadisViewProps> = ({ onBackHome }) => {
   const [jumpNomor, setJumpNomor] = useState<string>("");
   const [page, setPage] = useState<number>(1);
 
-  const [items, setItems] = useState<HadisItem[]>([]);
-  const [total, setTotal] = useState<number>(0);
-  const [totalPages, setTotalPages] = useState<number>(1);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [items, setItems] = useState<HadisItem[]>(() => initialListCache?.items || []);
+  const [total, setTotal] = useState<number>(() => initialListCache?.total || 0);
+  const [totalPages, setTotalPages] = useState<number>(() => initialListCache?.totalPages || 1);
+  const [loading, setLoading] = useState<boolean>(() => !initialListCache);
   const [error, setError] = useState<string>("");
   const [isUnconfigured, setIsUnconfigured] = useState<boolean>(false);
   const [reloadTick, setReloadTick] = useState<number>(0);
@@ -72,6 +76,8 @@ export const HadisView: React.FC<HadisViewProps> = ({ onBackHome }) => {
   const [detailTurnDir, setDetailTurnDir] = useState<"next" | "prev" | "fade">("fade");
 
   const resultsTopRef = useRef<HTMLDivElement | null>(null);
+  const booksRef = useRef<HadisBookMeta[]>(books);
+  booksRef.current = books;
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -83,22 +89,20 @@ export const HadisView: React.FC<HadisViewProps> = ({ onBackHome }) => {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetchHadisBooks(controller.signal)
-      .then((list) => {
-        if (controller.signal.aborted) return;
-        setBooks(list);
-        void fetchDailyHadis(list, controller.signal)
-          .then((daily) => {
-            if (!controller.signal.aborted) setDailyHadis(daily);
-          })
-          .catch(() => undefined);
-      })
-      .catch((err) => {
-        if (controller.signal.aborted) return;
-        if (err instanceof HadisApiError && err.unconfigured) {
-          setIsUnconfigured(true);
-        }
-      });
+    Promise.allSettled([
+      fetchHadisBooks(controller.signal),
+      fetchDailyHadis(booksRef.current, controller.signal),
+    ]).then(([booksRes, dailyRes]) => {
+      if (controller.signal.aborted) return;
+      if (booksRes.status === "fulfilled") {
+        setBooks(booksRes.value);
+      } else if (booksRes.reason instanceof HadisApiError && booksRes.reason.unconfigured) {
+        setIsUnconfigured(true);
+      }
+      if (dailyRes.status === "fulfilled") {
+        setDailyHadis(dailyRes.value);
+      }
+    });
     return () => controller.abort();
   }, [reloadTick]);
 
@@ -106,18 +110,29 @@ export const HadisView: React.FC<HadisViewProps> = ({ onBackHome }) => {
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
+    const activeKitab = isSearchMode ? selectedKitab : selectedKitab || browseKitab;
+    const cachedPage = !isSearchMode
+      ? getCachedHadisList(activeKitab || DEFAULT_KITAB_SLUG, page, 15)
+      : null;
+
+    if (cachedPage) {
+      setItems(cachedPage.items);
+      setTotal(cachedPage.total);
+      setTotalPages(cachedPage.totalPages);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError("");
 
-    const activeKitab = isSearchMode ? selectedKitab : selectedKitab || browseKitab;
     const task = isSearchMode
       ? searchHadis(
           debouncedQuery,
-          { kitab: selectedKitab || undefined, page, limit: 15, books },
+          { kitab: selectedKitab || undefined, page, limit: 15, books: booksRef.current },
           controller.signal
         )
       : fetchHadisList(
-          { kitab: activeKitab || DEFAULT_KITAB_SLUG, page, limit: 15, books },
+          { kitab: activeKitab || DEFAULT_KITAB_SLUG, page, limit: 15, books: booksRef.current },
           controller.signal
         );
 
@@ -133,15 +148,17 @@ export const HadisView: React.FC<HadisViewProps> = ({ onBackHome }) => {
         if (err instanceof HadisApiError && err.unconfigured) {
           setIsUnconfigured(true);
         }
-        setError(err instanceof Error ? err.message : "Gagal memuat daftar hadis.");
-        setItems([]);
+        if (!cachedPage) {
+          setError(err instanceof Error ? err.message : "Gagal memuat daftar hadis.");
+          setItems([]);
+        }
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
       });
 
     return () => controller.abort();
-  }, [isSearchMode, debouncedQuery, selectedKitab, browseKitab, page, books, reloadTick]);
+  }, [isSearchMode, debouncedQuery, selectedKitab, browseKitab, page, reloadTick]);
 
   const totalHadisCount = useMemo(
     () => books.reduce((sum, b) => sum + (b.jumlah || 0), 0),

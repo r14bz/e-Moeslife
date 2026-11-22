@@ -336,6 +336,50 @@ function planPairedBatch(items: PairedParagraph[], start = 0, budget = BATCH_BUD
   return count;
 }
 
+const LOCAL_CHAPTER_LRU = new Map<string, NormalizedKitabChapter[]>();
+const LOCAL_CHAPTER_INFLIGHT = new Map<string, Promise<NormalizedKitabChapter[]>>();
+
+async function loadParsedLocalBookChapters(book: LocalBookMeta): Promise<NormalizedKitabChapter[]> {
+  const cached = LOCAL_CHAPTER_LRU.get(book.slug);
+  if (cached) {
+    // Refresh LRU recency
+    LOCAL_CHAPTER_LRU.delete(book.slug);
+    LOCAL_CHAPTER_LRU.set(book.slug, cached);
+    return cached;
+  }
+
+  const inflight = LOCAL_CHAPTER_INFLIGHT.get(book.slug);
+  if (inflight) return inflight;
+
+  const task = fetch(`/data/${book.file}`)
+    .then(async (res) => {
+      if (!res.ok) throw new Error(`File ${book.file} tidak dapat dimuat (${res.status}).`);
+      return res.json();
+    })
+    .then((documentData) => {
+      let parsedChapters: NormalizedKitabChapter[];
+      if (book.format === "structured") {
+        parsedChapters = parseStructuredSafinah(documentData);
+      } else {
+        const raw = arrayAt(documentData);
+        if (!raw.length) throw new Error(`Struktur naskah ${book.file} belum dikenali.`);
+        parsedChapters = raw.map(normalizeChapter);
+      }
+      if (LOCAL_CHAPTER_LRU.size >= 3) {
+        const oldestKey = LOCAL_CHAPTER_LRU.keys().next().value;
+        if (oldestKey) LOCAL_CHAPTER_LRU.delete(oldestKey);
+      }
+      LOCAL_CHAPTER_LRU.set(book.slug, parsedChapters);
+      return parsedChapters;
+    })
+    .finally(() => {
+      LOCAL_CHAPTER_INFLIGHT.delete(book.slug);
+    });
+
+  LOCAL_CHAPTER_INFLIGHT.set(book.slug, task);
+  return task;
+}
+
 export const LocalKitabView: React.FC<LocalKitabViewProps> = ({
   book,
   initialChapterIndex,
@@ -344,10 +388,20 @@ export const LocalKitabView: React.FC<LocalKitabViewProps> = ({
   onBackToLibrary,
   onGoHome,
 }) => {
-  const [chapters, setChapters] = useState<NormalizedKitabChapter[]>([]);
-  const [activeIndex, setActiveIndex] = useState<number>(0);
+  const initialCached = LOCAL_CHAPTER_LRU.get(book.slug) || null;
+  const [chapters, setChapters] = useState<NormalizedKitabChapter[]>(() => initialCached || []);
+  const [activeIndex, setActiveIndex] = useState<number>(() => {
+    if (!initialCached) return 0;
+    const hasExplicitIndex =
+      typeof initialChapterIndex === "number" &&
+      Number.isFinite(initialChapterIndex) &&
+      initialChapterIndex >= 0;
+    return hasExplicitIndex
+      ? Math.min(Math.max(0, initialCached.length - 1), initialChapterIndex)
+      : Math.min(Math.max(0, initialCached.length - 1), readKitabLastChapter(book.slug));
+  });
   const [resumedFromSaved, setResumedFromSaved] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !initialCached);
   const [error, setError] = useState("");
 
   const [openAllArti, setOpenAllArti] = useState(false);
@@ -359,27 +413,17 @@ export const LocalKitabView: React.FC<LocalKitabViewProps> = ({
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
+    const cached = LOCAL_CHAPTER_LRU.get(book.slug);
+    if (!cached) {
+      setLoading(true);
+    }
     setError("");
     setResumedFromSaved(false);
     setOpenItemIds({});
 
-    fetch(`/data/${book.file}`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`File ${book.file} tidak dapat dimuat (${res.status}).`);
-        return res.json();
-      })
-      .then((documentData) => {
+    loadParsedLocalBookChapters(book)
+      .then((parsedChapters) => {
         if (!active) return;
-        let parsedChapters: NormalizedKitabChapter[];
-        if (book.format === "structured") {
-          parsedChapters = parseStructuredSafinah(documentData);
-        } else {
-          const raw = arrayAt(documentData);
-          if (!raw.length) throw new Error(`Struktur naskah ${book.file} belum dikenali.`);
-          parsedChapters = raw.map(normalizeChapter);
-        }
-
         const hasExplicitIndex =
           typeof initialChapterIndex === "number" &&
           Number.isFinite(initialChapterIndex) &&

@@ -1,4 +1,5 @@
 import { Capacitor } from "@capacitor/core";
+import { fetchWithSwr, fetchWithTimeout } from "../services/fastCache";
 import type {
   KitabViewPreferences,
   LocalBookMeta,
@@ -761,17 +762,33 @@ function unwrapPayload(value: unknown): unknown {
 
 export async function kitabApiRequest(params: Record<string, string>): Promise<unknown> {
   const query = new URLSearchParams(params);
-  const endpoint = Capacitor.isNativePlatform()
-    ? "https://e-moeslife.vercel.app/api/kitab"
-    : "/api/kitab";
-  const response = await fetch(`${endpoint}?${query.toString()}`, {
-    headers: { Accept: "application/json" },
+  const sortedKey = Array.from(query.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}=${v}`)
+    .join("&");
+
+  return fetchWithSwr({
+    key: `kitab-api:${sortedKey}`,
+    freshTtlMs: 24 * 60 * 60 * 1000,
+    staleTtlMs: 7 * 24 * 60 * 60 * 1000,
+    fetcher: async () => {
+      const endpoint = Capacitor.isNativePlatform()
+        ? "https://e-moeslife.vercel.app/api/kitab"
+        : "/api/kitab";
+      const response = await fetchWithTimeout(
+        `${endpoint}?${query.toString()}`,
+        {
+          headers: { Accept: "application/json" },
+        },
+        12000
+      );
+      const json = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+      if (!response.ok || json.status === "error" || json.success === false) {
+        throw new Error(
+          String(json.message || json.detail || `Layanan kitab belum dapat diakses (${response.status}).`)
+        );
+      }
+      return unwrapPayload(json);
+    },
   });
-  const json = (await response.json().catch(() => ({}))) as Record<string, unknown>;
-  if (!response.ok || json.status === "error" || json.success === false) {
-    throw new Error(
-      String(json.message || json.detail || `Layanan kitab belum dapat diakses (${response.status}).`)
-    );
-  }
-  return unwrapPayload(json);
 }

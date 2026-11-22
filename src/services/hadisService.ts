@@ -1,4 +1,5 @@
 import { Capacitor } from "@capacitor/core";
+import { fetchWithSwr, fetchWithTimeout, readSwrCache } from "./fastCache";
 
 export interface HadisBookMeta {
   slug: string;
@@ -55,10 +56,9 @@ const FALLBACK_KITAB_NAMES: Record<string, string> = {
   riyadhus_shalihin_arab: "Riyadhus Shalihin (Arab)",
 };
 
-let booksCache: HadisBookMeta[] | null = null;
-let dailyCache: HadisItem | null = null;
-const listCache = new Map<string, HadisListResult>();
-const detailCache = new Map<string, HadisItem>();
+const ONE_HOUR_MS = 60 * 60 * 1000;
+const ONE_DAY_MS = 24 * ONE_HOUR_MS;
+const SEVEN_DAYS_MS = 7 * ONE_DAY_MS;
 
 function asText(value: unknown): string {
   if (typeof value === "string") return value.trim();
@@ -115,10 +115,14 @@ async function requestHadis(
   signal?: AbortSignal
 ): Promise<Record<string, unknown>> {
   const query = new URLSearchParams(params);
-  const res = await fetch(`${HADITS_ENDPOINT}?${query.toString()}`, {
-    headers: { Accept: "application/json" },
-    signal,
-  });
+  const res = await fetchWithTimeout(
+    `${HADITS_ENDPOINT}?${query.toString()}`,
+    {
+      headers: { Accept: "application/json" },
+      signal,
+    },
+    12000
+  );
   const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok || json.status === "error") {
     throw new HadisApiError(
@@ -132,41 +136,64 @@ async function requestHadis(
   return json;
 }
 
+export function getCachedHadisBooks(): HadisBookMeta[] | null {
+  return readSwrCache<HadisBookMeta[]>("hadis:books", true)?.value || null;
+}
+
+export function getCachedDailyHadis(): HadisItem | null {
+  return readSwrCache<HadisItem>("hadis:daily", true)?.value || null;
+}
+
+export function getCachedHadisList(kitab: string, page = 1, limit = 15): HadisListResult | null {
+  const key = `hadis:list:${kitab}:${page}:${limit}`;
+  return readSwrCache<HadisListResult>(key, true)?.value || null;
+}
+
 export async function fetchHadisBooks(signal?: AbortSignal): Promise<HadisBookMeta[]> {
-  if (booksCache) return booksCache;
-  const json = await requestHadis({ action: "books" }, signal);
-  const data = (json.data ?? json) as Record<string, unknown>;
-  const rawList = Array.isArray(data.kitab)
-    ? data.kitab
-    : Array.isArray(data)
-    ? data
-    : [];
+  return fetchWithSwr<HadisBookMeta[]>({
+    key: "hadis:books",
+    freshTtlMs: SEVEN_DAYS_MS,
+    staleTtlMs: 30 * ONE_DAY_MS,
+    signal,
+    fetcher: async () => {
+      const json = await requestHadis({ action: "books" });
+      const data = (json.data ?? json) as Record<string, unknown>;
+      const rawList = Array.isArray(data.kitab)
+        ? data.kitab
+        : Array.isArray(data)
+        ? data
+        : [];
 
-  const parsed: HadisBookMeta[] = rawList
-    .map((entry) => {
-      const rec =
-        entry && typeof entry === "object" ? (entry as Record<string, unknown>) : {};
-      const slug = asText(rec.slug || rec.kitab);
-      const nama = asText(rec.nama || rec.name) || formatHadisKitabName(slug);
-      const jumlah = asNumber(rec.jumlah ?? rec.total ?? rec.count, 0);
-      return { slug, nama, jumlah };
-    })
-    .filter((item) => item.slug.length > 0);
-
-  booksCache = parsed;
-  return parsed;
+      return rawList
+        .map((entry) => {
+          const rec =
+            entry && typeof entry === "object" ? (entry as Record<string, unknown>) : {};
+          const slug = asText(rec.slug || rec.kitab);
+          const nama = asText(rec.nama || rec.name) || formatHadisKitabName(slug);
+          const jumlah = asNumber(rec.jumlah ?? rec.total ?? rec.count, 0);
+          return { slug, nama, jumlah };
+        })
+        .filter((item) => item.slug.length > 0);
+    },
+  });
 }
 
 export async function fetchDailyHadis(
   books?: HadisBookMeta[],
   signal?: AbortSignal
 ): Promise<HadisItem> {
-  if (dailyCache) return dailyCache;
-  const json = await requestHadis({ action: "daily" }, signal);
-  const data = json.data ?? json;
-  const item = normalizeHadisItem(data, books || booksCache || undefined);
-  dailyCache = item;
-  return item;
+  const knownBooks = books?.length ? books : getCachedHadisBooks() || undefined;
+  return fetchWithSwr<HadisItem>({
+    key: "hadis:daily",
+    freshTtlMs: 2 * ONE_HOUR_MS,
+    staleTtlMs: ONE_DAY_MS,
+    signal,
+    fetcher: async () => {
+      const json = await requestHadis({ action: "daily" });
+      const data = json.data ?? json;
+      return normalizeHadisItem(data, knownBooks);
+    },
+  });
 }
 
 export async function fetchHadisList(
@@ -180,48 +207,49 @@ export async function fetchHadisList(
 ): Promise<HadisListResult> {
   const page = options.page ?? 1;
   const limit = options.limit ?? 20;
-  const params: Record<string, string> = {
-    action: "list",
-    kitab: options.kitab,
-    page: String(page),
-    limit: String(limit),
-  };
+  const cacheKey = `hadis:list:${options.kitab}:${page}:${limit}`;
+  const knownBooks = options.books?.length ? options.books : getCachedHadisBooks() || undefined;
 
-  const cacheKey = JSON.stringify(params);
-  const cached = listCache.get(cacheKey);
-  if (cached) return cached;
+  return fetchWithSwr<HadisListResult>({
+    key: cacheKey,
+    freshTtlMs: ONE_DAY_MS,
+    staleTtlMs: SEVEN_DAYS_MS,
+    signal,
+    fetcher: async () => {
+      const json = await requestHadis({
+        action: "list",
+        kitab: options.kitab,
+        page: String(page),
+        limit: String(limit),
+      });
+      const data = (json.data ?? json) as Record<string, unknown>;
+      const rawItems = Array.isArray(data.hadiths)
+        ? data.hadiths
+        : Array.isArray(data.results)
+        ? data.results
+        : Array.isArray(data.items)
+        ? data.items
+        : [];
 
-  const json = await requestHadis(params, signal);
-  const data = (json.data ?? json) as Record<string, unknown>;
-  const rawItems = Array.isArray(data.hadiths)
-    ? data.hadiths
-    : Array.isArray(data.results)
-    ? data.results
-    : Array.isArray(data.items)
-    ? data.items
-    : [];
+      const items = rawItems.map((entry) => normalizeHadisItem(entry, knownBooks));
+      const total = asNumber(data.total, items.length);
+      const perPage = asNumber(data.per_page ?? data.limit, limit);
+      const totalPages = asNumber(
+        data.total_pages,
+        perPage > 0 ? Math.max(1, Math.ceil(total / perPage)) : 1
+      );
 
-  const knownBooks = options.books || booksCache || undefined;
-  const items = rawItems.map((entry) => normalizeHadisItem(entry, knownBooks));
-  const total = asNumber(data.total, items.length);
-  const perPage = asNumber(data.per_page ?? data.limit, limit);
-  const totalPages = asNumber(
-    data.total_pages,
-    perPage > 0 ? Math.max(1, Math.ceil(total / perPage)) : 1
-  );
-
-  const result: HadisListResult = {
-    items,
-    page: Math.max(1, asNumber(data.page, page)),
-    perPage: Math.max(1, perPage),
-    total,
-    totalPages: Math.max(1, totalPages),
-    kitab: asText(data.kitab) || options.kitab,
-    kitabNama: asText(data.nama) || formatHadisKitabName(options.kitab, knownBooks),
-  };
-
-  listCache.set(cacheKey, result);
-  return result;
+      return {
+        items,
+        page: Math.max(1, asNumber(data.page, page)),
+        perPage: Math.max(1, perPage),
+        total,
+        totalPages: Math.max(1, totalPages),
+        kitab: asText(data.kitab) || options.kitab,
+        kitabNama: asText(data.nama) || formatHadisKitabName(options.kitab, knownBooks),
+      };
+    },
+  });
 }
 
 export async function searchHadis(
@@ -237,47 +265,50 @@ export async function searchHadis(
   const q = queryText.trim();
   const page = options.page ?? 1;
   const limit = options.limit ?? 20;
-  const params: Record<string, string> = {
-    action: "search",
-    q,
-    page: String(page),
-    limit: String(limit),
-  };
-  if (options.kitab) params.kitab = options.kitab;
+  const cacheKey = `hadis:search:${options.kitab || "all"}:${q.toLowerCase()}:${page}:${limit}`;
+  const knownBooks = options.books?.length ? options.books : getCachedHadisBooks() || undefined;
 
-  const cacheKey = JSON.stringify(params);
-  const cached = listCache.get(cacheKey);
-  if (cached) return cached;
+  return fetchWithSwr<HadisListResult>({
+    key: cacheKey,
+    freshTtlMs: 6 * ONE_HOUR_MS,
+    staleTtlMs: 3 * ONE_DAY_MS,
+    signal,
+    fetcher: async () => {
+      const params: Record<string, string> = {
+        action: "search",
+        q,
+        page: String(page),
+        limit: String(limit),
+      };
+      if (options.kitab) params.kitab = options.kitab;
 
-  const json = await requestHadis(params, signal);
-  const data = (json.data ?? json) as Record<string, unknown>;
-  const rawItems = Array.isArray(data.results)
-    ? data.results
-    : Array.isArray(data.hadiths)
-    ? data.hadiths
-    : [];
+      const json = await requestHadis(params);
+      const data = (json.data ?? json) as Record<string, unknown>;
+      const rawItems = Array.isArray(data.results)
+        ? data.results
+        : Array.isArray(data.hadiths)
+        ? data.hadiths
+        : [];
 
-  const knownBooks = options.books || booksCache || undefined;
-  const items = rawItems.map((entry) => normalizeHadisItem(entry, knownBooks));
-  const total = asNumber(data.total, items.length);
-  const perPage = asNumber(data.per_page ?? data.limit, limit);
-  const totalPages = asNumber(
-    data.total_pages,
-    perPage > 0 ? Math.max(1, Math.ceil(total / perPage)) : 1
-  );
+      const items = rawItems.map((entry) => normalizeHadisItem(entry, knownBooks));
+      const total = asNumber(data.total, items.length);
+      const perPage = asNumber(data.per_page ?? data.limit, limit);
+      const totalPages = asNumber(
+        data.total_pages,
+        perPage > 0 ? Math.max(1, Math.ceil(total / perPage)) : 1
+      );
 
-  const result: HadisListResult = {
-    items,
-    page: Math.max(1, asNumber(data.page, page)),
-    perPage: Math.max(1, perPage),
-    total,
-    totalPages: Math.max(1, totalPages),
-    kitab: options.kitab || undefined,
-    query: q,
-  };
-
-  listCache.set(cacheKey, result);
-  return result;
+      return {
+        items,
+        page: Math.max(1, asNumber(data.page, page)),
+        perPage: Math.max(1, perPage),
+        total,
+        totalPages: Math.max(1, totalPages),
+        kitab: options.kitab || undefined,
+        query: q,
+      };
+    },
+  });
 }
 
 export async function fetchHadisDetail(
@@ -286,16 +317,22 @@ export async function fetchHadisDetail(
   books?: HadisBookMeta[],
   signal?: AbortSignal
 ): Promise<HadisItem> {
-  const key = `${kitab}:${nomor}`;
-  const cached = detailCache.get(key);
-  if (cached) return cached;
+  const cacheKey = `hadis:detail:${kitab}:${nomor}`;
+  const knownBooks = books?.length ? books : getCachedHadisBooks() || undefined;
 
-  const json = await requestHadis(
-    { action: "detail", kitab, nomor: String(nomor) },
-    signal
-  );
-  const data = json.data ?? json;
-  const item = normalizeHadisItem(data, books || booksCache || undefined);
-  detailCache.set(key, item);
-  return item;
+  return fetchWithSwr<HadisItem>({
+    key: cacheKey,
+    freshTtlMs: SEVEN_DAYS_MS,
+    staleTtlMs: 30 * ONE_DAY_MS,
+    signal,
+    fetcher: async () => {
+      const json = await requestHadis({
+        action: "detail",
+        kitab,
+        nomor: String(nomor),
+      });
+      const data = json.data ?? json;
+      return normalizeHadisItem(data, knownBooks);
+    },
+  });
 }

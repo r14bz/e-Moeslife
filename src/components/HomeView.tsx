@@ -14,6 +14,7 @@ import {
   KitabCoverMini,
   type CollectionIconId,
 } from "./PesantrenCardMotifs";
+import { prefetchBookIntent, prefetchRouteView } from "../utils/routePrefetch";
 
 interface HomeViewProps {
   sections: ClassicSection[];
@@ -498,6 +499,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
               key={`${book.source}-${book.slug}`}
               type="button"
               onClick={() => onOpenBook(book)}
+              onPointerEnter={() => prefetchBookIntent(book)}
+              onTouchStart={() => prefetchBookIntent(book)}
+              onFocus={() => prefetchBookIntent(book)}
               className="group flex min-h-[68px] items-center justify-between gap-2 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] px-2.5 py-2.5 text-left shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--theme-primary)] hover:bg-[var(--theme-card-alt)] hover:shadow-sm sm:px-3"
             >
               <div className="flex min-w-0 items-center gap-2.5">
@@ -522,6 +526,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
         <button
           type="button"
           onClick={() => onNavigate({ view: "kitab-hub" })}
+          onPointerEnter={() => prefetchRouteView("kitab-hub")}
+          onTouchStart={() => prefetchRouteView("kitab-hub")}
           className="group relative mt-2.5 flex w-full items-center justify-between gap-3 overflow-hidden rounded-2xl border border-[var(--theme-hero-border)] bg-gradient-to-r from-[var(--theme-primary-from)] via-[var(--theme-primary-via)] to-[var(--theme-primary-to)] px-3.5 py-3 text-left text-white shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md sm:px-4"
         >
           <div className="relative flex min-w-0 items-center gap-3">

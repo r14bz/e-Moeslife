@@ -1,4 +1,5 @@
 import { Capacitor } from "@capacitor/core";
+import { fetchWithSwr, fetchWithTimeout, readSwrCache } from "./fastCache";
 
 export type EcodeHalalStatus = "halal" | "doubtful" | "haram" | "unknown";
 
@@ -56,9 +57,8 @@ const ECODE_ENDPOINT = Capacitor.isNativePlatform()
   ? "https://e-moeslife.vercel.app/api/ecode"
   : "/api/ecode";
 
-let summaryCache: EcodeSummary | null = null;
-const listCache = new Map<string, EcodeListResult>();
-const detailCache = new Map<string, EcodeItem>();
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const SEVEN_DAYS_MS = 7 * ONE_DAY_MS;
 
 function asText(value: unknown): string {
   if (typeof value === "string") return value.trim();
@@ -194,10 +194,14 @@ function extractMeta(json: Record<string, unknown>, payload: unknown, itemCount:
 
 async function requestEcode(params: Record<string, string>, signal?: AbortSignal): Promise<Record<string, unknown>> {
   const query = new URLSearchParams(params);
-  const res = await fetch(`${ECODE_ENDPOINT}?${query.toString()}`, {
-    headers: { Accept: "application/json" },
-    signal,
-  });
+  const res = await fetchWithTimeout(
+    `${ECODE_ENDPOINT}?${query.toString()}`,
+    {
+      headers: { Accept: "application/json" },
+      signal,
+    },
+    12000
+  );
   const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok || json.status === "error") {
     throw new EcodeApiError(
@@ -211,61 +215,81 @@ async function requestEcode(params: Record<string, string>, signal?: AbortSignal
   return json;
 }
 
+export function getCachedEcodeSummary(): EcodeSummary | null {
+  return readSwrCache<EcodeSummary>("ecode:summary", true)?.value || null;
+}
+
+export function getCachedEcodeList(options: {
+  status?: "Halal" | "Haram" | "Doubtful" | "";
+  type?: string;
+  page?: number;
+  limit?: number;
+} = {}): EcodeListResult | null {
+  const page = options.page ?? 1;
+  const limit = options.limit ?? 20;
+  const cacheKey = `ecode:list:${options.status || "all"}:${options.type || "all"}:${page}:${limit}`;
+  return readSwrCache<EcodeListResult>(cacheKey, true)?.value || null;
+}
+
 export async function fetchEcodeSummary(signal?: AbortSignal): Promise<EcodeSummary> {
-  if (summaryCache) return summaryCache;
-  const json = await requestEcode({ action: "summary" }, signal);
-  const payload = extractPayload(json);
-  const obj =
-    payload && typeof payload === "object" && !Array.isArray(payload)
-      ? (payload as Record<string, unknown>)
-      : {};
+  return fetchWithSwr<EcodeSummary>({
+    key: "ecode:summary",
+    freshTtlMs: SEVEN_DAYS_MS,
+    staleTtlMs: 30 * ONE_DAY_MS,
+    signal,
+    fetcher: async () => {
+      const json = await requestEcode({ action: "summary" });
+      const payload = extractPayload(json);
+      const obj =
+        payload && typeof payload === "object" && !Array.isArray(payload)
+          ? (payload as Record<string, unknown>)
+          : {};
 
-  const statusObj =
-    (obj.by_status || obj.status_distribution || obj.statuses || obj.status_counts || obj) as Record<
-      string,
-      unknown
-    >;
+      const statusObj =
+        (obj.by_status || obj.status_distribution || obj.statuses || obj.status_counts || obj) as Record<
+          string,
+          unknown
+        >;
 
-  const halal = asNumber(statusObj.Halal ?? statusObj.halal, 0);
-  const doubtful = asNumber(
-    statusObj.Doubtful ?? statusObj.doubtful ?? statusObj.Mushbooh ?? statusObj.mushbooh,
-    0
-  );
-  const haram = asNumber(statusObj.Haram ?? statusObj.haram, 0);
-  const total = asNumber(obj.total ?? obj.total_ecodes ?? obj.count, halal + doubtful + haram);
+      const halal = asNumber(statusObj.Halal ?? statusObj.halal, 0);
+      const doubtful = asNumber(
+        statusObj.Doubtful ?? statusObj.doubtful ?? statusObj.Mushbooh ?? statusObj.mushbooh,
+        0
+      );
+      const haram = asNumber(statusObj.Haram ?? statusObj.haram, 0);
+      const total = asNumber(obj.total ?? obj.total_ecodes ?? obj.count, halal + doubtful + haram);
 
-  const typesRaw = obj.by_type ?? obj.types ?? obj.categories ?? obj.e_types;
-  const types: EcodeTypeStat[] = [];
+      const typesRaw = obj.by_type ?? obj.types ?? obj.categories ?? obj.e_types;
+      const types: EcodeTypeStat[] = [];
 
-  if (Array.isArray(typesRaw)) {
-    for (const entry of typesRaw) {
-      if (typeof entry === "string") {
-        if (entry.trim()) types.push({ type: entry.trim(), count: 0 });
-      } else if (entry && typeof entry === "object") {
-        const rec = entry as Record<string, unknown>;
-        const name = pickString(rec, ["type", "e_type", "name", "category", "label"]);
-        const count = asNumber(rec.jumlah ?? rec.count ?? rec.total, 0);
-        if (name) types.push({ type: name, count });
+      if (Array.isArray(typesRaw)) {
+        for (const entry of typesRaw) {
+          if (typeof entry === "string") {
+            if (entry.trim()) types.push({ type: entry.trim(), count: 0 });
+          } else if (entry && typeof entry === "object") {
+            const rec = entry as Record<string, unknown>;
+            const name = pickString(rec, ["type", "e_type", "name", "category", "label"]);
+            const count = asNumber(rec.jumlah ?? rec.count ?? rec.total, 0);
+            if (name) types.push({ type: name, count });
+          }
+        }
+      } else if (typesRaw && typeof typesRaw === "object") {
+        for (const [k, v] of Object.entries(typesRaw as Record<string, unknown>)) {
+          if (k.trim()) {
+            types.push({ type: k.trim(), count: asNumber(v, 0) });
+          }
+        }
       }
-    }
-  } else if (typesRaw && typeof typesRaw === "object") {
-    for (const [k, v] of Object.entries(typesRaw as Record<string, unknown>)) {
-      if (k.trim()) {
-        types.push({ type: k.trim(), count: asNumber(v, 0) });
-      }
-    }
-  }
 
-  const result: EcodeSummary = {
-    total,
-    halal,
-    doubtful,
-    haram,
-    types: types.sort((a, b) => b.count - a.count || a.type.localeCompare(b.type)),
-  };
-
-  summaryCache = result;
-  return result;
+      return {
+        total,
+        halal,
+        doubtful,
+        haram,
+        types: types.sort((a, b) => b.count - a.count || a.type.localeCompare(b.type)),
+      };
+    },
+  });
 }
 
 export async function fetchEcodeList(
@@ -279,26 +303,29 @@ export async function fetchEcodeList(
 ): Promise<EcodeListResult> {
   const page = options.page ?? 1;
   const limit = options.limit ?? 20;
-  const params: Record<string, string> = {
-    action: "list",
-    page: String(page),
-    limit: String(limit),
-  };
-  if (options.status) params.status = options.status;
-  if (options.type) params.type = options.type;
+  const cacheKey = `ecode:list:${options.status || "all"}:${options.type || "all"}:${page}:${limit}`;
 
-  const cacheKey = JSON.stringify(params);
-  const cached = listCache.get(cacheKey);
-  if (cached) return cached;
+  return fetchWithSwr<EcodeListResult>({
+    key: cacheKey,
+    freshTtlMs: ONE_DAY_MS,
+    staleTtlMs: SEVEN_DAYS_MS,
+    signal,
+    fetcher: async () => {
+      const params: Record<string, string> = {
+        action: "list",
+        page: String(page),
+        limit: String(limit),
+      };
+      if (options.status) params.status = options.status;
+      if (options.type) params.type = options.type;
 
-  const json = await requestEcode(params, signal);
-  const payload = extractPayload(json);
-  const items = extractItemsArray(payload).map(normalizeEcodeItem);
-  const meta = extractMeta(json, payload, items.length, page, limit);
-
-  const result = { items, meta };
-  listCache.set(cacheKey, result);
-  return result;
+      const json = await requestEcode(params);
+      const payload = extractPayload(json);
+      const items = extractItemsArray(payload).map(normalizeEcodeItem);
+      const meta = extractMeta(json, payload, items.length, page, limit);
+      return { items, meta };
+    },
+  });
 }
 
 export async function searchEcodes(
@@ -309,36 +336,40 @@ export async function searchEcodes(
   const q = queryText.trim();
   const page = options.page ?? 1;
   const limit = options.limit ?? 20;
-  const params: Record<string, string> = {
-    action: "search",
-    q,
-    page: String(page),
-    limit: String(limit),
-  };
+  const cacheKey = `ecode:search:${q.toLowerCase()}:${page}:${limit}`;
 
-  const cacheKey = JSON.stringify(params);
-  const cached = listCache.get(cacheKey);
-  if (cached) return cached;
-
-  const json = await requestEcode(params, signal);
-  const payload = extractPayload(json);
-  const items = extractItemsArray(payload).map(normalizeEcodeItem);
-  const meta = extractMeta(json, payload, items.length, page, limit);
-
-  const result = { items, meta };
-  listCache.set(cacheKey, result);
-  return result;
+  return fetchWithSwr<EcodeListResult>({
+    key: cacheKey,
+    freshTtlMs: 6 * 60 * 60 * 1000,
+    staleTtlMs: 3 * ONE_DAY_MS,
+    signal,
+    fetcher: async () => {
+      const json = await requestEcode({
+        action: "search",
+        q,
+        page: String(page),
+        limit: String(limit),
+      });
+      const payload = extractPayload(json);
+      const items = extractItemsArray(payload).map(normalizeEcodeItem);
+      const meta = extractMeta(json, payload, items.length, page, limit);
+      return { items, meta };
+    },
+  });
 }
 
 export async function fetchEcodeDetail(code: string, signal?: AbortSignal): Promise<EcodeItem> {
   const normalizedCode = code.trim().toUpperCase();
-  const cached = detailCache.get(normalizedCode);
-  if (cached) return cached;
-
-  const json = await requestEcode({ action: "detail", code: normalizedCode }, signal);
-  const payload = extractPayload(json);
-  const rawObj = Array.isArray(payload) ? payload[0] : payload;
-  const item = normalizeEcodeItem(rawObj);
-  detailCache.set(normalizedCode, item);
-  return item;
+  return fetchWithSwr<EcodeItem>({
+    key: `ecode:detail:${normalizedCode}`,
+    freshTtlMs: SEVEN_DAYS_MS,
+    staleTtlMs: 30 * ONE_DAY_MS,
+    signal,
+    fetcher: async () => {
+      const json = await requestEcode({ action: "detail", code: normalizedCode });
+      const payload = extractPayload(json);
+      const rawObj = Array.isArray(payload) ? payload[0] : payload;
+      return normalizeEcodeItem(rawObj);
+    },
+  });
 }

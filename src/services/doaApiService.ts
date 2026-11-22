@@ -1,5 +1,6 @@
 import { Capacitor } from "@capacitor/core";
 import type { EQuranDoaItem } from "../types/emoeslife";
+import { fetchWithSwr, fetchWithTimeout, readSwrCache } from "./fastCache";
 
 export interface SanusiDoaCategory {
   id: number;
@@ -25,9 +26,8 @@ const DOA_ENDPOINT = Capacitor.isNativePlatform()
   ? "https://e-moeslife.vercel.app/api/doa"
   : "/api/doa";
 
-let cachedCategories: SanusiDoaCategory[] | null = null;
-let cachedAllDoaItems: EQuranDoaItem[] | null = null;
-const categoryListCache = new Map<string, EQuranDoaItem[]>();
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const SEVEN_DAYS_MS = 7 * ONE_DAY_MS;
 
 function asText(value: unknown): string {
   if (typeof value === "string") return value.trim();
@@ -49,10 +49,14 @@ async function requestSanusiDoa(
   signal?: AbortSignal
 ): Promise<Record<string, unknown>> {
   const query = new URLSearchParams(params);
-  const res = await fetch(`${DOA_ENDPOINT}?${query.toString()}`, {
-    headers: { Accept: "application/json" },
-    signal,
-  });
+  const res = await fetchWithTimeout(
+    `${DOA_ENDPOINT}?${query.toString()}`,
+    {
+      headers: { Accept: "application/json" },
+      signal,
+    },
+    12000
+  );
   const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok || json.status === "error") {
     throw new Error(
@@ -93,90 +97,143 @@ function normalizeSanusiDoaItem(
   };
 }
 
+export function getCachedSanusiDoaAndDzikir(): {
+  categories: SanusiDoaCategory[];
+  items: EQuranDoaItem[];
+} | null {
+  return readSwrCache<{ categories: SanusiDoaCategory[]; items: EQuranDoaItem[] }>("doa:sanusi:all", true)?.value || null;
+}
+
 export async function fetchSanusiDoaCategories(
   signal?: AbortSignal
 ): Promise<SanusiDoaCategory[]> {
-  if (cachedCategories) return cachedCategories;
-  const json = await requestSanusiDoa({ action: "categories" }, signal);
-  const rawList = Array.isArray(json.data) ? json.data : [];
+  return fetchWithSwr<SanusiDoaCategory[]>({
+    key: "doa:sanusi:categories",
+    freshTtlMs: ONE_DAY_MS,
+    staleTtlMs: SEVEN_DAYS_MS,
+    signal,
+    fetcher: async () => {
+      const json = await requestSanusiDoa({ action: "categories" });
+      const rawList = Array.isArray(json.data) ? json.data : [];
 
-  const parsed: SanusiDoaCategory[] = rawList
-    .map((entry) => {
-      const rec =
-        entry && typeof entry === "object" ? (entry as Record<string, unknown>) : {};
-      return {
-        id: asNumber(rec.id, 0),
-        nama: asText(rec.nama),
-        slug: asText(rec.slug),
-        groupName: asText(rec.group_name),
-        total: asNumber(rec.total, 0),
-      };
-    })
-    .filter((item) => item.slug.length > 0 && item.nama.length > 0);
-
-  cachedCategories = parsed;
-  return parsed;
+      return rawList
+        .map((entry) => {
+          const rec =
+            entry && typeof entry === "object" ? (entry as Record<string, unknown>) : {};
+          return {
+            id: asNumber(rec.id, 0),
+            nama: asText(rec.nama),
+            slug: asText(rec.slug),
+            groupName: asText(rec.group_name),
+            total: asNumber(rec.total, 0),
+          };
+        })
+        .filter((item) => item.slug.length > 0 && item.nama.length > 0);
+    },
+  });
 }
 
 async function fetchCategoryAllPages(
   cat: SanusiDoaCategory,
   signal?: AbortSignal
 ): Promise<EQuranDoaItem[]> {
-  const cached = categoryListCache.get(cat.slug);
-  if (cached) return cached;
-
   const limit = 100;
-  const estimatedPages = Math.max(1, Math.min(5, Math.ceil((cat.total || limit) / limit)));
-  const pageNumbers = Array.from({ length: estimatedPages }, (_, i) => i + 1);
+  return fetchWithSwr<EQuranDoaItem[]>({
+    key: `doa:sanusi:cat:${cat.slug}`,
+    freshTtlMs: ONE_DAY_MS,
+    staleTtlMs: SEVEN_DAYS_MS,
+    signal,
+    fetcher: async () => {
+      const firstJson = await requestSanusiDoa({
+        action: "list",
+        slug: cat.slug,
+        page: "1",
+        limit: String(limit),
+      });
+      const firstData = (firstJson.data ?? firstJson) as Record<string, unknown>;
+      const firstRaw = Array.isArray(firstData.doa) ? (firstData.doa as SanusiDoaRawItem[]) : [];
+      const items = firstRaw.map((raw) =>
+        normalizeSanusiDoaItem(raw, { nama: cat.nama, slug: cat.slug })
+      );
 
-  const responses = await Promise.allSettled(
-    pageNumbers.map((page) =>
-      requestSanusiDoa(
-        { action: "list", slug: cat.slug, page: String(page), limit: String(limit) },
-        signal
-      )
-    )
-  );
+      const reportedTotal = asNumber(firstData.total ?? cat.total, items.length);
+      const totalPages = Math.min(5, Math.ceil(reportedTotal / limit));
+      if (totalPages > 1 && items.length >= limit) {
+        const extraPages = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
+        const extraResponses = await Promise.allSettled(
+          extraPages.map((page) =>
+            requestSanusiDoa({
+              action: "list",
+              slug: cat.slug,
+              page: String(page),
+              limit: String(limit),
+            })
+          )
+        );
+        for (const res of extraResponses) {
+          if (res.status !== "fulfilled") continue;
+          const data = (res.value.data ?? res.value) as Record<string, unknown>;
+          const rawDoa = Array.isArray(data.doa) ? (data.doa as SanusiDoaRawItem[]) : [];
+          for (const raw of rawDoa) {
+            items.push(normalizeSanusiDoaItem(raw, { nama: cat.nama, slug: cat.slug }));
+          }
+        }
+      }
 
-  const items: EQuranDoaItem[] = [];
-  for (const res of responses) {
-    if (res.status !== "fulfilled") continue;
-    const data = (res.value.data ?? res.value) as Record<string, unknown>;
-    const rawDoa = Array.isArray(data.doa) ? (data.doa as SanusiDoaRawItem[]) : [];
-    for (const raw of rawDoa) {
-      items.push(normalizeSanusiDoaItem(raw, { nama: cat.nama, slug: cat.slug }));
+      return items;
+    },
+  });
+}
+
+async function runWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<R>
+): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = new Array(items.length);
+  let cursor = 0;
+
+  const runner = async () => {
+    while (cursor < items.length) {
+      const idx = cursor++;
+      try {
+        const value = await worker(items[idx]);
+        results[idx] = { status: "fulfilled", value };
+      } catch (reason) {
+        results[idx] = { status: "rejected", reason };
+      }
     }
-  }
+  };
 
-  if (items.length > 0) {
-    categoryListCache.set(cat.slug, items);
-  }
-  return items;
+  const poolSize = Math.min(limit, Math.max(1, items.length));
+  await Promise.all(Array.from({ length: poolSize }, () => runner()));
+  return results;
 }
 
 export async function fetchAllSanusiDoaAndDzikir(
   signal?: AbortSignal
 ): Promise<{ categories: SanusiDoaCategory[]; items: EQuranDoaItem[] }> {
-  if (cachedCategories && cachedAllDoaItems) {
-    return { categories: cachedCategories, items: cachedAllDoaItems };
-  }
+  return fetchWithSwr<{ categories: SanusiDoaCategory[]; items: EQuranDoaItem[] }>({
+    key: "doa:sanusi:all",
+    freshTtlMs: ONE_DAY_MS,
+    staleTtlMs: SEVEN_DAYS_MS,
+    signal,
+    fetcher: async () => {
+      const categories = await fetchSanusiDoaCategories();
+      const categoryResults = await runWithConcurrency(categories, 4, (cat) =>
+        fetchCategoryAllPages(cat)
+      );
 
-  const categories = await fetchSanusiDoaCategories(signal);
-  const categoryResults = await Promise.allSettled(
-    categories.map((cat) => fetchCategoryAllPages(cat, signal))
-  );
+      const items: EQuranDoaItem[] = [];
+      for (const result of categoryResults) {
+        if (result.status === "fulfilled") {
+          items.push(...result.value);
+        }
+      }
 
-  const items: EQuranDoaItem[] = [];
-  for (const result of categoryResults) {
-    if (result.status === "fulfilled") {
-      items.push(...result.value);
-    }
-  }
-
-  if (items.length > 0) {
-    cachedAllDoaItems = items;
-  }
-  return { categories, items };
+      return { categories, items };
+    },
+  });
 }
 
 export async function searchSanusiDoa(
@@ -186,12 +243,21 @@ export async function searchSanusiDoa(
 ): Promise<EQuranDoaItem[]> {
   const q = queryText.trim();
   if (q.length < 2) return [];
-  const json = await requestSanusiDoa({ action: "search", q, limit: "40" }, signal);
-  const rawList = Array.isArray(json.data) ? (json.data as SanusiDoaRawItem[]) : [];
-  const catMap = new Map((categories || cachedCategories || []).map((c) => [c.id, c]));
+  const knownCats = categories || readSwrCache<SanusiDoaCategory[]>("doa:sanusi:categories", true)?.value || [];
+  return fetchWithSwr<EQuranDoaItem[]>({
+    key: `doa:sanusi:search:${q.toLowerCase()}`,
+    freshTtlMs: 6 * 60 * 60 * 1000,
+    staleTtlMs: ONE_DAY_MS,
+    signal,
+    fetcher: async () => {
+      const json = await requestSanusiDoa({ action: "search", q, limit: "40" });
+      const rawList = Array.isArray(json.data) ? (json.data as SanusiDoaRawItem[]) : [];
+      const catMap = new Map(knownCats.map((c) => [c.id, c]));
 
-  return rawList.map((raw) => {
-    const cat = raw.kategori_id ? catMap.get(raw.kategori_id) : undefined;
-    return normalizeSanusiDoaItem(raw, cat ? { nama: cat.nama, slug: cat.slug } : undefined);
+      return rawList.map((raw) => {
+        const cat = raw.kategori_id ? catMap.get(raw.kategori_id) : undefined;
+        return normalizeSanusiDoaItem(raw, cat ? { nama: cat.nama, slug: cat.slug } : undefined);
+      });
+    },
   });
 }

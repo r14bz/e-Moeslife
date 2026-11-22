@@ -20,6 +20,7 @@ import {
 import type { AppRoute, ColorThemeId, FontSizeScale, ThemeMode } from "../types/emoeslife";
 import { COLOR_THEMES } from "../utils/colorThemes";
 import { useOnlineStatus, usePWAInstall } from "../hooks/usePWAInstall";
+import { prefetchRouteView } from "../utils/routePrefetch";
 
 interface AppShellProps {
   route: AppRoute;
@@ -27,6 +28,7 @@ interface AppShellProps {
   colorTheme: ColorThemeId;
   fontSize: FontSizeScale;
   focusMode: boolean;
+  isNavigating?: boolean;
   onNavigate: (route: AppRoute) => void;
   onOpenClassicToc: () => void;
   onChangeFontSize: (size: FontSizeScale) => void;
@@ -83,6 +85,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   colorTheme,
   fontSize,
   focusMode,
+  isNavigating = false,
   onNavigate,
   onOpenClassicToc,
   onChangeFontSize,
@@ -118,6 +121,7 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   const navItems: Array<{
     id: NavTab;
+    targetView: AppRoute["view"];
     label: string;
     mobileLabel: string;
     icon: React.ReactNode;
@@ -125,6 +129,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   }> = [
     {
       id: "hadis",
+      targetView: "hadis",
       label: "Pencarian Hadis",
       mobileLabel: "Hadis",
       icon: <ScrollText className="h-[18px] w-[18px] shrink-0" />,
@@ -132,6 +137,7 @@ export const AppShell: React.FC<AppShellProps> = ({
     },
     {
       id: "quran",
+      targetView: "quran-studio",
       label: "Al-Qur'an",
       mobileLabel: "Al-Qur'an",
       icon: <BookOpen className="h-[18px] w-[18px] shrink-0" />,
@@ -139,6 +145,7 @@ export const AppShell: React.FC<AppShellProps> = ({
     },
     {
       id: "home",
+      targetView: "home",
       label: "Beranda",
       mobileLabel: "Beranda",
       icon: <Home className="h-[18px] w-[18px] shrink-0" />,
@@ -146,6 +153,7 @@ export const AppShell: React.FC<AppShellProps> = ({
     },
     {
       id: "qibla",
+      targetView: "qibla",
       label: "Arah Kiblat",
       mobileLabel: "Kiblat",
       icon: <Compass className="h-[18px] w-[18px] shrink-0" />,
@@ -153,6 +161,7 @@ export const AppShell: React.FC<AppShellProps> = ({
     },
     {
       id: "kitab",
+      targetView: "kitab-hub",
       label: "Kitab Kuning",
       mobileLabel: "Kitab",
       icon: <Library className="h-[18px] w-[18px] shrink-0" />,
@@ -228,6 +237,8 @@ export const AppShell: React.FC<AppShellProps> = ({
                     key={item.id}
                     type="button"
                     onClick={item.onClick}
+                    onPointerEnter={() => prefetchRouteView(item.targetView)}
+                    onFocus={() => prefetchRouteView(item.targetView)}
                     style={
                       isActive
                         ? {
@@ -621,7 +632,15 @@ export const AppShell: React.FC<AppShellProps> = ({
         )}
 
         {/* Page Body */}
-        <main className={`flex-1 overflow-x-clip ${!hideMobileDock && !focusMode ? "pb-24 lg:pb-8" : "pb-8"}`}>
+        <main className={`relative flex-1 overflow-x-clip ${!hideMobileDock && !focusMode ? "pb-24 lg:pb-8" : "pb-8"}`}>
+          {isNavigating && (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 overflow-hidden bg-transparent"
+            >
+              <div className="h-full w-full animate-pulse bg-[var(--theme-hero-eyebrow)]" />
+            </div>
+          )}
           {children}
         </main>
       </div>
@@ -701,6 +720,8 @@ export const AppShell: React.FC<AppShellProps> = ({
                     key={item.id}
                     type="button"
                     onClick={item.onClick}
+                    onTouchStart={() => prefetchRouteView(item.targetView)}
+                    onPointerEnter={() => prefetchRouteView(item.targetView)}
                     aria-current={isActive ? "page" : undefined}
                     style={
                       isActive

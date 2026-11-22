@@ -21,6 +21,8 @@ import {
   fetchEcodeDetail,
   fetchEcodeList,
   fetchEcodeSummary,
+  getCachedEcodeList,
+  getCachedEcodeSummary,
   searchEcodes,
   type EcodeHalalStatus,
   type EcodeItem,
@@ -95,22 +97,30 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
   initialQuery = "",
   onBackHome,
 }) => {
+  const initialEcodeList = useMemo(
+    () => (initialQuery.trim() ? null : getCachedEcodeList({ status: "", type: "", page: 1, limit: 20 })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
   const [query, setQuery] = useState(initialQuery);
   const [debouncedQuery, setDebouncedQuery] = useState(initialQuery.trim());
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("");
   const [typeFilter, setTypeFilter] = useState<string>("");
   const [page, setPage] = useState<number>(1);
 
-  const [summary, setSummary] = useState<EcodeSummary | null>(null);
-  const [items, setItems] = useState<EcodeItem[]>([]);
-  const [meta, setMeta] = useState<EcodeListMeta>({
-    page: 1,
-    perPage: 20,
-    total: 0,
-    totalPages: 1,
-  });
+  const [summary, setSummary] = useState<EcodeSummary | null>(() => getCachedEcodeSummary());
+  const [items, setItems] = useState<EcodeItem[]>(() => initialEcodeList?.items || []);
+  const [meta, setMeta] = useState<EcodeListMeta>(
+    () =>
+      initialEcodeList?.meta || {
+        page: 1,
+        perPage: 20,
+        total: 0,
+        totalPages: 1,
+      }
+  );
 
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(() => !initialEcodeList);
   const [error, setError] = useState<string>("");
   const [isUnconfigured, setIsUnconfigured] = useState<boolean>(false);
   const [reloadTick, setReloadTick] = useState<number>(0);
@@ -147,7 +157,17 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
+    const cachedPage = !debouncedQuery
+      ? getCachedEcodeList({ status: statusFilter, type: typeFilter, page, limit: 20 })
+      : null;
+
+    if (cachedPage) {
+      setItems(cachedPage.items);
+      setMeta(cachedPage.meta);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError("");
 
     const task = debouncedQuery
@@ -166,6 +186,7 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
       })
       .catch((err) => {
         if (controller.signal.aborted) return;
+        if (cachedPage) return;
         if (err instanceof EcodeApiError) {
           setIsUnconfigured(err.unconfigured);
           setError(err.message);

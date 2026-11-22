@@ -37,13 +37,17 @@ import { prepareReadingSections } from "../utils/readerEngine";
 import { CURATED_DAILY_PRAYERS } from "../data/dailyPrayers";
 import {
   fetchAllSanusiDoaAndDzikir,
+  getCachedSanusiDoaAndDzikir,
   type SanusiDoaCategory,
 } from "../services/doaApiService";
+import { fetchWithSwr, fetchWithTimeout, readSwrCache } from "../services/fastCache";
 import { FooterDisclaimer } from "./FooterDisclaimer";
 import { ThemedSelect } from "./ThemedSelect";
 import { FloatingPageNav } from "./FloatingPageNav";
 
 const EQURAN_API = "https://equran.id/api";
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const SEVEN_DAYS_MS = 7 * ONE_DAY_MS;
 
 const QARIS: ReadonlyArray<[string, string]> = [
   ["01", "Abdullah Al-Juhany"],
@@ -54,20 +58,76 @@ const QARIS: ReadonlyArray<[string, string]> = [
   ["06", "Yasser Al-Dosari"],
 ];
 
-async function equranFetch<T>(url: string): Promise<T> {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Layanan belum dapat diakses (${response.status}).`);
-  const json = (await response.json()) as {
-    code?: number;
-    status?: string;
-    message?: string;
-    data?: T;
+function buildMergedDoaList(
+  equranDoa?: EQuranDoaItem[] | null,
+  sanusiItems?: EQuranDoaItem[] | null
+): EQuranDoaItem[] {
+  const merged = CURATED_DAILY_PRAYERS.map((item) => ({ ...item }));
+  const indexByTitle = new Map<string, number>();
+  merged.forEach((item, idx) => {
+    const norm = normalizeDoaTitle(item.nama);
+    if (norm) indexByTitle.set(norm, idx);
+  });
+
+  const addOrMerge = (incoming: EQuranDoaItem) => {
+    const norm = normalizeDoaTitle(incoming.nama);
+    if (!norm) return;
+    const existingIdx = indexByTitle.get(norm);
+    if (existingIdx !== undefined) {
+      const existing = merged[existingIdx];
+      merged[existingIdx] = {
+        ...existing,
+        ar: existing.ar || incoming.ar,
+        tr: existing.tr || incoming.tr,
+        idn: existing.idn || incoming.idn,
+        grup: existing.grup || incoming.grup,
+        kategoriSlug: existing.kategoriSlug || incoming.kategoriSlug,
+        fawaid: existing.fawaid || incoming.fawaid,
+        catatan: existing.catatan || incoming.catatan,
+        sumber: existing.sumber || incoming.sumber,
+        tentang: existing.tentang || incoming.tentang,
+      };
+      return;
+    }
+    indexByTitle.set(norm, merged.length);
+    merged.push(incoming);
   };
-  if (json.code && json.code !== 200) throw new Error(json.message || "Data tidak tersedia.");
-  if (json.status && !["success", "sukses"].includes(String(json.status).toLowerCase())) {
-    throw new Error(json.message || "Data tidak tersedia.");
+
+  if (Array.isArray(equranDoa)) {
+    equranDoa.forEach(addOrMerge);
   }
-  return (json.data ?? json) as T;
+  if (Array.isArray(sanusiItems)) {
+    sanusiItems.forEach(addOrMerge);
+  }
+  return merged;
+}
+
+async function equranFetch<T>(
+  url: string,
+  options?: { cacheKey?: string; freshTtlMs?: number; staleTtlMs?: number; signal?: AbortSignal }
+): Promise<T> {
+  const key = options?.cacheKey || `equran:${url.replace(EQURAN_API, "")}`;
+  return fetchWithSwr<T>({
+    key,
+    freshTtlMs: options?.freshTtlMs ?? ONE_DAY_MS,
+    staleTtlMs: options?.staleTtlMs ?? 30 * ONE_DAY_MS,
+    signal: options?.signal,
+    fetcher: async () => {
+      const response = await fetchWithTimeout(url, { headers: { Accept: "application/json" } }, 12000);
+      if (!response.ok) throw new Error(`Layanan belum dapat diakses (${response.status}).`);
+      const json = (await response.json()) as {
+        code?: number;
+        status?: string;
+        message?: string;
+        data?: T;
+      };
+      if (json.code && json.code !== 200) throw new Error(json.message || "Data tidak tersedia.");
+      if (json.status && !["success", "sukses"].includes(String(json.status).toLowerCase())) {
+        throw new Error(json.message || "Data tidak tersedia.");
+      }
+      return (json.data ?? json) as T;
+    },
+  });
 }
 
 function normalizeDoaTitle(text?: string): string {
@@ -111,13 +171,21 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
   const isSurahMode = activeTab === "quran" || activeTab === "tafsir";
   const isClassicMode = activeTab === "dzikir" || activeTab === "tahlil";
 
-  const [surahs, setSurahs] = useState<EQuranSurahSummary[]>([]);
+  const [surahs, setSurahs] = useState<EQuranSurahSummary[]>(() => {
+    return readSwrCache<EQuranSurahSummary[]>("equran:/v2/surat", true)?.value || [];
+  });
   const [surahQuery, setSurahQuery] = useState("");
   const [listLoading, setListLoading] = useState(false);
   const [listError, setListError] = useState("");
 
-  const [suratDetail, setSuratDetail] = useState<EQuranSurahDetail | null>(null);
-  const [tafsirDetail, setTafsirDetail] = useState<EQuranTafsirDetail | null>(null);
+  const [suratDetail, setSuratDetail] = useState<EQuranSurahDetail | null>(() => {
+    if (!selectedSurah || activeTab !== "quran") return null;
+    return readSwrCache<EQuranSurahDetail>(`equran:/v2/surat/${selectedSurah}`, true)?.value || null;
+  });
+  const [tafsirDetail, setTafsirDetail] = useState<EQuranTafsirDetail | null>(() => {
+    if (!selectedSurah || activeTab !== "tafsir") return null;
+    return readSwrCache<EQuranTafsirDetail>(`equran:/v2/tafsir/${selectedSurah}`, true)?.value || null;
+  });
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState("");
 
@@ -129,8 +197,17 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
   const [hasSrc, setHasSrc] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const [doaItems, setDoaItems] = useState<EQuranDoaItem[]>(() => [...CURATED_DAILY_PRAYERS]);
-  const [sanusiCategories, setSanusiCategories] = useState<SanusiDoaCategory[]>([]);
+  const [doaItems, setDoaItems] = useState<EQuranDoaItem[]>(() => {
+    const cachedEquranDoa = readSwrCache<EQuranDoaItem[]>("equran:/doa", true)?.value;
+    const cachedSanusi = getCachedSanusiDoaAndDzikir();
+    if (cachedEquranDoa || cachedSanusi) {
+      return buildMergedDoaList(cachedEquranDoa, cachedSanusi?.items);
+    }
+    return [...CURATED_DAILY_PRAYERS];
+  });
+  const [sanusiCategories, setSanusiCategories] = useState<SanusiDoaCategory[]>(() => {
+    return getCachedSanusiDoaAndDzikir()?.categories || [];
+  });
   const [doaQuery, setDoaQuery] = useState("");
   const [doaFilter, setDoaFilter] = useState<"all" | "saved">("all");
   const [doaCategoryFilter, setDoaCategoryFilter] = useState<string>("all");
@@ -180,77 +257,59 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
   useEffect(() => {
     if (!isSurahMode || surahs.length > 0) return;
     let active = true;
+    const controller = new AbortController();
     setListLoading(true);
     setListError("");
-    equranFetch<EQuranSurahSummary[]>(`${EQURAN_API}/v2/surat`)
+    equranFetch<EQuranSurahSummary[]>(`${EQURAN_API}/v2/surat`, {
+      freshTtlMs: SEVEN_DAYS_MS,
+      staleTtlMs: 30 * ONE_DAY_MS,
+      signal: controller.signal,
+    })
       .then((data) => {
         if (active) setSurahs(Array.isArray(data) ? data : []);
       })
       .catch((err) => {
-        if (active) setListError(err instanceof Error ? err.message : "Gagal memuat daftar surah.");
+        if (active && !controller.signal.aborted) {
+          setListError(err instanceof Error ? err.message : "Gagal memuat daftar surah.");
+        }
       })
       .finally(() => {
         if (active) setListLoading(false);
       });
     return () => {
       active = false;
+      controller.abort();
     };
-  }, [activeTab, surahs.length]);
+  }, [activeTab, isSurahMode, surahs.length]);
 
   useEffect(() => {
     if (activeTab !== "doa" || doaFetchedRef.current) return;
     doaFetchedRef.current = true;
     let active = true;
     const controller = new AbortController();
-    setDoaLoading(true);
+    const hasCachedDoa = Boolean(getCachedSanusiDoaAndDzikir());
+    if (!hasCachedDoa) {
+      setDoaLoading(true);
+    }
 
     Promise.allSettled([
-      equranFetch<EQuranDoaItem[]>(`${EQURAN_API}/doa`),
+      equranFetch<EQuranDoaItem[]>(`${EQURAN_API}/doa`, {
+        freshTtlMs: ONE_DAY_MS,
+        staleTtlMs: SEVEN_DAYS_MS,
+        signal: controller.signal,
+      }),
       fetchAllSanusiDoaAndDzikir(controller.signal),
     ])
       .then(([equranRes, sanusiRes]) => {
         if (!active) return;
 
-        const merged = CURATED_DAILY_PRAYERS.map((item) => ({ ...item }));
-        const indexByTitle = new Map<string, number>();
-        merged.forEach((item, idx) => {
-          const norm = normalizeDoaTitle(item.nama);
-          if (norm) indexByTitle.set(norm, idx);
-        });
-
-        const addOrMerge = (incoming: EQuranDoaItem) => {
-          const norm = normalizeDoaTitle(incoming.nama);
-          if (!norm) return;
-          const existingIdx = indexByTitle.get(norm);
-          if (existingIdx !== undefined) {
-            const existing = merged[existingIdx];
-            merged[existingIdx] = {
-              ...existing,
-              ar: existing.ar || incoming.ar,
-              tr: existing.tr || incoming.tr,
-              idn: existing.idn || incoming.idn,
-              grup: existing.grup || incoming.grup,
-              kategoriSlug: existing.kategoriSlug || incoming.kategoriSlug,
-              fawaid: existing.fawaid || incoming.fawaid,
-              catatan: existing.catatan || incoming.catatan,
-              sumber: existing.sumber || incoming.sumber,
-              tentang: existing.tentang || incoming.tentang,
-            };
-            return;
-          }
-          indexByTitle.set(norm, merged.length);
-          merged.push(incoming);
-        };
-
-        if (equranRes.status === "fulfilled" && Array.isArray(equranRes.value)) {
-          equranRes.value.forEach(addOrMerge);
+        const equranList = equranRes.status === "fulfilled" ? equranRes.value : null;
+        const sanusiValue = sanusiRes.status === "fulfilled" ? sanusiRes.value : null;
+        if (sanusiValue) {
+          setSanusiCategories(sanusiValue.categories);
         }
 
-        if (sanusiRes.status === "fulfilled") {
-          setSanusiCategories(sanusiRes.value.categories);
-          sanusiRes.value.items.forEach(addOrMerge);
-        }
-
+        const merged = buildMergedDoaList(equranList, sanusiValue?.items);
         if (merged.length > CURATED_DAILY_PRAYERS.length) {
           setDoaItems(merged);
         }
@@ -290,8 +349,26 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
   useEffect(() => {
     if (!effectiveSurahNumber || !isSurahMode) return;
     let active = true;
-    setDetailLoading(true);
+    const controller = new AbortController();
+    const targetUrl =
+      activeTab === "quran"
+        ? `${EQURAN_API}/v2/surat/${effectiveSurahNumber}`
+        : `${EQURAN_API}/v2/tafsir/${effectiveSurahNumber}`;
+    const cacheKey =
+      activeTab === "quran"
+        ? `equran:/v2/surat/${effectiveSurahNumber}`
+        : `equran:/v2/tafsir/${effectiveSurahNumber}`;
+    const cachedDetail = readSwrCache<EQuranSurahDetail | EQuranTafsirDetail>(cacheKey, true)?.value;
+
+    if (cachedDetail) {
+      if (activeTab === "quran") setSuratDetail(cachedDetail as EQuranSurahDetail);
+      else setTafsirDetail(cachedDetail as EQuranTafsirDetail);
+      setDetailLoading(false);
+    } else {
+      setDetailLoading(true);
+    }
     setDetailError("");
+
     if (pendingScrollAyatRef.current) {
       skipSurahCardScrollRef.current = true;
     } else {
@@ -302,7 +379,12 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
     }
 
     if (activeTab === "quran") {
-      equranFetch<EQuranSurahDetail>(`${EQURAN_API}/v2/surat/${effectiveSurahNumber}`)
+      equranFetch<EQuranSurahDetail>(targetUrl, {
+        cacheKey,
+        freshTtlMs: SEVEN_DAYS_MS,
+        staleTtlMs: 30 * ONE_DAY_MS,
+        signal: controller.signal,
+      })
         .then((data) => {
           if (active) {
             setSuratDetail(data);
@@ -322,18 +404,27 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
           }
         })
         .catch((err) => {
-          if (active) setDetailError(err instanceof Error ? err.message : "Gagal memuat surah.");
+          if (active && !controller.signal.aborted && !cachedDetail) {
+            setDetailError(err instanceof Error ? err.message : "Gagal memuat surah.");
+          }
         })
         .finally(() => {
           if (active) setDetailLoading(false);
         });
     } else if (activeTab === "tafsir") {
-      equranFetch<EQuranTafsirDetail>(`${EQURAN_API}/v2/tafsir/${effectiveSurahNumber}`)
+      equranFetch<EQuranTafsirDetail>(targetUrl, {
+        cacheKey,
+        freshTtlMs: SEVEN_DAYS_MS,
+        staleTtlMs: 30 * ONE_DAY_MS,
+        signal: controller.signal,
+      })
         .then((data) => {
           if (active) setTafsirDetail(data);
         })
         .catch((err) => {
-          if (active) setDetailError(err instanceof Error ? err.message : "Gagal memuat tafsir.");
+          if (active && !controller.signal.aborted && !cachedDetail) {
+            setDetailError(err instanceof Error ? err.message : "Gagal memuat tafsir.");
+          }
         })
         .finally(() => {
           if (active) setDetailLoading(false);
@@ -342,8 +433,9 @@ export const QuranStudioView: React.FC<QuranStudioViewProps> = ({
 
     return () => {
       active = false;
+      controller.abort();
     };
-  }, [effectiveSurahNumber, activeTab]);
+  }, [effectiveSurahNumber, activeTab, isSurahMode]);
 
   useEffect(() => {
     if (!isSurahMode || !effectiveSurahNumber || detailLoading || detailError) return;

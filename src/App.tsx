@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { buildClassicSections, type ClassicSection } from "./data/sections";
 import type {
   AppRoute,
@@ -17,6 +17,7 @@ import {
   isValidManualDzikirLayout,
 } from "./utils/readerEngine";
 import { LOCAL_BOOKS } from "./utils/kitabEngine";
+import { prefetchCoreRoutes, routeComponentLoaders } from "./utils/routePrefetch";
 import { AppShell } from "./components/AppShell";
 import { HomeView } from "./components/HomeView";
 import { LocalNotifications } from "@capacitor/local-notifications";
@@ -32,87 +33,108 @@ import {
 import { requestStartupPermissionsOnLaunch } from "./services/locationService";
 
 const BacaanHubView = lazy(() =>
-  import("./components/BacaanHubView").then((m) => ({ default: m.BacaanHubView }))
+  routeComponentLoaders.bacaanHub().then((m) => ({ default: m.BacaanHubView }))
 );
 const ClassicReaderView = lazy(() =>
-  import("./components/ClassicReaderView").then((m) => ({ default: m.ClassicReaderView }))
+  routeComponentLoaders.classicReader().then((m) => ({ default: m.ClassicReaderView }))
 );
 const QuranStudioView = lazy(() =>
-  import("./components/QuranStudioView").then((m) => ({ default: m.QuranStudioView }))
+  routeComponentLoaders.quranStudio().then((m) => ({ default: m.QuranStudioView }))
 );
 const KitabHubView = lazy(() =>
-  import("./components/KitabHubView").then((m) => ({ default: m.KitabHubView }))
+  routeComponentLoaders.kitabHub().then((m) => ({ default: m.KitabHubView }))
 );
 const LocalKitabView = lazy(() =>
-  import("./components/LocalKitabView").then((m) => ({ default: m.LocalKitabView }))
+  routeComponentLoaders.localKitab().then((m) => ({ default: m.LocalKitabView }))
 );
 const TashrifKitabPage = lazy(() =>
-  import("./components/TashrifKitabPage").then((m) => ({ default: m.TashrifKitabPage }))
+  routeComponentLoaders.tashrifKitab().then((m) => ({ default: m.TashrifKitabPage }))
 );
 const AlfiyahKitabPage = lazy(() =>
-  import("./components/AlfiyahKitabPage").then((m) => ({ default: m.AlfiyahKitabPage }))
+  routeComponentLoaders.alfiyahKitab().then((m) => ({ default: m.AlfiyahKitabPage }))
 );
 const ImrithiKitabPage = lazy(() =>
-  import("./components/ImrithiKitabPage").then((m) => ({ default: m.ImrithiKitabPage }))
+  routeComponentLoaders.imrithiKitab().then((m) => ({ default: m.ImrithiKitabPage }))
 );
 const JurumiyahKitabPage = lazy(() =>
-  import("./components/JurumiyahKitabPage").then((m) => ({ default: m.JurumiyahKitabPage }))
+  routeComponentLoaders.jurumiyahKitab().then((m) => ({ default: m.JurumiyahKitabPage }))
 );
 const AqidatulAwamKitabPage = lazy(() =>
-  import("./components/AqidatulAwamKitabPage").then((m) => ({ default: m.AqidatulAwamKitabPage }))
+  routeComponentLoaders.aqidatulAwamKitab().then((m) => ({ default: m.AqidatulAwamKitabPage }))
 );
 const BaiquniyyahKitabPage = lazy(() =>
-  import("./components/BaiquniyyahKitabPage").then((m) => ({ default: m.BaiquniyyahKitabPage }))
+  routeComponentLoaders.baiquniyyahKitab().then((m) => ({ default: m.BaiquniyyahKitabPage }))
 );
 const NashoihulIbadKitabPage = lazy(() =>
-  import("./components/NashoihulIbadKitabPage").then((m) => ({ default: m.NashoihulIbadKitabPage }))
+  routeComponentLoaders.nashoihulKitab().then((m) => ({ default: m.NashoihulIbadKitabPage }))
 );
 const BukhariKitabPage = lazy(() =>
-  import("./components/BukhariKitabPage").then((m) => ({ default: m.BukhariKitabPage }))
+  routeComponentLoaders.bukhariKitab().then((m) => ({ default: m.BukhariKitabPage }))
 );
 const UqudulujainKitabPage = lazy(() =>
-  import("./components/UqudulujainKitabPage").then((m) => ({ default: m.UqudulujainKitabPage }))
+  routeComponentLoaders.uqudulujainKitab().then((m) => ({ default: m.UqudulujainKitabPage }))
 );
 const TuratsKitabPage = lazy(() =>
-  import("./components/TuratsKitabPage").then((m) => ({ default: m.TuratsKitabPage }))
+  routeComponentLoaders.turatsKitab().then((m) => ({ default: m.TuratsKitabPage }))
 );
 const QathrulGhaitsKitabPage = lazy(() =>
-  import("./components/QathrulGhaitsKitabPage").then((m) => ({ default: m.QathrulGhaitsKitabPage }))
+  routeComponentLoaders.qathrulGhaitsKitab().then((m) => ({ default: m.QathrulGhaitsKitabPage }))
 );
 const TijanDaroriKitabPage = lazy(() =>
-  import("./components/TijanDaroriKitabPage").then((m) => ({ default: m.TijanDaroriKitabPage }))
+  routeComponentLoaders.tijanDaroriKitab().then((m) => ({ default: m.TijanDaroriKitabPage }))
 );
 const ApiKitabView = lazy(() =>
-  import("./components/ApiKitabView").then((m) => ({ default: m.ApiKitabView }))
+  routeComponentLoaders.apiKitab().then((m) => ({ default: m.ApiKitabView }))
 );
 const NearbyMosquesView = lazy(() =>
-  import("./components/NearbyMosquesView").then((m) => ({ default: m.NearbyMosquesView }))
+  routeComponentLoaders.nearbyMosques().then((m) => ({ default: m.NearbyMosquesView }))
 );
 const DownloadView = lazy(() =>
-  import("./components/DownloadView").then((m) => ({ default: m.DownloadView }))
+  routeComponentLoaders.download().then((m) => ({ default: m.DownloadView }))
 );
 const WudhuShalatView = lazy(() =>
-  import("./components/WudhuShalatView").then((m) => ({ default: m.WudhuShalatView }))
+  routeComponentLoaders.wudhuShalat().then((m) => ({ default: m.WudhuShalatView }))
 );
 const EcodeHalalView = lazy(() =>
-  import("./components/EcodeHalalView").then((m) => ({ default: m.EcodeHalalView }))
+  routeComponentLoaders.ecodeHalal().then((m) => ({ default: m.EcodeHalalView }))
 );
 const HadisView = lazy(() =>
-  import("./components/HadisView").then((m) => ({ default: m.HadisView }))
+  routeComponentLoaders.hadis().then((m) => ({ default: m.HadisView }))
 );
 const QiblaView = lazy(() =>
-  import("./components/QiblaView").then((m) => ({ default: m.QiblaView }))
+  routeComponentLoaders.qibla().then((m) => ({ default: m.QiblaView }))
 );
 const ApkUpdatePrompt = lazy(() =>
-  import("./components/ApkUpdatePrompt").then((m) => ({ default: m.ApkUpdatePrompt }))
+  routeComponentLoaders.apkUpdatePrompt().then((m) => ({ default: m.ApkUpdatePrompt }))
 );
 
 const RouteLoadingFallback = () => (
-  <div
-    style={{ color: "var(--tashrif-muted)" }}
-    className="mx-auto flex min-h-[45vh] max-w-2xl items-center justify-center px-4 text-xs font-semibold"
-  >
-    Memuat halaman…
+  <div className="mx-auto max-w-6xl animate-pulse space-y-4 px-4 pt-4 pb-10 sm:px-6" aria-busy="true">
+    <div
+      style={{
+        backgroundColor: "var(--theme-card-alt)",
+        border: "1px solid var(--theme-border)",
+      }}
+      className="h-24 rounded-2xl"
+    />
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div
+        style={{ backgroundColor: "var(--theme-card-alt)", border: "1px solid var(--theme-border)" }}
+        className="h-20 rounded-2xl"
+      />
+      <div
+        style={{ backgroundColor: "var(--theme-card-alt)", border: "1px solid var(--theme-border)" }}
+        className="h-20 rounded-2xl"
+      />
+      <div
+        style={{ backgroundColor: "var(--theme-card-alt)", border: "1px solid var(--theme-border)" }}
+        className="hidden h-20 rounded-2xl sm:block"
+      />
+    </div>
+    <div
+      style={{ backgroundColor: "var(--theme-card-alt)", border: "1px solid var(--theme-border)" }}
+      className="h-44 rounded-2xl"
+    />
   </div>
 );
 
@@ -157,11 +179,16 @@ export function App() {
   const [mapsQuotaExceeded, setMapsQuotaExceeded] = useState(false);
   const [apkUpdateRelease, setApkUpdateRelease] = useState<ApkReleaseInfo | null>(null);
   const [apkUpdateStatus, setApkUpdateStatus] = useState<string | null>(null);
+  const [isRoutePending, startRouteTransition] = useTransition();
 
   useEffect(() => {
     const onQuota = () => setMapsQuotaExceeded(true);
     window.addEventListener("gmp-quota-exceeded", onQuota);
     return () => window.removeEventListener("gmp-quota-exceeded", onQuota);
+  }, []);
+
+  useEffect(() => {
+    prefetchCoreRoutes();
   }, []);
 
   useEffect(() => {
@@ -354,7 +381,9 @@ export function App() {
     ) {
       setFocusMode(false);
     }
-    setRoute(nextRoute);
+    startRouteTransition(() => {
+      setRoute(nextRoute);
+    });
     if (!(nextRoute.view === "quran-studio" && nextRoute.surahNumber)) {
       window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
       document.documentElement.scrollTop = 0;
@@ -573,6 +602,7 @@ export function App() {
         colorTheme={colorTheme}
         fontSize={fontSize}
         focusMode={focusMode}
+        isNavigating={isRoutePending}
         onNavigate={navigate}
         onOpenClassicToc={handleOpenClassicToc}
         onChangeFontSize={setFontSize}

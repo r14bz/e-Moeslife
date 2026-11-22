@@ -4,6 +4,7 @@ import { ArrowRight, CheckCircle2, CloudDownload, Search } from "lucide-react";
 import type { LocalBookMeta } from "../types/emoeslife";
 import { countCachedLocalKitabs, prefetchAllLocalKitabs } from "../hooks/usePWAInstall";
 import { KitabCoverMini, getKitabSubtitle } from "./PesantrenCardMotifs";
+import { prefetchBookIntent } from "../utils/routePrefetch";
 
 interface KitabHubViewProps {
   localBooks: LocalBookMeta[];
@@ -156,6 +157,9 @@ export const KitabHubView: React.FC<KitabHubViewProps> = ({
             key={`${book.source}-${book.slug}`}
             type="button"
             onClick={() => onOpenBook(book)}
+            onPointerEnter={() => prefetchBookIntent(book)}
+            onTouchStart={() => prefetchBookIntent(book)}
+            onFocus={() => prefetchBookIntent(book)}
             className="group flex min-h-[66px] items-center justify-between gap-2 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] px-2.5 py-2.5 text-left shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--theme-primary)] hover:bg-[var(--theme-card-alt)] hover:shadow-sm sm:px-3"
           >
             <div className="flex min-w-0 items-center gap-2.5">
