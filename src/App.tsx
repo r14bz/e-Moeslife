@@ -356,7 +356,9 @@ export function App() {
     }
     setRoute(nextRoute);
     if (!(nextRoute.view === "quran-studio" && nextRoute.surahNumber)) {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
     }
   }, []);
 
@@ -387,7 +389,9 @@ export function App() {
       setFocusMode(false);
       setRoute({ view: "classic" });
       setTocOpen(true);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
     } else {
       setTocOpen((prev) => !prev);
     }

@@ -372,8 +372,10 @@ export const AppShell: React.FC<AppShellProps> = ({
             style={{
               backgroundColor: "var(--theme-header-bg)",
               borderColor: "var(--theme-header-border)",
+              transform: "translate3d(0, 0, 0)",
+              contain: "layout style",
             }}
-            className="sticky top-0 z-30 border-b text-white shadow-xs backdrop-blur-md"
+            className="sticky top-0 z-30 border-b text-white shadow-xs"
           >
             <div className="mx-auto flex min-h-[60px] max-w-6xl items-center justify-between gap-2 px-3.5 py-1.5 sm:min-h-[68px] sm:px-6">
               <div className="flex min-w-0 items-center gap-2">
@@ -619,7 +621,7 @@ export const AppShell: React.FC<AppShellProps> = ({
         )}
 
         {/* Page Body */}
-        <main className={`flex-1 ${!hideMobileDock && !focusMode ? "pb-24 lg:pb-8" : "pb-8"}`}>
+        <main className={`flex-1 overflow-x-clip ${!hideMobileDock && !focusMode ? "pb-24 lg:pb-8" : "pb-8"}`}>
           {children}
         </main>
       </div>
@@ -687,6 +689,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             style={{
               backgroundColor: "var(--theme-dock-bg)",
               boxShadow: "var(--theme-dock-shadow)",
+              transform: "translate3d(0, 0, 0)",
             }}
             className="fixed inset-x-3 bottom-2.5 z-40 mx-auto max-w-[404px] rounded-2xl border border-[var(--theme-border-strong)] p-1 backdrop-blur-xl lg:hidden"
           >
