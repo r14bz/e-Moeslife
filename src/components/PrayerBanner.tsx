@@ -98,7 +98,7 @@ const NIGHT_STARS: ReadonlyArray<{ x: number; y: number; r: number; opacity: num
 const CelestialSkyVisual: React.FC<{
   scene: SkyScene;
   coords: { x: number; y: number };
-}> = ({ scene, coords }) => {
+}> = React.memo(({ scene, coords }) => {
   const isNightBody = scene === "night" || scene === "dawn";
   const isWarmSun = scene === "sunrise" || scene === "sunset";
 
@@ -217,7 +217,34 @@ const CelestialSkyVisual: React.FC<{
       </div>
     </div>
   );
-};
+});
+
+const LivePrayerClock: React.FC<{ timezone?: string; className: string }> = React.memo(
+  ({ timezone, className }) => {
+    const [clockText, setClockText] = useState("--:--:--");
+
+    useEffect(() => {
+      const update = () => {
+        if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+        const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Jakarta";
+        const parts = localParts(new Date(), tz);
+        setClockText(`${parts.hour}:${parts.minute}:${parts.second}`);
+      };
+      update();
+      const timer = window.setInterval(update, 1000);
+      const onVisibility = () => {
+        if (document.visibilityState === "visible") update();
+      };
+      document.addEventListener("visibilitychange", onVisibility);
+      return () => {
+        window.clearInterval(timer);
+        document.removeEventListener("visibilitychange", onVisibility);
+      };
+    }, [timezone]);
+
+    return <span className={className}>{clockText}</span>;
+  }
+);
 
 export const PrayerBanner: React.FC = () => {
   const [location, setLocation] = useState<PrayerLocation | null>(() => {
@@ -234,7 +261,6 @@ export const PrayerBanner: React.FC = () => {
     location ? "ready" : "detecting"
   );
   const [schedule, setSchedule] = useState<DailyPrayerSchedule | null>(null);
-  const [clockText, setClockText] = useState("--:--:--");
   const [dateText, setDateText] = useState("");
   const [hijriDateText, setHijriDateText] = useState("");
   const [statusLabel, setStatusLabel] = useState("Menunggu izin lokasi…");
@@ -384,23 +410,42 @@ export const PrayerBanner: React.FC = () => {
     };
   }, []);
 
+  const lastRenderedMinuteRef = useRef<string>("");
+  const lastFormattedDateKeyRef = useRef<string>("");
+
   useEffect(() => {
-    const updateTick = () => {
+    lastRenderedMinuteRef.current = "";
+    lastFormattedDateKeyRef.current = "";
+
+    const updateMinuteState = (force = false) => {
+      if (!force && typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return;
+      }
       const now = new Date();
       const loc = locationRef.current;
       const tz = loc?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Jakarta";
+      const minuteBucket = `${Math.floor(now.getTime() / 60000)}:${tz}`;
+      if (!force && lastRenderedMinuteRef.current === minuteBucket) {
+        return;
+      }
+      lastRenderedMinuteRef.current = minuteBucket;
+
       const parts = localParts(now, tz);
-      setClockText(`${parts.hour}:${parts.minute}:${parts.second}`);
-      setDateText(
-        new Intl.DateTimeFormat("id-ID", {
-          timeZone: tz,
-          weekday: "long",
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        }).format(now)
-      );
-      setHijriDateText(formatHijriDate(now, tz));
+      const tickDateKey = `${parts.year}-${parts.month}-${parts.day}`;
+      const dateFormatKey = `${tickDateKey}:${tz}`;
+      if (lastFormattedDateKeyRef.current !== dateFormatKey) {
+        lastFormattedDateKeyRef.current = dateFormatKey;
+        setDateText(
+          new Intl.DateTimeFormat("id-ID", {
+            timeZone: tz,
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          }).format(now)
+        );
+        setHijriDateText(formatHijriDate(now, tz));
+      }
 
       if (!loc || !schedule) {
         const hourNum = Number(parts.hour);
@@ -416,11 +461,10 @@ export const PrayerBanner: React.FC = () => {
             : hourNum < 18
             ? "afternoon"
             : "sunset";
-        setScene(fallbackScene);
+        setScene((prev) => (prev === fallbackScene ? prev : fallbackScene));
         return;
       }
 
-      const tickDateKey = `${parts.year}-${parts.month}-${parts.day}`;
       if (activeDateKeyRef.current && tickDateKey !== activeDateKeyRef.current) {
         setStatusLabel("Memperbarui jadwal…");
         setTimeWindowText("");
@@ -450,10 +494,10 @@ export const PrayerBanner: React.FC = () => {
         Number(parts.hour),
         Number(parts.minute)
       );
-      setStatusLabel(ticker.primaryLabel);
-      setTimeWindowText(ticker.timeWindowText);
-      setInGrace(ticker.inGrace);
-      setActivePrayerKey(ticker.activePrayerKey);
+      setStatusLabel((prev) => (prev === ticker.primaryLabel ? prev : ticker.primaryLabel));
+      setTimeWindowText((prev) => (prev === ticker.timeWindowText ? prev : ticker.timeWindowText));
+      setInGrace((prev) => (prev === ticker.inGrace ? prev : ticker.inGrace));
+      setActivePrayerKey((prev) => (prev === ticker.activePrayerKey ? prev : ticker.activePrayerKey));
 
       triggerWebPrayerNotificationIfDue(
         loc,
@@ -463,7 +507,7 @@ export const PrayerBanner: React.FC = () => {
       );
 
       const nextScene = getScene(now, loc.timezone, schedule);
-      setScene(nextScene);
+      setScene((prev) => (prev === nextScene ? prev : nextScene));
 
       const currentMinutes = Number(parts.hour) * 60 + Number(parts.minute);
       const sunrise = timeMinutes(schedule.terbit || "06:00");
@@ -480,15 +524,23 @@ export const PrayerBanner: React.FC = () => {
         arcProgress = Math.max(0, Math.min(1, (currentMinutes - sunrise) / Math.max(1, sunset - sunrise)));
       }
 
-      setCelestialCoords({
-        x: 26 + arcProgress * 48,
-        y: 42 - Math.sin(arcProgress * Math.PI) * 22,
-      });
+      const nextX = Math.round((26 + arcProgress * 48) * 10) / 10;
+      const nextY = Math.round((42 - Math.sin(arcProgress * Math.PI) * 22) * 10) / 10;
+      setCelestialCoords((prev) =>
+        prev.x === nextX && prev.y === nextY ? prev : { x: nextX, y: nextY }
+      );
     };
 
-    updateTick();
-    const timer = window.setInterval(updateTick, 1000);
-    return () => window.clearInterval(timer);
+    updateMinuteState(true);
+    const timer = window.setInterval(() => updateMinuteState(false), 1000);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") updateMinuteState(true);
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [schedule, location]);
 
   const openLocationDialog = async () => {
@@ -690,13 +742,12 @@ export const PrayerBanner: React.FC = () => {
                 Jadwal Shalat
               </p>
               <div className="mt-1 flex items-baseline gap-2">
-                <span
+                <LivePrayerClock
+                  timezone={location?.timezone}
                   className={`font-mono-tabular text-2xl font-semibold tracking-tight sm:text-3xl ${
                     isLightSky ? "text-[#0f3527] dark:text-white" : "text-white"
                   }`}
-                >
-                  {clockText}
-                </span>
+                />
                 <span
                   className={`text-[11px] font-medium ${
                     isLightSky ? "text-[#355245] dark:text-slate-200" : "text-slate-200"

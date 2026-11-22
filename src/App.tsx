@@ -316,7 +316,6 @@ export function App() {
 
   useEffect(() => {
     let active = true;
-    const baseSections = buildClassicSections();
 
     const overridesTask = fetch("/dzikir-overrides.json")
       .then((res) => {
@@ -325,7 +324,7 @@ export function App() {
       })
       .then((data) => {
         if (!active) return;
-        const cloned = baseSections.map((s) => ({ ...s }));
+        const cloned = buildClassicSections().map((s) => ({ ...s }));
         applyDzikirOverrides(cloned, data);
         setSections(cloned);
       });
@@ -338,11 +337,16 @@ export function App() {
       .then((layout) => {
         if (!active || !isValidManualDzikirLayout(layout)) return;
         const sectionIdx = Number(layout.sectionIndex);
-        if (!baseSections[sectionIdx] || baseSections[sectionIdx].collection !== "dzikir") return;
-        setPageLayout((prev) => {
-          const next = { ...prev, [sectionIdx]: String(layout.text) };
-          writeJsonPreference("pageLayout", next);
-          return next;
+        setSections((currentSections) => {
+          if (!currentSections[sectionIdx] || currentSections[sectionIdx].collection !== "dzikir") {
+            return currentSections;
+          }
+          setPageLayout((prev) => {
+            const next = { ...prev, [sectionIdx]: String(layout.text) };
+            writeJsonPreference("pageLayout", next);
+            return next;
+          });
+          return currentSections;
         });
       });
 

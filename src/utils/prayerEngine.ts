@@ -1,8 +1,13 @@
 import type { DailyPrayerSchedule, PrayerLocation, SkyScene } from "../types/emoeslife";
 import { getCurrentCoordinates } from "../services/locationService";
+import { fetchWithSwr, readSwrCache } from "../services/fastCache";
 
 const SHALAT_API = "https://equran.id/api/v2/shalat";
 export const PRAYER_STORAGE_KEY = "em-prayer-location-v1";
+const REGION_FRESH_MS = 14 * 24 * 60 * 60 * 1000;
+const REGION_STALE_MS = 60 * 24 * 60 * 60 * 1000;
+const SCHEDULE_FRESH_MS = 12 * 60 * 60 * 1000;
+const SCHEDULE_STALE_MS = 35 * 24 * 60 * 60 * 1000;
 
 export const DEFAULT_LOCATION: PrayerLocation = {
   provinsi: "DKI Jakarta",
@@ -289,19 +294,33 @@ async function postShalat<T>(path: string, body: Record<string, unknown>): Promi
 }
 
 export async function getProvinces(): Promise<string[]> {
-  const payload = await fetchWithTimeout<{ code: number; data?: string[] }>(`${SHALAT_API}/provinsi`);
-  if (payload.code !== 200 || !Array.isArray(payload.data)) {
-    throw new Error("Daftar provinsi tidak tersedia.");
-  }
-  return payload.data;
+  return fetchWithSwr<string[]>({
+    key: "shalat:provinsi",
+    freshTtlMs: REGION_FRESH_MS,
+    staleTtlMs: REGION_STALE_MS,
+    fetcher: async () => {
+      const payload = await fetchWithTimeout<{ code: number; data?: string[] }>(`${SHALAT_API}/provinsi`);
+      if (payload.code !== 200 || !Array.isArray(payload.data)) {
+        throw new Error("Daftar provinsi tidak tersedia.");
+      }
+      return payload.data;
+    },
+  });
 }
 
 export async function getCities(province: string): Promise<string[]> {
-  const payload = await postShalat<{ code: number; data?: string[] }>("/kabkota", { provinsi: province });
-  if (payload.code !== 200 || !Array.isArray(payload.data)) {
-    throw new Error("Daftar kota tidak tersedia.");
-  }
-  return payload.data;
+  return fetchWithSwr<string[]>({
+    key: `shalat:kabkota:${normalizeRegion(province)}`,
+    freshTtlMs: REGION_FRESH_MS,
+    staleTtlMs: REGION_STALE_MS,
+    fetcher: async () => {
+      const payload = await postShalat<{ code: number; data?: string[] }>("/kabkota", { provinsi: province });
+      if (payload.code !== 200 || !Array.isArray(payload.data)) {
+        throw new Error("Daftar kota tidak tersedia.");
+      }
+      return payload.data;
+    },
+  });
 }
 
 export async function loadMonthlySchedule(
@@ -310,33 +329,44 @@ export async function loadMonthlySchedule(
   month: number
 ): Promise<{ jadwal: DailyPrayerSchedule[] }> {
   const key = cacheKey(location, year, month);
-  try {
-    const payload = await postShalat<{ code: number; data?: { jadwal?: DailyPrayerSchedule[] } }>("", {
-      provinsi: location.provinsi,
-      kabkota: location.kabkota,
-      bulan: month,
-      tahun: year,
-    });
-    if (payload.code !== 200 || !payload.data?.jadwal?.length) {
-      throw new Error("Jadwal untuk lokasi ini belum tersedia.");
-    }
+  const swrKey = `shalat:jadwal:${normalizeRegion(location.provinsi)}:${normalizeRegion(location.kabkota)}:${year}-${pad(month)}`;
+
+  const existingSwr = readSwrCache<{ jadwal: DailyPrayerSchedule[] }>(swrKey, true);
+  if (!existingSwr) {
     try {
-      localStorage.setItem(key, JSON.stringify({ savedAt: Date.now(), data: payload.data }));
-    } catch {
-      // ignore cache errors
-    }
-    return { jadwal: payload.data.jadwal };
-  } catch (error) {
-    try {
-      const cached = JSON.parse(localStorage.getItem(key) || "null") as {
+      const legacy = JSON.parse(localStorage.getItem(key) || "null") as {
         data?: { jadwal?: DailyPrayerSchedule[] };
       } | null;
-      if (cached?.data?.jadwal?.length) return { jadwal: cached.data.jadwal };
+      if (legacy?.data?.jadwal?.length) {
+        return { jadwal: legacy.data.jadwal };
+      }
     } catch {
       // ignore
     }
-    throw error;
   }
+
+  return fetchWithSwr<{ jadwal: DailyPrayerSchedule[] }>({
+    key: swrKey,
+    freshTtlMs: SCHEDULE_FRESH_MS,
+    staleTtlMs: SCHEDULE_STALE_MS,
+    fetcher: async () => {
+      const payload = await postShalat<{ code: number; data?: { jadwal?: DailyPrayerSchedule[] } }>("", {
+        provinsi: location.provinsi,
+        kabkota: location.kabkota,
+        bulan: month,
+        tahun: year,
+      });
+      if (payload.code !== 200 || !payload.data?.jadwal?.length) {
+        throw new Error("Jadwal untuk lokasi ini belum tersedia.");
+      }
+      try {
+        localStorage.setItem(key, JSON.stringify({ savedAt: Date.now(), data: payload.data }));
+      } catch {
+        // ignore cache errors
+      }
+      return { jadwal: payload.data.jadwal };
+    },
+  });
 }
 
 export async function detectLocation(): Promise<PrayerLocation> {

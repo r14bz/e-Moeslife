@@ -1,6 +1,13 @@
 import type { ClassicSection } from "../data/sections";
 import type { EQuranDoaItem, EQuranSurahSummary, LocalBookMeta } from "../types/emoeslife";
 import type { GuideStep, ShalatIntention } from "../data/wudhuShalatGuide";
+import { getCachedSanusiDoaAndDzikir } from "../services/doaApiService";
+import {
+  fetchWithSwr,
+  fetchWithTimeout,
+  readSwrCache,
+  runDeduplicated,
+} from "../services/fastCache";
 import { arrayAt, normalizeChapter, parseStructuredSafinah } from "./kitabEngine";
 
 export interface KitabSearchMatch {
@@ -52,6 +59,7 @@ export interface GlobalSearchResults {
 
 interface IndexedChapter {
   title: string;
+  lowerTitle: string;
   searchText: string;
   displayText: string;
 }
@@ -67,16 +75,51 @@ const HEAVY_SLUGS = new Set([
   "kasyifatus-saja",
 ]);
 
+const MAX_HEAVY_CACHED = 3;
+const heavyLruOrder: string[] = [];
+
 // Module-level caches for instant repeated searches
 const kitabChapterCache: Record<string, IndexedChapter[]> = {};
-let surahListCache: EQuranSurahSummary[] | null = null;
-let apiDoaCache: EQuranDoaItem[] | null = null;
 let curatedDoaCache: EQuranDoaItem[] | null = null;
 let guideDataCache: {
   wudhuSteps: GuideStep[];
   shalatIntentions: ShalatIntention[];
   shalatSteps: GuideStep[];
 } | null = null;
+
+function setCachedBookChapters(slug: string, chapters: IndexedChapter[]): void {
+  if (HEAVY_SLUGS.has(slug)) {
+    const existingIdx = heavyLruOrder.indexOf(slug);
+    if (existingIdx >= 0) heavyLruOrder.splice(existingIdx, 1);
+    heavyLruOrder.push(slug);
+    while (heavyLruOrder.length > MAX_HEAVY_CACHED) {
+      const oldest = heavyLruOrder.shift();
+      if (oldest) delete kitabChapterCache[oldest];
+    }
+  }
+  kitabChapterCache[slug] = chapters;
+}
+
+function getCachedBookChapters(slug: string): IndexedChapter[] | undefined {
+  const cached = kitabChapterCache[slug];
+  if (cached && HEAVY_SLUGS.has(slug)) {
+    const idx = heavyLruOrder.indexOf(slug);
+    if (idx >= 0) {
+      heavyLruOrder.splice(idx, 1);
+      heavyLruOrder.push(slug);
+    }
+  }
+  return cached;
+}
+
+function makeChapter(title: string, displayText: string, extraSearch = ""): IndexedChapter {
+  return {
+    title,
+    lowerTitle: title.toLocaleLowerCase("id"),
+    displayText,
+    searchText: `${title} ${extraSearch || displayText}`.toLocaleLowerCase("id"),
+  };
+}
 
 async function getCuratedPrayers(): Promise<EQuranDoaItem[]> {
   if (curatedDoaCache) return curatedDoaCache;
@@ -108,7 +151,8 @@ function buildSnippet(text: string, query: string, maxLen = 130): string {
 }
 
 async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promise<IndexedChapter[]> {
-  if (kitabChapterCache[book.slug]) return kitabChapterCache[book.slug];
+  const existing = getCachedBookChapters(book.slug);
+  if (existing) return existing;
 
   if (book.format === "tashrif") {
     const [{ KITAB_TASHRIF_DATA }, { TASHRIF_LUGHAWI_DATA }] = await Promise.all([
@@ -121,11 +165,7 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
         .join(" ");
       const title = `Istilahi · ${bab.judulIndo}`;
       const displayText = `${bab.kategori} · ${bab.judulArab} · ${words}`;
-      return {
-        title,
-        displayText,
-        searchText: `${title} ${bab.kategori} ${bab.judulArab} ${words}`.toLocaleLowerCase("id"),
-      };
+      return makeChapter(title, displayText, `${bab.kategori} ${bab.judulArab} ${words}`);
     });
     const lughawiChapters: IndexedChapter[] = TASHRIF_LUGHAWI_DATA.map((bab) => {
       const cells = bab.rows
@@ -133,14 +173,10 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
         .join(" ");
       const title = `Lughawi · ${bab.judulIndo}`;
       const displayText = `${bab.halamanKitab} · ${bab.judulArab} · ${cells}`;
-      return {
-        title,
-        displayText,
-        searchText: `${title} ${bab.halamanKitab} ${bab.judulArab} ${cells}`.toLocaleLowerCase("id"),
-      };
+      return makeChapter(title, displayText, `${bab.halamanKitab} ${bab.judulArab} ${cells}`);
     });
     const indexed = [...istilahiChapters, ...lughawiChapters];
-    kitabChapterCache[book.slug] = indexed;
+    setCachedBookChapters(book.slug, indexed);
     return indexed;
   }
 
@@ -153,14 +189,10 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
           .join(" ");
         const title = `${bab.judulIndo}`;
         const displayText = `${juz.judul} · ${bab.judulArab} · ${baitsText}`;
-        return {
-          title,
-          displayText,
-          searchText: `${title} ${juz.judul} ${bab.judulArab} ${baitsText}`.toLocaleLowerCase("id"),
-        };
+        return makeChapter(title, displayText, `${juz.judul} ${bab.judulArab} ${baitsText}`);
       })
     );
-    kitabChapterCache[book.slug] = indexed;
+    setCachedBookChapters(book.slug, indexed);
     return indexed;
   }
 
@@ -173,13 +205,9 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
         .join(" ");
       const title = `${bab.urutan}. ${bab.judulIndo}`;
       const displayText = `${bab.judulArab} · ${baitsText}`;
-      return {
-        title,
-        displayText,
-        searchText: `${title} ${bab.judulArab} ${baitsText}`.toLocaleLowerCase("id"),
-      };
+      return makeChapter(title, displayText, `${bab.judulArab} ${baitsText}`);
     });
-    kitabChapterCache[book.slug] = indexed;
+    setCachedBookChapters(book.slug, indexed);
     return indexed;
   }
 
@@ -191,13 +219,13 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
         .join(" ");
       const title = `${bab.id}. ${bab.judulIndo}`;
       const displayText = `${bab.judulArab} · ${bab.judulLatin} · ${bab.ringkasan || ""} · ${matanText}`;
-      return {
+      return makeChapter(
         title,
         displayText,
-        searchText: `${title} ${bab.judulArab} ${bab.judulLatin} ${bab.ringkasan || ""} ${matanText}`.toLocaleLowerCase("id"),
-      };
+        `${bab.judulArab} ${bab.judulLatin} ${bab.ringkasan || ""} ${matanText}`
+      );
     });
-    kitabChapterCache[book.slug] = indexed;
+    setCachedBookChapters(book.slug, indexed);
     return indexed;
   }
 
@@ -210,13 +238,9 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
         .join(" ");
       const title = `${bab.urutan}. ${bab.judulIndo}`;
       const displayText = `${bab.judulArab} · ${baitsText}`;
-      return {
-        title,
-        displayText,
-        searchText: `${title} ${bab.judulArab} ${baitsText}`.toLocaleLowerCase("id"),
-      };
+      return makeChapter(title, displayText, `${bab.judulArab} ${baitsText}`);
     });
-    kitabChapterCache[book.slug] = indexed;
+    setCachedBookChapters(book.slug, indexed);
     return indexed;
   }
 
@@ -229,13 +253,9 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
         .join(" ");
       const title = `${bab.urutan}. ${bab.judulIndo}`;
       const displayText = `${bab.judulArab} · ${baitsText}`;
-      return {
-        title,
-        displayText,
-        searchText: `${title} ${bab.judulArab} ${baitsText}`.toLocaleLowerCase("id"),
-      };
+      return makeChapter(title, displayText, `${bab.judulArab} ${baitsText}`);
     });
-    kitabChapterCache[book.slug] = indexed;
+    setCachedBookChapters(book.slug, indexed);
     return indexed;
   }
 
@@ -252,13 +272,13 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
         .join(" ");
       const title = bab.judulIndonesia;
       const displayText = `${bab.judulArab} · ${bab.judulLatin} · ${bab.deskripsiSingkat || ""} · ${maqalahText}`;
-      return {
+      return makeChapter(
         title,
         displayText,
-        searchText: `${title} ${bab.judulArab} ${bab.judulLatin} ${bab.deskripsiSingkat || ""} ${maqalahText}`.toLocaleLowerCase("id"),
-      };
+        `${bab.judulArab} ${bab.judulLatin} ${bab.deskripsiSingkat || ""} ${maqalahText}`
+      );
     });
-    kitabChapterCache[book.slug] = indexed;
+    setCachedBookChapters(book.slug, indexed);
     return indexed;
   }
 
@@ -270,13 +290,13 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
         .join(" ");
       const title = `${bab.id}. ${bab.judulIndo || bab.judulLatin || bab.kitabLatin || `Bab ${bab.id}`}`;
       const displayText = `${bab.judulArab} · ${bab.judulLatin} · ${bab.ringkasan || ""} · ${hadisText}`;
-      return {
+      return makeChapter(
         title,
         displayText,
-        searchText: `${title} ${bab.judulArab} ${bab.judulLatin} ${bab.ringkasan || ""} ${hadisText}`.toLocaleLowerCase("id"),
-      };
+        `${bab.judulArab} ${bab.judulLatin} ${bab.ringkasan || ""} ${hadisText}`
+      );
     });
-    kitabChapterCache[book.slug] = indexed;
+    setCachedBookChapters(book.slug, indexed);
     return indexed;
   }
 
@@ -288,13 +308,9 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
         .join(" ");
       const title = `${bab.id}. ${bab.judulIndo}`;
       const displayText = `${bab.judulArab || ""} · ${bab.ringkasan || ""} · ${itemsText}`;
-      return {
-        title,
-        displayText,
-        searchText: `${title} ${bab.judulArab || ""} ${bab.ringkasan || ""} ${itemsText}`.toLocaleLowerCase("id"),
-      };
+      return makeChapter(title, displayText, `${bab.judulArab || ""} ${bab.ringkasan || ""} ${itemsText}`);
     });
-    kitabChapterCache[book.slug] = indexed;
+    setCachedBookChapters(book.slug, indexed);
     return indexed;
   }
 
@@ -311,13 +327,9 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
       const text = bab.paragraf.map((p) => `${p.arab} ${p.arti}`).join(" ");
       const title = `${bab.nomorBab}. ${bab.judulLatin}`;
       const displayText = `${bab.judulArab} · ${bab.rentangHalaman} · ${text}`;
-      return {
-        title,
-        displayText,
-        searchText: `${title} ${bab.judulArab} ${text}`.toLocaleLowerCase("id"),
-      };
+      return makeChapter(title, displayText, `${bab.judulArab} ${text}`);
     });
-    kitabChapterCache[book.slug] = indexed;
+    setCachedBookChapters(book.slug, indexed);
     return indexed;
   }
 
@@ -327,13 +339,9 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
       const text = lembaran.paragraf.map((p) => `${p.arab} ${p.arti}`).join(" ");
       const title = `${lembaran.nomorLembaran}. ${lembaran.judulLatin}`;
       const displayText = `${lembaran.judulArab} · ${text}`;
-      return {
-        title,
-        displayText,
-        searchText: `${title} ${lembaran.judulArab} ${text}`.toLocaleLowerCase("id"),
-      };
+      return makeChapter(title, displayText, `${lembaran.judulArab} ${text}`);
     });
-    kitabChapterCache[book.slug] = indexed;
+    setCachedBookChapters(book.slug, indexed);
     return indexed;
   }
 
@@ -348,79 +356,111 @@ async function getBookChapters(book: LocalBookMeta, signal?: AbortSignal): Promi
         .join(" ");
       const title = `${bab.nomorBab}. ${bab.judulBab}`;
       const displayText = `${bab.judulBabArab} · ${bab.deskripsiSingkat} · ${itemsText}`;
-      return {
-        title,
-        displayText,
-        searchText: `${title} ${bab.judulBabArab} ${bab.deskripsiSingkat} ${itemsText}`.toLocaleLowerCase("id"),
-      };
+      return makeChapter(title, displayText, `${bab.judulBabArab} ${bab.deskripsiSingkat} ${itemsText}`);
     });
-    kitabChapterCache[book.slug] = indexed;
+    setCachedBookChapters(book.slug, indexed);
     return indexed;
   }
 
   if (book.source !== "local" || !book.file) return [];
 
-  const res = await fetch(`/data/${book.file}`, { signal });
-  if (!res.ok) return [];
-  const doc = await res.json();
+  return runDeduplicated(
+    `search-json:${book.slug}`,
+    async () => {
+      const res = await fetchWithTimeout(`/data/${book.file}`, { signal }, 12000);
+      if (!res.ok) return [];
+      const doc = await res.json();
 
-  let indexed: IndexedChapter[] = [];
-  if (book.format === "structured") {
-    const parsed = parseStructuredSafinah(doc);
-    indexed = parsed.map((ch) => {
-      const blocksText = (ch.blocks || []).map((b) => b.text || "").join(" ");
-      const title = ch.chapterTitle ? `${ch.chapterTitle} — ${ch.title}` : ch.title;
-      const displayText = blocksText || title;
-      return {
-        title,
-        displayText,
-        searchText: `${title} ${displayText}`.toLocaleLowerCase("id"),
-      };
-    });
-  } else {
-    const raw = arrayAt(doc);
-    indexed = raw.map((item, idx) => {
-      const ch = normalizeChapter(item, idx);
-      const displayText = [ch.translation, ch.latin, ch.arabic].filter(Boolean).join(" ");
-      return {
-        title: ch.title,
-        displayText,
-        searchText: `${ch.title} ${displayText}`.toLocaleLowerCase("id"),
-      };
-    });
-  }
+      let indexed: IndexedChapter[] = [];
+      if (book.format === "structured") {
+        const parsed = parseStructuredSafinah(doc);
+        indexed = parsed.map((ch) => {
+          const blocksText = (ch.blocks || []).map((b) => b.text || "").join(" ");
+          const title = ch.chapterTitle ? `${ch.chapterTitle} — ${ch.title}` : ch.title;
+          return makeChapter(title, blocksText || title);
+        });
+      } else {
+        const raw = arrayAt(doc);
+        indexed = raw.map((item, idx) => {
+          const ch = normalizeChapter(item, idx);
+          const displayText = [ch.translation, ch.latin, ch.arabic].filter(Boolean).join(" ");
+          return makeChapter(ch.title, displayText);
+        });
+      }
 
-  kitabChapterCache[book.slug] = indexed;
-  return indexed;
+      setCachedBookChapters(book.slug, indexed);
+      return indexed;
+    },
+    signal
+  );
 }
 
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
 async function getSurahList(signal?: AbortSignal): Promise<EQuranSurahSummary[]> {
-  if (surahListCache) return surahListCache;
-  const res = await fetch("https://equran.id/api/v2/surat", { signal });
-  if (!res.ok) return [];
-  const json = (await res.json()) as { data?: EQuranSurahSummary[] };
-  const list = Array.isArray(json.data) ? json.data : [];
-  surahListCache = list;
-  return list;
+  return fetchWithSwr<EQuranSurahSummary[]>({
+    key: "equran:/v2/surat",
+    freshTtlMs: ONE_DAY_MS,
+    staleTtlMs: 30 * ONE_DAY_MS,
+    signal,
+    fetcher: async () => {
+      const res = await fetchWithTimeout(
+        "https://equran.id/api/v2/surat",
+        { headers: { Accept: "application/json" } },
+        10000
+      );
+      if (!res.ok) throw new Error(`Gagal memuat surah (${res.status})`);
+      const json = (await res.json()) as { data?: EQuranSurahSummary[] };
+      return Array.isArray(json.data) ? json.data : [];
+    },
+  });
+}
+
+function mergeDoaSources(
+  curated: EQuranDoaItem[],
+  equranDoa?: EQuranDoaItem[] | null,
+  sanusiItems?: EQuranDoaItem[] | null
+): EQuranDoaItem[] {
+  const seen = new Set<string>();
+  const result: EQuranDoaItem[] = [];
+  const pushAll = (arr?: EQuranDoaItem[] | null) => {
+    if (!Array.isArray(arr)) return;
+    for (const item of arr) {
+      const norm = (item.nama || "").trim().toLocaleLowerCase("id");
+      if (!norm || seen.has(norm)) continue;
+      seen.add(norm);
+      result.push(item);
+    }
+  };
+  pushAll(curated);
+  pushAll(equranDoa);
+  pushAll(sanusiItems);
+  return result;
 }
 
 async function getAllDoaItems(signal?: AbortSignal): Promise<EQuranDoaItem[]> {
-  if (apiDoaCache) return apiDoaCache;
   const curated = await getCuratedPrayers();
+  const sanusiCached = getCachedSanusiDoaAndDzikir()?.items;
   try {
-    const res = await fetch("https://equran.id/api/doa", { signal });
-    if (!res.ok) return curated;
-    const json = (await res.json()) as { data?: EQuranDoaItem[] } | EQuranDoaItem[];
-    const arr = Array.isArray(json) ? json : Array.isArray(json.data) ? json.data : [];
-    const seen = new Set(curated.map((d) => (d.nama || "").toLocaleLowerCase("id")));
-    const merged = [
-      ...curated,
-      ...arr.filter((item) => item.nama && !seen.has(item.nama.toLocaleLowerCase("id"))),
-    ];
-    apiDoaCache = merged;
-    return merged;
+    const equranList = await fetchWithSwr<EQuranDoaItem[]>({
+      key: "equran:/doa",
+      freshTtlMs: ONE_DAY_MS,
+      staleTtlMs: 30 * ONE_DAY_MS,
+      signal,
+      fetcher: async () => {
+        const res = await fetchWithTimeout(
+          "https://equran.id/api/doa",
+          { headers: { Accept: "application/json" } },
+          10000
+        );
+        if (!res.ok) return [];
+        const json = (await res.json()) as { data?: EQuranDoaItem[] } | EQuranDoaItem[];
+        return Array.isArray(json) ? json : Array.isArray(json.data) ? json.data : [];
+      },
+    });
+    return mergeDoaSources(curated, equranList, sanusiCached);
   } catch {
-    return curated;
+    return mergeDoaSources(curated, null, sanusiCached);
   }
 }
 
@@ -495,12 +535,12 @@ export function runInstantGlobalSearch({
         matchedIn: "title",
       });
     }
-    const cached = kitabChapterCache[book.slug];
+    const cached = getCachedBookChapters(book.slug);
     if (cached) {
       let bookMatches = 0;
       for (let i = 0; i < cached.length && bookMatches < 2; i += 1) {
         const ch = cached[i];
-        if (ch.title.toLocaleLowerCase("id").includes(q)) {
+        if (ch.lowerTitle.includes(q)) {
           kitabMap.set(`${book.slug}:${i}`, {
             book,
             chapterIndex: i,
@@ -526,7 +566,9 @@ export function runInstantGlobalSearch({
 
   const guide = guideDataCache ? searchGuideData(guideDataCache, q) : [];
 
-  const doaList = apiDoaCache || curatedDoaCache || [];
+  const cachedEquranDoa = readSwrCache<EQuranDoaItem[]>("equran:/doa", true)?.value;
+  const cachedSanusiDoa = getCachedSanusiDoaAndDzikir()?.items;
+  const doaList = mergeDoaSources(curatedDoaCache || [], cachedEquranDoa, cachedSanusiDoa);
   const doa: DoaSearchMatch[] = [];
   for (const item of doaList) {
     const hay = [item.nama, item.grup, item.tentang, item.tr, item.idn, ...(item.tag || [])]
@@ -542,8 +584,9 @@ export function runInstantGlobalSearch({
   }
 
   const quran: QuranSearchMatch[] = [];
-  if (surahListCache) {
-    for (const s of surahListCache) {
+  const cachedSurahs = readSwrCache<EQuranSurahSummary[]>("equran:/v2/surat", true)?.value;
+  if (cachedSurahs) {
+    for (const s of cachedSurahs) {
       const hay = `${s.nomor} ${s.namaLatin} ${s.arti} ${s.tempatTurun}`.toLocaleLowerCase("id");
       if (hay.includes(q)) {
         quran.push({
@@ -658,38 +701,54 @@ export async function runDeepGlobalSearch({
       }
 
       if (q.length >= 3) {
-        const res = await fetch(
-          `https://api.alquran.cloud/v1/search/${encodeURIComponent(q)}/all/id.indonesian`,
-          { signal }
-        );
-        if (res.ok) {
-          const payload = (await res.json()) as {
-            data?: {
-              matches?: Array<{
-                numberInSurah?: number;
-                text?: string;
-                surah?: { number?: number; englishName?: string };
-              }>;
+        const matches = await fetchWithSwr<
+          Array<{
+            numberInSurah?: number;
+            text?: string;
+            surah?: { number?: number; englishName?: string };
+          }>
+        >({
+          key: `alquran:search:${q}`,
+          freshTtlMs: 6 * 60 * 60 * 1000,
+          staleTtlMs: ONE_DAY_MS,
+          persist: false,
+          signal,
+          fetcher: async () => {
+            const res = await fetchWithTimeout(
+              `https://api.alquran.cloud/v1/search/${encodeURIComponent(q)}/all/id.indonesian`,
+              { headers: { Accept: "application/json" } },
+              7000
+            );
+            if (!res.ok) return [];
+            const payload = (await res.json()) as {
+              data?: {
+                matches?: Array<{
+                  numberInSurah?: number;
+                  text?: string;
+                  surah?: { number?: number; englishName?: string };
+                }>;
+              };
             };
-          };
-          const matches = payload.data?.matches || [];
-          for (const m of matches.slice(0, 6)) {
-            const surahNo = m.surah?.number;
-            const ayatNo = m.numberInSurah;
-            if (!surahNo || !ayatNo) continue;
-            const key = `${surahNo}:${ayatNo}`;
-            if (seen.has(key)) continue;
-            seen.add(key);
-            const meta = list.find((s) => s.nomor === surahNo);
-            nextQuran.push({
-              surahNumber: surahNo,
-              surahName: meta?.namaLatin || m.surah?.englishName || `Surah ${surahNo}`,
-              arabicName: meta?.nama,
-              ayatNumber: ayatNo,
-              subtitle: `QS. ${meta?.namaLatin || surahNo} · Ayat ${ayatNo}`,
-              snippet: buildSnippet(m.text || "", q),
-            });
-          }
+            return payload.data?.matches || [];
+          },
+        });
+
+        for (const m of matches.slice(0, 6)) {
+          const surahNo = m.surah?.number;
+          const ayatNo = m.numberInSurah;
+          if (!surahNo || !ayatNo) continue;
+          const key = `${surahNo}:${ayatNo}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          const meta = list.find((s) => s.nomor === surahNo);
+          nextQuran.push({
+            surahNumber: surahNo,
+            surahName: meta?.namaLatin || m.surah?.englishName || `Surah ${surahNo}`,
+            arabicName: meta?.nama,
+            ayatNumber: ayatNo,
+            subtitle: `QS. ${meta?.namaLatin || surahNo} · Ayat ${ayatNo}`,
+            snippet: buildSnippet(m.text || "", q),
+          });
         }
       }
 
@@ -738,7 +797,7 @@ export async function runDeepGlobalSearch({
         let perBook = 0;
         for (let i = 0; i < chapters.length && perBook < 2; i += 1) {
           const ch = chapters[i];
-          const titleHit = ch.title.toLocaleLowerCase("id").includes(q);
+          const titleHit = ch.lowerTitle.includes(q);
           const bodyHit = !titleHit && ch.searchText.includes(q);
           if (titleHit || bodyHit) {
             kitabMatches.set(`${book.slug}:${i}`, {
