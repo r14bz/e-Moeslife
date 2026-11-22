@@ -59,7 +59,7 @@ jobs:
         env:
           VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
           VITE_APK_VERSION_CODE: ${{ github.run_number }}
-          VITE_APK_VERSION_NAME: 3.0.0
+          VITE_APK_VERSION_NAME: 3.0.${{ github.run_number }}
         run: npm run build
 
       - name: Add & sync Capacitor Android project
@@ -79,7 +79,7 @@ jobs:
       - name: Configure Android versioning & release signing
         env:
           APK_VERSION_CODE: ${{ github.run_number }}
-          APK_VERSION_NAME: 3.0.0
+          APK_VERSION_NAME: 3.0.${{ github.run_number }}
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -146,7 +146,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION_CODE: ${{ github.run_number }}
-          VERSION_NAME: 3.0.0
+          VERSION_NAME: 3.0.${{ github.run_number }}
           TARGET_TAG: v3.0-android
         run: |
           RELEASES_JSON=$(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=20" 2>/dev/null || echo "[]")

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import {
   formatApkSize,
+  INSTALLED_APK_VERSION_CODE,
   INSTALLED_APK_VERSION_NAME,
   isNativeAndroidApp,
   type ApkChangelogCategory,
@@ -214,12 +215,18 @@ export const ApkUpdatePrompt: React.FC<ApkUpdatePromptProps> = ({
             <span className="text-[var(--theme-muted)]">Versi terpasang</span>
             <span className="font-semibold text-[var(--theme-ink)]">
               v{INSTALLED_APK_VERSION_NAME}
+              {release.versionName === INSTALLED_APK_VERSION_NAME && INSTALLED_APK_VERSION_CODE > 0
+                ? ` (Build ${INSTALLED_APK_VERSION_CODE})`
+                : ""}
             </span>
           </div>
           <div className="mt-1.5 flex items-center justify-between gap-2">
             <span className="text-[var(--theme-muted)]">Versi terbaru</span>
             <span className="font-bold text-[var(--theme-tint-text)]">
               v{release.versionName}
+              {release.versionName === INSTALLED_APK_VERSION_NAME && release.versionCode > 0
+                ? ` (Build ${release.versionCode})`
+                : ""}
               {sizeLabel ? ` · ${sizeLabel}` : ""}
             </span>
           </div>

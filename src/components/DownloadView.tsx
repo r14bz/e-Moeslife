@@ -28,6 +28,7 @@ import {
   usePWAInstall,
   type DetectedPlatform,
 } from "../hooks/usePWAInstall";
+import { INSTALLED_APK_VERSION_NAME } from "../services/apkUpdater";
 import { FooterDisclaimer } from "./FooterDisclaimer";
 
 interface DownloadViewProps {
@@ -309,7 +310,9 @@ export const DownloadView: React.FC<DownloadViewProps> = ({ localBooks, onNaviga
               />
               <div className="min-w-0">
                 <p className="font-display text-lg font-semibold text-white">e-Moeslife</p>
-                <p className="text-xs text-[#d6e4da]">Paket Aplikasi PWA · Versi 3.0.0</p>
+                <p className="text-xs text-[#d6e4da]">
+                  Paket Aplikasi PWA · Versi {INSTALLED_APK_VERSION_NAME}
+                </p>
               </div>
             </div>
 
