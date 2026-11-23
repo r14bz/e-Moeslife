@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowLeft,
   BookOpen,
@@ -806,14 +807,15 @@ export const HadisView: React.FC<HadisViewProps> = ({ onBackHome }) => {
         </div>
 
         {/* Full Hadith Detail Modal */}
-        {(selectedHadis || detailLoading || detailError) && (
-          <div
-            className="modal-backdrop-enter fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3.5 backdrop-blur-xs sm:p-6"
-            onClick={() => {
-              setSelectedHadis(null);
-              setDetailError("");
-            }}
-          >
+        {(selectedHadis || detailLoading || detailError) &&
+          createPortal(
+            <div
+              className="modal-backdrop-enter fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3.5 backdrop-blur-xs sm:p-6"
+              onClick={() => {
+                setSelectedHadis(null);
+                setDetailError("");
+              }}
+            >
             <div
               role="dialog"
               aria-modal="true"
@@ -994,7 +996,8 @@ export const HadisView: React.FC<HadisViewProps> = ({ onBackHome }) => {
                 </div>
               )}
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         <FooterDisclaimer />

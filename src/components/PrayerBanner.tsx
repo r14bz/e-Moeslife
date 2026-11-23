@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Bell, BellOff, MapPin, Compass, X, Volume2, Play, Square } from "lucide-react";
 import type { DailyPrayerSchedule, PrayerLocation, SkyScene } from "../types/emoeslife";
 import { ThemedSelect } from "./ThemedSelect";
@@ -1149,13 +1150,14 @@ export const PrayerBanner: React.FC = () => {
         </div>
       </section>
 
-      {modalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setModalOpen(false);
-          }}
-        >
+      {modalOpen &&
+        createPortal(
+          <div
+            className="modal-backdrop-enter fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setModalOpen(false);
+            }}
+          >
           <div
             role="dialog"
             aria-modal="true"
@@ -1271,7 +1273,8 @@ export const PrayerBanner: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -8,6 +9,7 @@ import {
   ChevronRight,
   Copy,
   Info,
+  Languages,
   Loader2,
   RefreshCw,
   Search,
@@ -23,11 +25,15 @@ import {
   fetchEcodeSummary,
   getCachedEcodeList,
   getCachedEcodeSummary,
+  getCachedEcodeTranslation,
+  hasTranslatableEcodeFields,
   searchEcodes,
+  translateEcodeItem,
   type EcodeHalalStatus,
   type EcodeItem,
   type EcodeListMeta,
   type EcodeSummary,
+  type EcodeTranslation,
 } from "../services/ecodeService";
 import { ThemedSelect } from "./ThemedSelect";
 import { FooterDisclaimer } from "./FooterDisclaimer";
@@ -128,6 +134,76 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
   const [selectedItem, setSelectedItem] = useState<EcodeItem | null>(null);
   const [detailLoading, setDetailLoading] = useState<boolean>(false);
   const [copiedCode, setCopiedCode] = useState<string>("");
+  const [translation, setTranslation] = useState<EcodeTranslation | null>(null);
+  const [translating, setTranslating] = useState<boolean>(false);
+  const [translateError, setTranslateError] = useState<boolean>(false);
+  const [showOriginalText, setShowOriginalText] = useState<boolean>(false);
+  const [translateRetryTick, setTranslateRetryTick] = useState<number>(0);
+
+  useEffect(() => {
+    if (!selectedItem) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelectedItem(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [selectedItem]);
+
+  useEffect(() => {
+    setShowOriginalText(false);
+    setTranslateError(false);
+  }, [selectedItem?.code]);
+
+  useEffect(() => {
+    if (!selectedItem || !hasTranslatableEcodeFields(selectedItem)) {
+      setTranslation(null);
+      setTranslating(false);
+      setTranslateError(false);
+      return;
+    }
+
+    const cached = getCachedEcodeTranslation(selectedItem);
+    if (cached) {
+      setTranslation(cached);
+      setTranslating(false);
+      setTranslateError(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setTranslation(null);
+    setTranslating(true);
+    setTranslateError(false);
+
+    translateEcodeItem(selectedItem, controller.signal)
+      .then((res) => {
+        if (controller.signal.aborted) return;
+        setTranslation(res);
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        setTranslateError(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setTranslating(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [
+    selectedItem?.code,
+    selectedItem?.description,
+    selectedItem?.source,
+    selectedItem?.note,
+    selectedItem?.halalReason,
+    translateRetryTick,
+  ]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -251,15 +327,24 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
     }
   }, []);
 
-  const handleCopyItem = async (item: EcodeItem) => {
+  const handleCopyItem = async (
+    item: EcodeItem,
+    resolvedFields: {
+      halalReason?: string;
+      description?: string;
+      source?: string;
+      note?: string;
+    }
+  ) => {
     const statusLabel = STATUS_META[item.halalStatus].label;
     const text = [
       `${item.code} — ${item.name}`,
       `Status Halal: ${statusLabel}`,
       `Kategori: ${item.type}`,
-      item.halalReason ? `Alasan Status: ${item.halalReason}` : "",
-      item.description ? `Keterangan: ${item.description}` : "",
-      item.source ? `Sumber: ${item.source}` : "",
+      resolvedFields.halalReason ? `Alasan Status: ${resolvedFields.halalReason}` : "",
+      resolvedFields.description ? `Keterangan: ${resolvedFields.description}` : "",
+      resolvedFields.source ? `Sumber: ${resolvedFields.source}` : "",
+      resolvedFields.note ? `Catatan: ${resolvedFields.note}` : "",
     ]
       .filter(Boolean)
       .join("\n");
@@ -659,18 +744,19 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
       )}
 
       {/* Detail Modal */}
-      {selectedItem && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 p-0 backdrop-blur-xs sm:items-center sm:p-4"
-          onClick={() => setSelectedItem(null)}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="ecode-detail-title"
-        >
+      {selectedItem &&
+        createPortal(
           <div
-            className="w-full max-w-lg overflow-hidden rounded-t-3xl border border-[var(--theme-border-strong)] bg-[var(--theme-card)] shadow-2xl sm:rounded-3xl"
-            onClick={(e) => e.stopPropagation()}
+            className="modal-backdrop-enter fixed inset-0 z-50 flex items-end justify-center bg-black/55 p-0 backdrop-blur-xs sm:items-center sm:p-4"
+            onClick={() => setSelectedItem(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ecode-detail-title"
           >
+            <div
+              className="modal-card-enter w-full max-w-lg overflow-hidden rounded-t-3xl border border-[var(--theme-border-strong)] bg-[var(--theme-card)] shadow-2xl sm:rounded-3xl"
+              onClick={(e) => e.stopPropagation()}
+            >
             <div className="flex items-start justify-between gap-3 border-b border-[var(--theme-border-soft)] bg-[var(--theme-card-alt)] px-5 py-4">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 text-xs text-[var(--theme-muted)]">
@@ -699,88 +785,148 @@ export const EcodeHalalView: React.FC<EcodeHalalViewProps> = ({
             </div>
 
             <div className="max-h-[75vh] space-y-4 overflow-y-auto p-5">
-              {/* Status Callout */}
               {(() => {
+                const canTranslate = hasTranslatableEcodeFields(selectedItem);
+                const isTranslatedView = Boolean(translation) && !showOriginalText;
+                const activeHalalReason =
+                  (isTranslatedView ? translation?.halalReason : undefined) || selectedItem.halalReason;
+                const activeDescription =
+                  (isTranslatedView ? translation?.description : undefined) || selectedItem.description;
+                const activeSource =
+                  (isTranslatedView ? translation?.source : undefined) || selectedItem.source;
+                const activeNote =
+                  (isTranslatedView ? translation?.note : undefined) || selectedItem.note;
                 const st = STATUS_META[selectedItem.halalStatus];
+
                 return (
-                  <div className={`rounded-2xl border p-4 ${st.containerClass}`}>
-                    <div className="flex items-center gap-2 text-sm font-bold">
-                      {st.icon}
-                      <span>Status Kehalalan: {st.label}</span>
+                  <>
+                    {/* Status Callout */}
+                    <div className={`rounded-2xl border p-4 ${st.containerClass}`}>
+                      <div className="flex items-center gap-2 text-sm font-bold">
+                        {st.icon}
+                        <span>Status Kehalalan: {st.label}</span>
+                      </div>
+                      <p className="mt-1.5 text-xs leading-relaxed opacity-95">
+                        {activeHalalReason || st.shortDesc}
+                      </p>
                     </div>
-                    <p className="mt-1.5 text-xs leading-relaxed opacity-95">
-                      {selectedItem.halalReason || st.shortDesc}
-                    </p>
-                  </div>
+
+                    {detailLoading && (
+                      <div className="flex items-center gap-2 text-xs text-[var(--theme-muted)]">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <span>Memuat detail tambahan…</span>
+                      </div>
+                    )}
+
+                    {canTranslate && (
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--theme-border-soft)] pb-3">
+                        <div className="flex items-center gap-2 text-xs text-[var(--theme-muted)]">
+                          {translating ? (
+                            <>
+                              <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--theme-primary)]" />
+                              <span>Menerjemahkan keterangan ke Bahasa Indonesia…</span>
+                            </>
+                          ) : translateError && !translation ? (
+                            <span>Terjemahan otomatis belum tersedia</span>
+                          ) : isTranslatedView ? (
+                            <span>Bahasa Indonesia (terjemahan otomatis)</span>
+                          ) : (
+                            <span>Teks asli sumber data (Bahasa Inggris)</span>
+                          )}
+                        </div>
+
+                        {translateError && !translation ? (
+                          <button
+                            type="button"
+                            onClick={() => setTranslateRetryTick((t) => t + 1)}
+                            className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-[var(--theme-border-strong)] bg-[var(--theme-card-alt)] px-3 text-xs font-semibold whitespace-nowrap shrink-0 text-[var(--theme-primary)] transition-colors hover:border-[var(--theme-primary)] hover:bg-[var(--theme-tint-bg)]"
+                          >
+                            <Languages className="h-3.5 w-3.5" />
+                            <span>Terjemahkan (ID)</span>
+                          </button>
+                        ) : translation ? (
+                          <button
+                            type="button"
+                            onClick={() => setShowOriginalText((prev) => !prev)}
+                            className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-[var(--theme-border-strong)] bg-[var(--theme-card-alt)] px-3 text-xs font-semibold whitespace-nowrap shrink-0 text-[var(--theme-heading)] transition-colors hover:border-[var(--theme-primary)] hover:text-[var(--theme-primary)]"
+                          >
+                            <Languages className="h-3.5 w-3.5 text-[var(--theme-primary)]" />
+                            <span>{isTranslatedView ? "Lihat Teks Asli (EN)" : "Terjemahkan (ID)"}</span>
+                          </button>
+                        ) : null}
+                      </div>
+                    )}
+
+                    {activeDescription && (
+                      <div>
+                        <h3 className="text-xs font-semibold text-[var(--theme-muted)]">
+                          Keterangan &amp; Fungsi Bahan
+                        </h3>
+                        <p className="mt-1 text-sm leading-relaxed text-[var(--theme-ink)]">
+                          {activeDescription}
+                        </p>
+                      </div>
+                    )}
+
+                    {activeSource && (
+                      <div>
+                        <h3 className="text-xs font-semibold text-[var(--theme-muted)]">
+                          Kemungkinan Sumber Bahan
+                        </h3>
+                        <p className="mt-1 text-sm leading-relaxed text-[var(--theme-ink)]">
+                          {activeSource}
+                        </p>
+                      </div>
+                    )}
+
+                    {activeNote && (
+                      <div>
+                        <h3 className="text-xs font-semibold text-[var(--theme-muted)]">
+                          Catatan Tambahan
+                        </h3>
+                        <p className="mt-1 text-sm leading-relaxed text-[var(--theme-ink)]">
+                          {activeNote}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--theme-border-soft)] pt-4">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void handleCopyItem(selectedItem, {
+                            halalReason: activeHalalReason,
+                            description: activeDescription,
+                            source: activeSource,
+                            note: activeNote,
+                          })
+                        }
+                        className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-[var(--theme-border-strong)] bg-[var(--theme-card-alt)] px-4 text-xs font-semibold whitespace-nowrap shrink-0 text-[var(--theme-heading)] hover:bg-[var(--theme-tint-bg)]"
+                      >
+                        {copiedCode === selectedItem.code ? (
+                          <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                        <span>{copiedCode === selectedItem.code ? "Informasi Tersalin" : "Salin Info"}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedItem(null)}
+                        className="min-h-[44px] rounded-xl bg-[var(--theme-primary)] px-5 text-xs font-semibold whitespace-nowrap shrink-0 text-[var(--theme-primary-text)] hover:bg-[var(--theme-primary-hover)]"
+                      >
+                        Tutup
+                      </button>
+                    </div>
+                  </>
                 );
               })()}
-
-              {detailLoading && (
-                <div className="flex items-center gap-2 text-xs text-[var(--theme-muted)]">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  <span>Memuat detail tambahan…</span>
-                </div>
-              )}
-
-              {selectedItem.description && (
-                <div>
-                  <h3 className="text-xs font-semibold tracking-wide text-[var(--theme-muted)] uppercase">
-                    Keterangan &amp; Fungsi Bahan
-                  </h3>
-                  <p className="mt-1 text-sm leading-relaxed text-[var(--theme-ink)]">
-                    {selectedItem.description}
-                  </p>
-                </div>
-              )}
-
-              {selectedItem.source && (
-                <div>
-                  <h3 className="text-xs font-semibold tracking-wide text-[var(--theme-muted)] uppercase">
-                    Kemungkinan Sumber Bahan
-                  </h3>
-                  <p className="mt-1 text-sm leading-relaxed text-[var(--theme-ink)]">
-                    {selectedItem.source}
-                  </p>
-                </div>
-              )}
-
-              {selectedItem.note && (
-                <div>
-                  <h3 className="text-xs font-semibold tracking-wide text-[var(--theme-muted)] uppercase">
-                    Catatan Tambahan
-                  </h3>
-                  <p className="mt-1 text-sm leading-relaxed text-[var(--theme-ink)]">
-                    {selectedItem.note}
-                  </p>
-                </div>
-              )}
-
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--theme-border-soft)] pt-4">
-                <button
-                  type="button"
-                  onClick={() => void handleCopyItem(selectedItem)}
-                  className="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl border border-[var(--theme-border-strong)] bg-[var(--theme-card-alt)] px-4 text-xs font-semibold text-[var(--theme-heading)] hover:bg-[var(--theme-tint-bg)]"
-                >
-                  {copiedCode === selectedItem.code ? (
-                    <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                  <span>{copiedCode === selectedItem.code ? "Informasi Tersalin" : "Salin Info"}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedItem(null)}
-                  className="min-h-[42px] rounded-xl bg-[var(--theme-primary)] px-5 text-xs font-semibold text-[var(--theme-primary-text)] hover:bg-[var(--theme-primary-hover)]"
-                >
-                  Tutup
-                </button>
-              </div>
             </div>
           </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
 
       <FooterDisclaimer variant="compact" />
     </div>

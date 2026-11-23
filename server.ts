@@ -100,21 +100,213 @@ async function startServer() {
     }
   });
 
-  const ALLOWED_ECODE_ACTIONS = new Set(["summary", "list", "search", "detail"]);
+  const ALLOWED_ECODE_ACTIONS = new Set(["summary", "list", "search", "detail", "translate"]);
+  const ALLOWED_TRANSLATE_FIELDS = ["description", "source", "note"] as const;
   const ALLOWED_ECODE_STATUS = new Map([
     ["halal", "Halal"],
     ["haram", "Haram"],
     ["doubtful", "Doubtful"],
   ]);
 
+  const splitTranslationChunks = (text: string, maxLen = 420): string[] => {
+    if (text.length <= maxLen) return [text];
+    const sentences = text.match(/[^.!?]+[.!?]*/g) || [text];
+    const chunks: string[] = [];
+    let current = "";
+    for (const part of sentences) {
+      const trimmed = part.trim();
+      if (!trimmed) continue;
+      if (current && current.length + 1 + trimmed.length > maxLen) {
+        chunks.push(current);
+        current = trimmed;
+      } else {
+        current = current ? `${current} ${trimmed}` : trimmed;
+      }
+    }
+    if (current) chunks.push(current);
+    return chunks.length > 0 ? chunks : [text.slice(0, maxLen)];
+  };
+
+  const translateEcodeText = async (text: string): Promise<string> => {
+    const tryClients5 = async (): Promise<string> => {
+      const url = new URL("https://clients5.google.com/translate_a/t");
+      url.searchParams.set("client", "dict-chrome-ex");
+      url.searchParams.set("sl", "en");
+      url.searchParams.set("tl", "id");
+      url.searchParams.set("q", text);
+      const res = await fetch(url.toString(), {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(6500),
+      });
+      if (!res.ok) throw new Error(`clients5 HTTP ${res.status}`);
+      const parsed = (await res.json()) as unknown;
+      if (Array.isArray(parsed)) {
+        const joined = parsed
+          .map((item) =>
+            typeof item === "string"
+              ? item
+              : Array.isArray(item) && typeof item[0] === "string"
+                ? item[0]
+                : ""
+          )
+          .join(" ")
+          .replace(/\s+/g, " ")
+          .trim();
+        if (joined) return joined;
+      }
+      throw new Error("clients5 invalid response");
+    };
+
+    const tryMyMemory = async (): Promise<string> => {
+      const chunks = splitTranslationChunks(text, 420);
+      const translatedChunks = await Promise.all(
+        chunks.map(async (chunk) => {
+          const url = new URL("https://api.mymemory.translated.net/get");
+          url.searchParams.set("q", chunk);
+          url.searchParams.set("langpair", "en|id");
+          const res = await fetch(url.toString(), {
+            method: "GET",
+            headers: { Accept: "application/json" },
+            signal: AbortSignal.timeout(7000),
+          });
+          if (!res.ok) throw new Error(`mymemory HTTP ${res.status}`);
+          const parsed = (await res.json()) as { responseData?: { translatedText?: string } };
+          const out =
+            typeof parsed?.responseData?.translatedText === "string"
+              ? parsed.responseData.translatedText.trim()
+              : "";
+          if (!out || /QUERY LENGTH LIMIT EXCEEDED/i.test(out)) {
+            throw new Error("mymemory invalid");
+          }
+          return out;
+        })
+      );
+      return translatedChunks.join(" ").trim();
+    };
+
+    const tryGtx = async (): Promise<string> => {
+      const url = new URL("https://translate.googleapis.com/translate_a/single");
+      url.searchParams.set("client", "gtx");
+      url.searchParams.set("sl", "en");
+      url.searchParams.set("tl", "id");
+      url.searchParams.set("dt", "t");
+      url.searchParams.set("q", text);
+      const res = await fetch(url.toString(), {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(6500),
+      });
+      if (!res.ok) throw new Error(`gtx HTTP ${res.status}`);
+      const parsed = (await res.json()) as unknown;
+      if (!Array.isArray(parsed) || !Array.isArray(parsed[0])) {
+        throw new Error("gtx invalid payload");
+      }
+      const out = (parsed[0] as unknown[])
+        .map((seg) => (Array.isArray(seg) && typeof seg[0] === "string" ? seg[0] : ""))
+        .join("")
+        .trim();
+      if (!out) throw new Error("gtx empty");
+      return out;
+    };
+
+    let lastErr: unknown;
+    for (const fn of [tryClients5, tryMyMemory, tryGtx]) {
+      try {
+        const result = await fn();
+        if (result) return result;
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+    throw lastErr || new Error("Translation failed");
+  };
+
+  app.post("/api/ecode", express.json({ limit: "32kb" }), async (req, res) => {
+    const pick = (v: unknown) => (Array.isArray(v) ? String(v[0] || "") : String(v || ""));
+    const action = pick(req.query.action || "").trim().toLowerCase();
+    if (action !== "translate") {
+      return res.status(405).json({ status: "error", message: "Method POST hanya didukung untuk terjemahan E-Code." });
+    }
+
+    const body = req.body as unknown;
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return res.status(400).json({ status: "error", message: "Payload terjemahan tidak valid." });
+    }
+    const record = body as Record<string, unknown>;
+    const rawFields =
+      record.fields && typeof record.fields === "object" && !Array.isArray(record.fields)
+        ? (record.fields as Record<string, unknown>)
+        : record;
+
+    const entries: Array<[string, string]> = [];
+    for (const key of ALLOWED_TRANSLATE_FIELDS) {
+      const val = rawFields[key];
+      if (val === undefined || val === null || val === "") continue;
+      if (typeof val !== "string") {
+        return res.status(400).json({ status: "error", message: `Field ${key} harus berupa teks.` });
+      }
+      const clean = val.trim();
+      if (clean.length > 2000) {
+        return res.status(400).json({ status: "error", message: `Teks ${key} melebihi batas 2000 karakter.` });
+      }
+      if (clean) entries.push([key, clean]);
+    }
+
+    if (entries.length === 0) {
+      return res.status(200).json({ status: "ok", data: {} });
+    }
+
+    try {
+      const pairs = await Promise.all(
+        entries.map(async ([key, text]) => [key, await translateEcodeText(text)] as const)
+      );
+      res.setHeader("Cache-Control", "no-store");
+      return res.status(200).json({ status: "ok", data: Object.fromEntries(pairs) });
+    } catch {
+      return res.status(502).json({
+        status: "error",
+        message: "Layanan terjemahan sedang sibuk. Silakan coba beberapa saat lagi.",
+      });
+    }
+  });
+
   app.get("/api/ecode", async (req, res) => {
     const pick = (v: unknown) => (Array.isArray(v) ? String(v[0] || "") : String(v || ""));
     const action = pick(req.query.action || "list").trim().toLowerCase();
-    const apiKey = (process.env.AHMADSANUSI_API_KEY || "").trim();
 
     if (!ALLOWED_ECODE_ACTIONS.has(action)) {
       return res.status(400).json({ status: "error", message: "Aksi API E-Code tidak valid." });
     }
+
+    if (action === "translate") {
+      const entries: Array<[string, string]> = [];
+      for (const key of ALLOWED_TRANSLATE_FIELDS) {
+        const fallback = key === "description" ? pick(req.query.q) : "";
+        const clean = (pick(req.query[key]) || fallback).trim();
+        if (clean.length > 2000) {
+          return res.status(400).json({ status: "error", message: `Teks ${key} melebihi batas 2000 karakter.` });
+        }
+        if (clean) entries.push([key, clean]);
+      }
+      if (entries.length === 0) {
+        return res.status(200).json({ status: "ok", data: {} });
+      }
+      try {
+        const pairs = await Promise.all(
+          entries.map(async ([key, text]) => [key, await translateEcodeText(text)] as const)
+        );
+        res.setHeader("Cache-Control", "s-maxage=86400, stale-while-revalidate=604800");
+        return res.status(200).json({ status: "ok", data: Object.fromEntries(pairs) });
+      } catch {
+        return res.status(502).json({
+          status: "error",
+          message: "Layanan terjemahan sedang sibuk. Silakan coba beberapa saat lagi.",
+        });
+      }
+    }
+
+    const apiKey = (process.env.AHMADSANUSI_API_KEY || "").trim();
 
     if (!apiKey) {
       return res.status(503).json({
